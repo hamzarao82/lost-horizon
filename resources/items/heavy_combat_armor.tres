@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"heavy_combat_armor"
+display_name = "Heavy Combat Armor"
+kind = 1
+rarity = 2
+damage_multiplier = 1.0
+damage_reduction = 0.35
+heal_amount = 0.0
+description = "Reduces damage taken by 35%."

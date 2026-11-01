@@ -34,6 +34,8 @@ static var require_mouse_capture: bool = true
 @export var dodge_stamina: float = 20.0
 @export var input_buffer: float = 0.2
 
+var inventory: Inventory
+
 @onready var health: HealthComponent = $HealthComponent
 @onready var _visual_root: Node3D = $VisualRoot
 @onready var _camera_pivot: Node3D = $CameraPivot
@@ -58,6 +60,8 @@ var _hit_time: float = 0.0
 func _ready() -> void:
 	add_to_group("player")
 	HitStop.reset()
+	inventory = Inventory.new()
+	add_child(inventory)
 	for path in CHAIN_PATHS:
 		_chain.append(load(path) as AttackData)
 	stamina = max_stamina
@@ -103,6 +107,8 @@ func _poll_input(delta: float) -> void:
 	# The click that (re)captures the mouse must not also swing the weapon.
 	var attacks_allowed := not require_mouse_capture or TouchControls.touch_active \
 			or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	if Input.is_action_just_pressed("use_item") and state == State.FREE:
+		inventory.use_potion(health)
 	if Input.is_action_just_pressed("dodge"):
 		_set_buffer(&"dodge")
 	elif attacks_allowed and Input.is_action_just_pressed("attack_heavy"):
@@ -186,7 +192,7 @@ func _state_attack(delta: float) -> void:
 
 	var in_active := _attack_frames >= active_start and _attack_frames < active_end
 	if in_active and not _hitbox.is_active():
-		_hitbox.activate(data, self)
+		_hitbox.activate(data, self, inventory.damage_multiplier())
 	elif not in_active and _hitbox.is_active():
 		_hitbox.deactivate()
 
@@ -306,7 +312,7 @@ func _add_camera_trauma(amount: float) -> void:
 
 # --- taking damage ---------------------------------------------------------
 
-func receive_hit(attack: AttackData, from_position: Vector3) -> bool:
+func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float = 1.0) -> bool:
 	if state == State.DEAD or is_invulnerable():
 		return false
 	var away := global_position - from_position
@@ -317,7 +323,7 @@ func receive_hit(attack: AttackData, from_position: Vector3) -> bool:
 	_buffer = &""
 	velocity.x = away.x * attack.knockback
 	velocity.z = away.z * attack.knockback
-	health.take_damage(attack.damage)
+	health.take_damage(attack.damage * damage_scale * (1.0 - inventory.damage_reduction()))
 	if state != State.DEAD:
 		state = State.HIT
 		_hit_time = attack.stagger_time

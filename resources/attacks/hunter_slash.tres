@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"hunter_slash"
+damage = 9.0
+stamina_cost = 0.0
+startup_frames = 14
+active_frames = 4
+recovery_frames = 18
+knockback = 3.0
+stagger_time = 0.2
+lunge_speed = 6.0
+hit_stop = 0.06
+shake = 0.25
+swing_arc = 120.0
+swing_flip = false

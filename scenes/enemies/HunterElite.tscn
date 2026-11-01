@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/enemies/PatrolSoldier.tscn" id="1_base"]
+
+[node name="HunterElite" instance=ExtResource("1_base")]
+display_name = "Hunter"
+hit_points = 45.0
+swing_path = "res://resources/attacks/hunter_slash.tres"
+body_color = Color(0.45, 0.2, 0.6, 1)
+body_scale = 0.95
+cooldown_min = 0.5
+cooldown_max = 1.0
+dodge_chance = 0.3
+loot_table_path = "res://resources/loot/hunter_loot.tres"
+move_speed = 5.2
+attack_range = 1.7
+ring_distance = 3.0

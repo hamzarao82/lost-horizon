@@ -1,12 +1,22 @@
 class_name Hud
 extends CanvasLayer
-## Player health / stamina bars, controls hint, and end-of-arena messages.
+## Player bars, wave status, equipment panel, pickup toasts, and end-of-arena messages.
+
+const BANNER_SECONDS: float = 2.0
+const TOAST_SECONDS: float = 2.5
 
 var _health_bar: ProgressBar
 var _stamina_bar: ProgressBar
 var _message: Label
+var _wave_label: Label
+var _banner: Label
+var _equipment: Label
+var _toast: Label
 var _check_time: float = 0.0
+var _banner_time: float = 0.0
+var _toast_time: float = 0.0
 var _player: Player
+var _waves: WaveManager
 
 
 func _ready() -> void:
@@ -16,16 +26,19 @@ func _ready() -> void:
 	_stamina_bar.custom_minimum_size.y = 10
 	_stamina_bar.size.y = 10
 
-	_message = Label.new()
-	_message.add_theme_font_size_override("font_size", 48)
-	_message.add_theme_color_override("font_outline_color", Color.BLACK)
-	_message.add_theme_constant_override("outline_size", 8)
+	_message = _make_label(48, 8)
 	_message.visible = false
-	add_child(_message)
+	_banner = _make_label(40, 8)
+	_banner.visible = false
+	_wave_label = _make_label(20, 4)
+	_toast = _make_label(22, 4)
+	_toast.visible = false
+	_equipment = _make_label(18, 4)
+	_equipment.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
 	if not TouchControls.is_mobile_platform():
 		var hint := Label.new()
-		hint.text = "WASD move | Shift sprint | Space jump | Ctrl or C dodge | LMB light | RMB heavy | F3 stats"
+		hint.text = "WASD move | Shift sprint | Space jump | Ctrl or C dodge | LMB light | RMB heavy | R medkit | F3 stats"
 		hint.position = Vector2(16, 690)
 		hint.add_theme_color_override("font_outline_color", Color.BLACK)
 		hint.add_theme_constant_override("outline_size", 4)
@@ -37,17 +50,57 @@ func _ready() -> void:
 		_player.stamina_changed.connect(_on_stamina_changed)
 		_on_health_changed(_player.health.max_health, _player.health.max_health)
 		_on_stamina_changed(_player.max_stamina, _player.max_stamina)
+		if _player.inventory:
+			_player.inventory.changed.connect(_refresh_equipment)
+			_player.inventory.item_collected.connect(_on_item_collected)
+		_refresh_equipment()
+
+	_waves = get_tree().get_first_node_in_group("wave_manager") as WaveManager
+	if _waves:
+		_waves.wave_started.connect(_on_wave_started)
+	_refresh_wave_label()
 
 
 func _process(delta: float) -> void:
+	var viewport_size := get_viewport().get_visible_rect().size
+	_wave_label.position = Vector2((viewport_size.x - _wave_label.size.x) * 0.5, 12)
+	_equipment.position = Vector2(viewport_size.x - _equipment.size.x - 16, 12)
+	_toast.position = Vector2((viewport_size.x - _toast.size.x) * 0.5, viewport_size.y - 110)
+	_banner.position = Vector2((viewport_size.x - _banner.size.x) * 0.5, viewport_size.y * 0.25)
+
+	if _banner_time > 0.0:
+		_banner_time -= delta
+		_banner.modulate.a = clampf(_banner_time / 0.5, 0.0, 1.0)
+		_banner.visible = _banner_time > 0.0
+	if _toast_time > 0.0:
+		_toast_time -= delta
+		_toast.modulate.a = clampf(_toast_time / 0.5, 0.0, 1.0)
+		_toast.visible = _toast_time > 0.0
+
 	_check_time += delta
 	if _check_time < 0.25:
 		return
 	_check_time = 0.0
+	_refresh_wave_label()
 	if _player and _player.is_dead():
 		_show_message("YOU DIED", Color(0.9, 0.15, 0.15))
-	elif get_tree().get_nodes_in_group("enemies").is_empty():
+	elif _arena_cleared():
 		_show_message("ARENA CLEARED", Color(0.95, 0.85, 0.3))
+
+
+func _arena_cleared() -> bool:
+	if _waves and is_instance_valid(_waves):
+		return _waves.is_finished()
+	return get_tree().get_nodes_in_group("enemies").is_empty()
+
+
+func _make_label(font_size: int, outline: int) -> Label:
+	var label := Label.new()
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	label.add_theme_constant_override("outline_size", outline)
+	add_child(label)
+	return label
 
 
 func _make_bar(pos: Vector2, color: Color) -> ProgressBar:
@@ -74,6 +127,42 @@ func _on_health_changed(current: float, maximum: float) -> void:
 func _on_stamina_changed(current: float, maximum: float) -> void:
 	_stamina_bar.max_value = maximum
 	_stamina_bar.value = current
+
+
+func _on_wave_started(index: int, _total: int) -> void:
+	_banner.text = "WAVE %d" % index
+	_banner.add_theme_color_override("font_color", Color(0.95, 0.85, 0.3))
+	_banner.modulate.a = 1.0
+	_banner.visible = true
+	_banner_time = BANNER_SECONDS
+	_refresh_wave_label()
+
+
+func _refresh_wave_label() -> void:
+	var enemies := get_tree().get_nodes_in_group("enemies").size()
+	var wave := 0
+	var total := 4
+	if _waves and is_instance_valid(_waves):
+		wave = _waves.current_wave
+		total = _waves.total_waves()
+	_wave_label.text = "Wave %d/%d  Enemies: %d" % [wave, total, enemies]
+
+
+func _refresh_equipment() -> void:
+	if _player == null or _player.inventory == null:
+		return
+	var inv := _player.inventory
+	var weapon_text := inv.weapon.summary() if inv.weapon else "None"
+	var armor_text := inv.armor.summary() if inv.armor else "None"
+	_equipment.text = "Weapon: %s\nArmor: %s\nMedkits: %d  [R]" % [weapon_text, armor_text, inv.potions]
+
+
+func _on_item_collected(item: ItemData, kept: bool) -> void:
+	_toast.text = ("Picked up %s" if kept else "%s (not an upgrade)") % item.display_name
+	_toast.add_theme_color_override("font_color", item.color())
+	_toast.modulate.a = 1.0
+	_toast.visible = true
+	_toast_time = TOAST_SECONDS
 
 
 func _show_message(text: String, color: Color) -> void:

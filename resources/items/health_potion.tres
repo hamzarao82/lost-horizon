@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"health_potion"
+display_name = "Medkit"
+kind = 2
+rarity = 0
+damage_multiplier = 1.0
+damage_reduction = 0.0
+heal_amount = 40.0
+description = "Restores 40 health."

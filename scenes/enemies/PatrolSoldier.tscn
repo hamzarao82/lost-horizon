@@ -28,6 +28,8 @@ size = Vector3(1.5, 1.0, 1.6)
 collision_layer = 4
 collision_mask = 7
 script = ExtResource("1_enemy")
+display_name = "Soldier"
+loot_table_path = "res://resources/loot/soldier_loot.tres"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)

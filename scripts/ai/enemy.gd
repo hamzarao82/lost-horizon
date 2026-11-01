@@ -6,12 +6,23 @@ extends CharacterBody3D
 enum State { IDLE, CHASE, ATTACK, STAGGER, DEAD }
 
 const FPS: float = 60.0
-const SWING_PATH: String = "res://resources/attacks/enemy_swing.tres"
-const BASE_COLOR: Color = Color(0.55, 0.25, 0.2)
 const WINDUP_COLOR: Color = Color(1.0, 0.15, 0.1)
+const DODGE_COLOR: Color = Color(0.3, 0.55, 1.0)
 const TOKEN_TIMEOUT: float = 3.0
+const DODGE_SPEED: float = 9.0
 
 static var _token_holders: Array[int] = []
+
+@export var display_name: String = "Soldier"
+@export var hit_points: float = 60.0
+@export var swing_path: String = "res://resources/attacks/enemy_swing.tres"
+@export var body_color: Color = Color(0.55, 0.25, 0.2)
+@export var body_scale: float = 1.0
+@export_range(0.0, 1.0) var stagger_resist: float = 0.0
+@export var cooldown_min: float = 1.0
+@export var cooldown_max: float = 1.6
+@export_range(0.0, 1.0) var dodge_chance: float = 0.0
+@export var loot_table_path: String = ""
 
 @export var move_speed: float = 3.2
 @export var detection_range: float = 14.0
@@ -37,17 +48,21 @@ var _cooldown: float = 0.5
 var _attack_frames: float = 0.0
 var _stagger_time: float = 0.0
 var _flash_time: float = 0.0
+var _dodge_flash_time: float = 0.0
 var _strafe_sign: float = 1.0
 var _token_age: float = 0.0
 
 
 func _ready() -> void:
 	add_to_group("enemies")
-	_swing = load(SWING_PATH) as AttackData
+	_swing = load(swing_path) as AttackData
 	_material = StandardMaterial3D.new()
-	_material.albedo_color = BASE_COLOR
+	_material.albedo_color = body_color
 	_mesh.material_override = _material
+	_visual_root.scale = Vector3.ONE * body_scale
 	_strafe_sign = 1.0 if get_instance_id() % 2 == 0 else -1.0
+	_health.max_health = hit_points
+	_health.health = hit_points
 	_health.died.connect(_die)
 	_health.changed.connect(_on_health_changed)
 	_on_health_changed(_health.health, _health.max_health)
@@ -59,6 +74,12 @@ func _exit_tree() -> void:
 
 func is_dead() -> bool:
 	return state == State.DEAD
+
+
+## Wave spawns start hostile instead of waiting to notice the player.
+func aggro() -> void:
+	state = State.CHASE
+	_cooldown = randf_range(0.3, 1.0)
 
 
 func _physics_process(delta: float) -> void:
@@ -118,7 +139,8 @@ func _has_token() -> bool:
 func _try_take_token() -> bool:
 	if _has_token():
 		return true
-	if _token_holders.is_empty():
+	var limit := 1 if get_tree().get_nodes_in_group("enemies").size() <= 2 else 2
+	if _token_holders.size() < limit:
 		_token_holders.append(get_instance_id())
 		_token_age = 0.0
 		return true
@@ -207,7 +229,7 @@ func _state_attack(delta: float) -> void:
 	_weapon_pivot.visible = _attack_frames < total - 4.0
 
 	if _attack_frames >= total:
-		_finish_attack(randf_range(1.0, 1.6))
+		_finish_attack(randf_range(cooldown_min, cooldown_max))
 
 
 func _finish_attack(cooldown: float) -> void:
@@ -229,38 +251,66 @@ func _state_stagger(delta: float) -> void:
 
 func _update_color(delta: float) -> void:
 	_flash_time -= delta
+	_dodge_flash_time -= delta
 	if _flash_time > 0.0:
 		_material.albedo_color = Color.WHITE
+	elif _dodge_flash_time > 0.0:
+		_material.albedo_color = DODGE_COLOR
 	elif state == State.ATTACK and _attack_frames < _swing.startup_frames:
 		_material.albedo_color = WINDUP_COLOR  # telegraph
 	else:
-		_material.albedo_color = BASE_COLOR
+		_material.albedo_color = body_color
 
 
 # --- damage ----------------------------------------------------------------
 
-func receive_hit(attack: AttackData, from_position: Vector3) -> bool:
+func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float = 1.0) -> bool:
 	if state == State.DEAD:
+		return false
+	if state == State.CHASE and dodge_chance > 0.0 and randf() < dodge_chance:
+		_sidestep(from_position)
 		return false
 	var away := global_position - from_position
 	away.y = 0.0
 	away = away.normalized() if away.length_squared() > 0.001 else Vector3.BACK
-	velocity.x = away.x * attack.knockback
-	velocity.z = away.z * attack.knockback
+	var knockback := attack.knockback * (1.0 - stagger_resist * 0.5)
+	velocity.x = away.x * knockback
+	velocity.z = away.z * knockback
 	_flash_time = 0.08
-	_health.take_damage(attack.damage)
+	_health.take_damage(attack.damage * damage_scale)
 	if state != State.DEAD:
 		_hitbox.deactivate()
 		_weapon_pivot.visible = false
 		_release_token()
-		_stagger_time = attack.stagger_time
+		_stagger_time = attack.stagger_time * (1.0 - stagger_resist)
 		state = State.STAGGER
 	return true
 
 
+func _sidestep(from_position: Vector3) -> void:
+	var to_attacker := from_position - global_position
+	to_attacker.y = 0.0
+	if to_attacker.length_squared() < 0.001:
+		to_attacker = Vector3.FORWARD
+	var side := Vector3(-to_attacker.z, 0.0, to_attacker.x).normalized() * _strafe_sign
+	_move_horizontal(side, DODGE_SPEED)
+	_dodge_flash_time = 0.2
+	_cooldown = minf(_cooldown, 0.3)
+
+
 func _on_health_changed(current: float, maximum: float) -> void:
 	var filled := ceili(current / maximum * 10.0)
-	_label.text = "[%s%s]" % ["#".repeat(filled), "-".repeat(10 - filled)]
+	_label.text = "%s [%s%s]" % [display_name, "#".repeat(filled), "-".repeat(10 - filled)]
+
+
+func _drop_loot() -> void:
+	if loot_table_path == "":
+		return
+	var table := load(loot_table_path) as LootTable
+	var item := table.roll() if table else null
+	if item:
+		# Deferred: the Pickup is an Area3D and must not be added inside a physics callback.
+		Pickup.spawn.call_deferred(get_parent(), item, Vector3(global_position.x, 0.0, global_position.z))
 
 
 func _die() -> void:
@@ -272,6 +322,7 @@ func _die() -> void:
 	_label.visible = false
 	_material.albedo_color = Color(0.2, 0.2, 0.2)
 	set_deferred("collision_layer", 0)  # nobody collides with the body; it still lands on the floor
+	_drop_loot()
 	var tween := create_tween()
 	tween.tween_property(_visual_root, "rotation_degrees:x", -90.0, 0.35)
 	tween.tween_interval(1.5)
