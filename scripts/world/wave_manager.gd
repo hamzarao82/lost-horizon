@@ -16,6 +16,14 @@ const WAVES: Array[Array] = [
 ]
 const OBSTACLES: Array[Vector2] = [Vector2(8.0, -6.0), Vector2(-8.0, -4.0)]
 const OBSTACLE_CLEARANCE: float = 4.5
+const SAFE_SPAWNS: Array[Vector2] = [Vector2(22, 22), Vector2(-22, 22), Vector2(22, -22), Vector2(-22, -22)]
+## Loaded once up front so the first kill / first spawn of a type does not hitch (web, Android).
+const WARM_UP: PackedStringArray = [
+	"res://scenes/loot/Pickup.tscn",
+	"res://resources/loot/soldier_loot.tres",
+	"res://resources/loot/hunter_loot.tres",
+	"res://resources/loot/heavy_loot.tres",
+]
 const ARENA_LIMIT: float = 26.0
 const SPAWN_MIN: float = 12.0
 const SPAWN_MAX: float = 16.0
@@ -36,8 +44,20 @@ var _next_wave_in: float = -1.0
 
 func _ready() -> void:
 	add_to_group("wave_manager")
+	_warm_up()
 	if autostart:
 		start()
+
+
+func _warm_up() -> void:
+	for path in WARM_UP:
+		var res := load(path)
+		if res is LootTable:
+			for item_path in (res as LootTable).item_paths:
+				load(item_path)
+	for wave in WAVES:
+		for path in wave:
+			load(path)
 
 
 func start() -> void:
@@ -104,15 +124,26 @@ func _pick_spawn_point() -> Vector3:
 	var center := Vector2.ZERO
 	if player:
 		center = Vector2(player.global_position.x, player.global_position.z)
-	var point := Vector2.ZERO
+	var best := Vector2.INF
+	var best_dist := -1.0
 	for attempt in 12:
 		var angle := randf() * TAU
 		var dist := randf_range(SPAWN_MIN, SPAWN_MAX)
-		point = center + Vector2(cos(angle), sin(angle)) * dist
+		var point := center + Vector2(cos(angle), sin(angle)) * dist
 		point = point.clamp(Vector2(-ARENA_LIMIT, -ARENA_LIMIT), Vector2(ARENA_LIMIT, ARENA_LIMIT))
-		if _clear_of_obstacles(point):
+		var actual := point.distance_to(center)  # clamping can pull the point back toward the player
+		if _clear_of_obstacles(point) and actual > best_dist:
+			best = point
+			best_dist = actual
+		if best_dist >= SPAWN_MIN * 0.75:
 			break
-	return Vector3(point.x, 0.1, point.y)
+	if best_dist < SPAWN_MIN * 0.5:
+		# Player is hugging a wall/corner or every try hit an obstacle: use the farthest fixed corner.
+		for corner in SAFE_SPAWNS:
+			if corner.distance_to(center) > best_dist:
+				best = corner
+				best_dist = corner.distance_to(center)
+	return Vector3(best.x, 0.1, best.y)
 
 
 func _clear_of_obstacles(point: Vector2) -> bool:

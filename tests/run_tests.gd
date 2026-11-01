@@ -233,6 +233,17 @@ func _test_equipment_in_combat() -> void:
 	player.inventory.add_item(_item("health_potion"))
 	await _press("use_item")
 	_check(player.inventory.potions == 0 and player.health.health > hp - swing.damage * 0.8, "use_item key consumes a medkit and heals")
+
+	# A heal tapped mid-attack is buffered and used as soon as the attack ends
+	await _frames(40)
+	player.health.take_damage(30.0)
+	player.inventory.add_item(_item("health_potion"))
+	var hurt := player.health.health
+	await _press("attack_light")
+	await _press("use_item", 1)
+	_check(player.state == Player.State.ATTACK and player.inventory.potions == 1, "heal is not used mid-attack")
+	await _frames(60)
+	_check(player.inventory.potions == 0 and player.health.health > hurt, "buffered heal is used after the attack")
 	main.queue_free()
 	await _frames(3)
 
@@ -292,6 +303,15 @@ func _test_variants_and_drops() -> void:
 	heavy.receive_hit(stagger_probe, player.global_position)
 	soldier.receive_hit(stagger_probe, player.global_position)
 	_check(heavy._stagger_time < soldier._stagger_time, "heavy resists stagger")
+
+	hunter.set_physics_process(true)
+	hunter.dodge_chance = 1.0
+	hunter.state = Enemy.State.CHASE
+	var hunter_start := hunter.global_position
+	_check(not hunter.receive_hit(stagger_probe, hunter.global_position + Vector3(0, 0, 2)), "a dodged hit deals no damage")
+	await _frames(14)
+	_check(_hp(hunter) == 45.0 and hunter.global_position.distance_to(hunter_start) > 1.0, "hunter sidestep actually moves it")
+	hunter.set_physics_process(false)
 
 	var table := load(soldier.loot_table_path) as LootTable
 	var original_chance := table.drop_chance

@@ -14,6 +14,7 @@ const CHAIN_PATHS: Array[String] = [
 ]
 const HEAVY_INDEX: int = 2
 const AIM_ASSIST_RANGE: float = 4.0
+const HEAL_BUFFER: float = 0.8  # long enough to outlast a heavy attack
 
 ## Tests turn this off; they drive actions without a captured mouse.
 static var require_mouse_capture: bool = true
@@ -50,6 +51,7 @@ var _chain: Array[AttackData] = []
 var _stamina_delay: float = 0.0
 var _buffer: StringName = &""
 var _buffer_time: float = 0.0
+var _heal_time: float = 0.0
 var _dodge_time: float = 0.0
 var _dodge_dir: Vector3 = Vector3.ZERO
 var _attack_idx: int = -1
@@ -107,8 +109,11 @@ func _poll_input(delta: float) -> void:
 	# The click that (re)captures the mouse must not also swing the weapon.
 	var attacks_allowed := not require_mouse_capture or TouchControls.touch_active \
 			or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
-	if Input.is_action_just_pressed("use_item") and state == State.FREE:
-		inventory.use_potion(health)
+	_heal_time -= delta
+	if Input.is_action_just_pressed("use_item"):
+		_heal_time = HEAL_BUFFER
+	if _heal_time > 0.0 and (state == State.FREE or state == State.HIT) and inventory.use_potion(health):
+		_heal_time = 0.0
 	if Input.is_action_just_pressed("dodge"):
 		_set_buffer(&"dodge")
 	elif attacks_allowed and Input.is_action_just_pressed("attack_heavy"):

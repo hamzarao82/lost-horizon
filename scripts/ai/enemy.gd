@@ -10,8 +10,10 @@ const WINDUP_COLOR: Color = Color(1.0, 0.15, 0.1)
 const DODGE_COLOR: Color = Color(0.3, 0.55, 1.0)
 const TOKEN_TIMEOUT: float = 3.0
 const DODGE_SPEED: float = 9.0
+const DODGE_DURATION: float = 0.25
 
 static var _token_holders: Array[int] = []
+static var _alive: int = 0
 
 @export var display_name: String = "Soldier"
 @export var hit_points: float = 60.0
@@ -49,12 +51,16 @@ var _attack_frames: float = 0.0
 var _stagger_time: float = 0.0
 var _flash_time: float = 0.0
 var _dodge_flash_time: float = 0.0
+var _dodge_time: float = 0.0
+var _counted: bool = false
 var _strafe_sign: float = 1.0
 var _token_age: float = 0.0
 
 
 func _ready() -> void:
 	add_to_group("enemies")
+	_counted = true
+	_alive += 1
 	_swing = load(swing_path) as AttackData
 	_material = StandardMaterial3D.new()
 	_material.albedo_color = body_color
@@ -68,7 +74,14 @@ func _ready() -> void:
 	_on_health_changed(_health.health, _health.max_health)
 
 
+func _uncount() -> void:
+	if _counted:
+		_counted = false
+		_alive -= 1
+
+
 func _exit_tree() -> void:
+	_uncount()
 	_release_token()
 
 
@@ -139,7 +152,7 @@ func _has_token() -> bool:
 func _try_take_token() -> bool:
 	if _has_token():
 		return true
-	var limit := 1 if get_tree().get_nodes_in_group("enemies").size() <= 2 else 2
+	var limit := 1 if _alive <= 2 else 2
 	if _token_holders.size() < limit:
 		_token_holders.append(get_instance_id())
 		_token_age = 0.0
@@ -162,6 +175,9 @@ func _state_idle() -> void:
 
 
 func _state_chase(delta: float) -> void:
+	if _dodge_time > 0.0:
+		_dodge_time -= delta  # keep the sidestep velocity set in _sidestep()
+		return
 	var player := _target()
 	if player == null or _flat_to(player).length() > lose_range:
 		_release_token()
@@ -294,6 +310,8 @@ func _sidestep(from_position: Vector3) -> void:
 		to_attacker = Vector3.FORWARD
 	var side := Vector3(-to_attacker.z, 0.0, to_attacker.x).normalized() * _strafe_sign
 	_move_horizontal(side, DODGE_SPEED)
+	_dodge_time = DODGE_DURATION
+	_material.albedo_color = DODGE_COLOR
 	_dodge_flash_time = 0.2
 	_cooldown = minf(_cooldown, 0.3)
 
@@ -318,6 +336,7 @@ func _die() -> void:
 	_release_token()
 	_hitbox.deactivate()
 	remove_from_group("enemies")
+	_uncount()
 	_weapon_pivot.visible = false
 	_label.visible = false
 	_material.albedo_color = Color(0.2, 0.2, 0.2)

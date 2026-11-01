@@ -13,10 +13,12 @@ var _mesh: MeshInstance3D
 
 
 static func spawn(parent: Node, new_item: ItemData, position: Vector3) -> Pickup:
+	if not is_instance_valid(parent) or not parent.is_inside_tree():
+		return null  # the scene was freed or reloaded before this deferred call ran
 	var pickup := (load(SCENE_PATH) as PackedScene).instantiate() as Pickup
 	pickup.item = new_item
+	pickup.position = position  # before add_child so _ready sees the real height
 	parent.add_child(pickup)
-	pickup.global_position = position
 	return pickup
 
 
