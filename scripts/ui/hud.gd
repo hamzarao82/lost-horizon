@@ -58,7 +58,7 @@ func _ready() -> void:
 	if _player:
 		_player.health.changed.connect(_on_health_changed)
 		_player.stamina_changed.connect(_on_stamina_changed)
-		_on_health_changed(_player.health.max_health, _player.health.max_health)
+		_on_health_changed(_player.health.health, _player.health.max_health)  # may be restored from a save
 		_on_stamina_changed(_player.max_stamina, _player.max_stamina)
 		if _player.inventory:
 			_player.inventory.changed.connect(_refresh_equipment)
@@ -69,6 +69,13 @@ func _ready() -> void:
 	if _waves:
 		_waves.wave_started.connect(_on_wave_started)
 	_refresh_wave_label()
+
+	var save_manager := get_node_or_null("/root/SaveManager")
+	if save_manager:
+		save_manager.saved.connect(_on_saved)
+		var notice: String = save_manager.consume_notice()
+		if not notice.is_empty():
+			_show_toast(notice, Color(0.5, 0.85, 1.0))
 
 
 func _process(delta: float) -> void:
@@ -186,8 +193,16 @@ func _refresh_equipment() -> void:
 
 
 func _on_item_collected(item: ItemData, kept: bool) -> void:
-	_toast.text = ("Picked up %s" if kept else "%s (not an upgrade)") % item.display_name
-	_toast.add_theme_color_override("font_color", item.color())
+	_show_toast(("Picked up %s" if kept else "%s (not an upgrade)") % item.display_name, item.color())
+
+
+func _on_saved(_reason: String) -> void:
+	_show_toast("Progress saved", Color(0.6, 0.95, 0.6))
+
+
+func _show_toast(text: String, color: Color) -> void:
+	_toast.text = text
+	_toast.add_theme_color_override("font_color", color)
 	_toast.modulate.a = 1.0
 	_toast.visible = true
 	_toast_time = TOAST_SECONDS

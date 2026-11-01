@@ -3,6 +3,7 @@ extends Node
 ## Spawns enemy waves around the player; advances when the arena is clear.
 
 signal wave_started(index: int, total: int)
+signal wave_cleared(index: int)
 signal all_cleared
 
 const SOLDIER: String = "res://scenes/enemies/PatrolSoldier.tscn"
@@ -63,8 +64,15 @@ func _warm_up() -> void:
 			load(path)
 
 
+## Begin at the wave a queued Load / death checkpoint asks for, otherwise wave 1.
 func start() -> void:
-	current_wave = 0
+	var save_manager := _save_manager()
+	start_wave_at(save_manager.consume_start_wave(WAVES.size()) if save_manager else 1)
+
+
+## Begin with a specific 1-based wave (after start_delay), ignoring any queued save state.
+func start_wave_at(index: int) -> void:
+	current_wave = clampi(index, 1, WAVES.size()) - 1
 	_finished = false
 	_running = true
 	_wave_spawned = false
@@ -73,6 +81,20 @@ func start() -> void:
 
 func is_finished() -> bool:
 	return _finished
+
+
+## The wave a save made right now should resume on: the current wave while its enemies are alive,
+## the next one between waves, and wave 1 again once the arena has been cleared.
+func resume_index() -> int:
+	if _finished:
+		return 1
+	if _wave_spawned:
+		return current_wave
+	return mini(current_wave + 1, WAVES.size())
+
+
+func _save_manager() -> Node:
+	return get_node_or_null("/root/SaveManager")
 
 
 func total_waves() -> int:
@@ -93,12 +115,21 @@ func _process(delta: float) -> void:
 	_poll_time = 0.0
 	if _wave_spawned and get_tree().get_nodes_in_group("enemies").is_empty():
 		_wave_spawned = false
+		var save_manager := _save_manager()
+		if save_manager and WAVES[current_wave - 1].has(WARDEN):
+			save_manager.mark_boss_defeated("warden")
+		wave_cleared.emit(current_wave)
 		if current_wave >= WAVES.size():
 			_finished = true
 			_running = false
+			if save_manager:
+				save_manager.autosave("complete")
+				save_manager.clear_checkpoint()
 			all_cleared.emit()
 		else:
 			_next_wave_in = between_waves_delay
+			if save_manager:
+				save_manager.autosave("wave")
 
 
 func _spawn_wave() -> void:
@@ -119,6 +150,9 @@ func _spawn_wave() -> void:
 		if enemy.has_method("aggro"):
 			enemy.call("aggro")
 	_wave_spawned = true
+	var save_manager := _save_manager()
+	if save_manager:
+		save_manager.set_checkpoint(current_wave)  # where a death restart resumes
 	wave_started.emit(current_wave, WAVES.size())
 
 

@@ -18,6 +18,7 @@ var _root: Control
 var _main_page: VBoxContainer
 var _settings_page: VBoxContainer
 var _pause_button: Button
+var _load_button: Button
 var _quality_buttons: Array[Button] = []
 var _sliders: Dictionary = {}  # name -> HSlider
 
@@ -51,6 +52,7 @@ func open() -> void:
 	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_sync_controls()
+	_refresh_load_button()
 	_show_page(_main_page)
 	_root.visible = true
 	toggled.emit(true)
@@ -161,6 +163,9 @@ func _build_main_page() -> VBoxContainer:
 	page.add_theme_constant_override("separation", 12)
 	page.add_child(_title("PAUSED"))
 	page.add_child(_button("Resume", close))
+	page.add_child(_button("Save", _on_save))
+	_load_button = _button("Load", _on_load)
+	page.add_child(_load_button)
 	page.add_child(_button("Restart", _on_restart))
 	page.add_child(_button("Settings", func() -> void: _show_page(_settings_page)))
 	if not OS.has_feature("web") and not TouchControls.is_mobile_platform():
@@ -269,5 +274,36 @@ func _on_quality_pressed(index: int) -> void:
 
 
 func _on_restart() -> void:
+	var save_manager := _save_manager()
+	if save_manager:
+		save_manager.reset_runtime_state()  # a deliberate restart is a fresh run, not a checkpoint resume
 	close()
 	get_tree().reload_current_scene()
+
+
+func _save_manager() -> Node:
+	return get_node_or_null("/root/SaveManager")
+
+
+## Close first so the HUD (which does not tick while paused) can show "Progress saved".
+func _on_save() -> void:
+	close()
+	var save_manager := _save_manager()
+	if save_manager:
+		save_manager.save_game("manual")
+
+
+func _on_load() -> void:
+	var save_manager := _save_manager()
+	if save_manager and save_manager.load_game():
+		close()
+		get_tree().reload_current_scene()
+	else:
+		_refresh_load_button()
+
+
+func _refresh_load_button() -> void:
+	var save_manager := _save_manager()
+	var available: bool = save_manager != null and save_manager.has_save()
+	_load_button.disabled = not available
+	_load_button.text = "Load" if available else "Load (no save)"

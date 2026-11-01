@@ -57,6 +57,8 @@ var _dodge_dir: Vector3 = Vector3.ZERO
 var _attack_idx: int = -1
 var _attack_frames: float = 0.0
 var _hit_time: float = 0.0
+var _targeting: Targeting = Targeting.new()
+var _lock_marker: MeshInstance3D
 
 
 func _ready() -> void:
@@ -71,6 +73,12 @@ func _ready() -> void:
 	_hitbox.hit.connect(_on_hit_landed)
 
 
+func _exit_tree() -> void:
+	# The marker is parented to the target while locked, and is orphaned otherwise.
+	if is_instance_valid(_lock_marker) and _lock_marker.get_parent() == null:
+		_lock_marker.free()
+
+
 func is_invulnerable() -> bool:
 	return state == State.DODGE and _dodge_time < dodge_iframes
 
@@ -79,9 +87,19 @@ func is_dead() -> bool:
 	return state == State.DEAD
 
 
+func is_sprinting() -> bool:
+	return state == State.FREE and Input.is_action_pressed("sprint") \
+			and Vector2(velocity.x, velocity.z).length() > walk_speed + 0.5
+
+
+func lock_target() -> Node3D:
+	return _targeting.target
+
+
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
+	_update_lock(delta)
 	_poll_input(delta)
 	_regen_stamina(delta)
 	match state:
@@ -109,6 +127,8 @@ func _poll_input(delta: float) -> void:
 	# The click that (re)captures the mouse must not also swing the weapon.
 	var attacks_allowed := not require_mouse_capture or TouchControls.touch_active \
 			or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	if attacks_allowed and state != State.DEAD and Input.is_action_just_pressed("lock_on"):
+		toggle_lock()
 	_heal_time -= delta
 	if Input.is_action_just_pressed("use_item"):
 		_heal_time = HEAL_BUFFER
@@ -159,7 +179,10 @@ func _state_free(delta: float) -> void:
 	var target := direction * speed
 	velocity.x = move_toward(velocity.x, target.x, accel * delta)
 	velocity.z = move_toward(velocity.z, target.z, accel * delta)
-	if direction.length_squared() > 0.001:
+	var lock_dir := _lock_direction()
+	if lock_dir.length_squared() > 0.001 and not Input.is_action_pressed("sprint"):
+		_turn_toward(lock_dir, delta)  # strafe: keep facing the locked enemy
+	elif direction.length_squared() > 0.001:
 		_turn_toward(direction, delta)
 	if is_on_floor() and Input.is_action_just_pressed("jump"):
 		velocity.y = jump_velocity
@@ -286,6 +309,10 @@ func _end_attack() -> void:
 
 
 func _face_attack_direction() -> void:
+	var locked := _lock_direction()
+	if locked.length_squared() > 0.001:
+		_visual_root.rotation.y = atan2(-locked.x, -locked.z)
+		return
 	var dir := _input_direction()
 	var best_dist := AIM_ASSIST_RANGE
 	for node in get_tree().get_nodes_in_group("enemies"):
@@ -299,6 +326,108 @@ func _face_attack_direction() -> void:
 	dir.y = 0.0
 	if dir.length_squared() > 0.001:
 		_visual_root.rotation.y = atan2(-dir.x, -dir.z)
+
+
+# --- lock-on ---------------------------------------------------------------
+
+func _camera_forward() -> Vector3:
+	return Basis(Vector3.UP, _camera_pivot.global_rotation.y) * Vector3.FORWARD
+
+
+func _physics_space() -> PhysicsDirectSpaceState3D:
+	return get_world_3d().direct_space_state
+
+
+## Flat direction to the locked target, or ZERO when not locked.
+func _lock_direction() -> Vector3:
+	var locked := _targeting.target
+	if locked == null or not is_instance_valid(locked):
+		return Vector3.ZERO
+	return Targeting.flat(locked.global_position - global_position).normalized()
+
+
+func toggle_lock() -> void:
+	if _targeting.target != null:
+		# On touch there is no separate cycle control: tapping Lock again hops to the next enemy.
+		if TouchControls.touch_active and cycle_lock(1):
+			return
+		_clear_lock()
+		return
+	_targeting.acquire(global_position, _camera_forward(),
+			get_tree().get_nodes_in_group("enemies"), _physics_space())
+	_apply_lock()
+
+
+## Switch to the next target right (+1) or left (-1). Returns true if the target changed.
+func cycle_lock(direction: int) -> bool:
+	if _targeting.target == null:
+		return false
+	var previous := _targeting.target
+	_targeting.cycle(direction, global_position, _camera_forward(),
+			get_tree().get_nodes_in_group("enemies"), _physics_space())
+	_apply_lock()
+	return _targeting.target != previous
+
+
+func _clear_lock() -> void:
+	_targeting.clear()
+	_apply_lock()
+
+
+func _apply_lock() -> void:
+	var cam := get_tree().get_first_node_in_group("camera_controller") as CameraController
+	var locked := _targeting.target
+	if cam:
+		if locked:
+			cam.set_lock_target(locked)
+		else:
+			cam.clear_lock_target()
+	_place_marker(locked)
+
+
+func _update_lock(delta: float) -> void:
+	if _targeting.target == null:
+		return
+	if state == State.DEAD or not _targeting.update(delta, global_position, _physics_space()):
+		_clear_lock()
+		return
+	if is_instance_valid(_lock_marker):
+		_lock_marker.rotation.y += delta * 3.0
+
+
+func _place_marker(locked: Node3D) -> void:
+	if not is_instance_valid(_lock_marker):
+		_lock_marker = MeshInstance3D.new()
+		var cone := CylinderMesh.new()  # wide top, point down: an arrow over the target
+		cone.top_radius = 0.22
+		cone.bottom_radius = 0.0
+		cone.height = 0.4
+		cone.radial_segments = 8
+		cone.rings = 1
+		_lock_marker.mesh = cone
+		var material := StandardMaterial3D.new()
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		material.albedo_color = Color(1.0, 0.85, 0.2)
+		_lock_marker.material_override = material
+		_lock_marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var parent := _lock_marker.get_parent()
+	if parent:
+		parent.remove_child(_lock_marker)
+	if locked == null:
+		return
+	var visual := locked.get_node_or_null("VisualRoot") as Node3D
+	var height := (visual.scale.y if visual else 1.0) * 2.0 + 0.9
+	locked.add_child(_lock_marker)
+	_lock_marker.position = Vector3(0.0, height, 0.0)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if state == State.DEAD:
+		return
+	if event.is_action_pressed("target_next"):
+		cycle_lock(1)
+	elif event.is_action_pressed("target_prev"):
+		cycle_lock(-1)
 
 
 func _update_weapon_visual(data: AttackData, active_end: float) -> void:
@@ -350,5 +479,6 @@ func _sfx(sfx_name: StringName, volume_db: float = 0.0) -> void:
 
 func _die() -> void:
 	state = State.DEAD
+	_clear_lock()
 	_hitbox.deactivate()
 	get_tree().create_timer(2.0, true, false, true).timeout.connect(get_tree().reload_current_scene)

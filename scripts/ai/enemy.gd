@@ -8,6 +8,9 @@ signal swing_started
 ## Emitted for every hit that reaches this enemy; dodged is true when it sidestepped instead.
 signal was_hit(dodged: bool)
 signal defeated
+## Emitted for every landed hit with the real damage (after weapon scaling), the impact point, and
+## whether it killed. Effects (sparks, damage numbers) listen to this.
+signal damaged(amount: float, position: Vector3, was_kill: bool)
 
 enum State { IDLE, CHASE, ATTACK, STAGGER, DEAD }
 
@@ -303,7 +306,9 @@ func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float
 		velocity.x = away.x * knockback
 		velocity.z = away.z * knockback
 	_flash_time = 0.08
-	_health.take_damage(attack.damage * damage_scale)
+	var dealt := attack.damage * damage_scale
+	_health.take_damage(dealt)
+	damaged.emit(dealt, global_position + Vector3(0.0, 1.1 * body_scale, 0.0), state == State.DEAD)
 	was_hit.emit(false)
 	if state != State.DEAD:
 		_on_damaged()

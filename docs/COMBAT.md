@@ -29,3 +29,16 @@ Weapons and armor auto-equip only if better; medkits heal 40 (R key / Heal butto
 
 ## Waves
 4 waves: 2 Soldiers; 2 Soldiers + Hunter; Heavy + Hunter + Soldier; Heavy + 2 Hunters.
+
+## Lock-on
+`Targeting` (scripts/combat/targeting.gd) picks the enemy nearest the screen centre within 14 m and a 75-degree cone of the camera, with a line-of-sight ray against the world. It drops the lock when the target dies or is freed, goes beyond 18 m, or is out of sight for more than 1.5 s.
+
+| Input | Action |
+|---|---|
+| Middle mouse / Tab / right-stick click | `lock_on`: lock, press again to release |
+| Mouse wheel / RB / LB | `target_next` / `target_prev`: switch left or right by screen position (wraps) |
+| Touch "Lock" button | Lock; tapping again hops to the next enemy, and releases when there is only one |
+
+While locked: attacks and strafing face the target (sprinting turns you to your movement), dodge still follows input, the camera eases toward keeping the target in view (mouse and touch look still nudge it), and a yellow arrow floats above the target.
+Camera extras: FOV widens by 8 degrees while sprinting, and a soft lag follows player velocity. Shake is unchanged.
+Tests: `tests/lockon_check.gd` (25 checks).

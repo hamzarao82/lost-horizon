@@ -11,3 +11,6 @@ Overlay: F3 toggles (on by default in debug builds).
 | 2026-11-01 | Godot 4.7.2 + audio/rig/boss/menu | Windows (editor run) | 4 enemies, auto-attacking, vsync off | 103 avg (1% low 52) | 167 peak | 41 | 105 MB | Intel UHD 620, 1280x720, tests/benchmark.gd |
 | 2026-11-01 | same | Web export | n/a | not measured | n/a | n/a | 39 MB wasm + 0.35 MB pck | no browser measurement yet |
 | 2026-11-01 | same | Android debug APK | n/a | not measured | n/a | n/a | 28.6 MB | built, signed with debug key; not run on a device |
+| 2026-11-01 | + lock-on, save, fx, island decor | Windows (editor run) | 4 enemies, auto-attacking, vsync off | 142 avg (1% low 71-75) | 173-178 peak | 48 | 109 MB | Intel UHD 620, 1280x720 |
+| 2026-11-01 | same | Web export | n/a | not measured | n/a | n/a | 39 MB wasm + 0.43 MB pck | exported, not run in a browser by me |
+| 2026-11-01 | same | Android debug APK | n/a | not measured | n/a | n/a | 28.7 MB | exported, not run on a device |

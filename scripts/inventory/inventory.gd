@@ -6,6 +6,8 @@ signal changed
 signal item_collected(item: ItemData, kept: bool)
 
 const STARTING_WEAPON: String = "res://resources/items/improvised_blade.tres"
+const ITEM_DIR: String = "res://resources/items/"
+const MAX_POTIONS: int = 99
 
 var weapon: ItemData
 var armor: ItemData
@@ -15,6 +17,62 @@ var potion_heal: float = 40.0
 
 func _ready() -> void:
 	weapon = load(STARTING_WEAPON) as ItemData
+	_restore_pending_state()
+
+
+## Stable ids only; item definitions are never stored in the save.
+func to_dict() -> Dictionary:
+	return {
+		"weapon": String(weapon.item_id) if weapon else "",
+		"armor": String(armor.item_id) if armor else "",
+		"potions": potions,
+	}
+
+
+## Unknown ids, wrong item kinds and out-of-range counts are ignored, never fatal.
+func from_dict(data: Dictionary) -> void:
+	var loaded_weapon := _item_by_id(str(data.get("weapon", "")), ItemData.Kind.WEAPON)
+	if loaded_weapon:
+		weapon = loaded_weapon
+	armor = _item_by_id(str(data.get("armor", "")), ItemData.Kind.ARMOR)
+	potions = clampi(int(data.get("potions", 0)), 0, MAX_POTIONS)
+	changed.emit()
+
+
+func _item_by_id(item_id: String, kind: ItemData.Kind) -> ItemData:
+	if item_id.is_empty():
+		return null
+	for i in item_id.length():  # ids are file names under ITEM_DIR: lowercase letters, digits, underscore
+		var c := item_id.unicode_at(i)
+		var ok := (c >= 97 and c <= 122) or (c >= 48 and c <= 57) or c == 95
+		if not ok:
+			return null
+	var path := ITEM_DIR + item_id + ".tres"
+	if not ResourceLoader.exists(path):
+		return null
+	var item := load(path) as ItemData
+	return item if item and item.kind == kind else null
+
+
+## A queued Load (or the death checkpoint) is applied when the player's inventory is created.
+func _restore_pending_state() -> void:
+	if not is_inside_tree():
+		return  # detached instances (unit tests) have no autoloads to ask
+	var save_manager := get_node_or_null("/root/SaveManager")
+	if save_manager == null:
+		return
+	var data: Dictionary = save_manager.peek_restore()
+	if data.is_empty():
+		return
+	from_dict(data.get("inventory", {}))
+	var stats: Dictionary = data.get("player", {})
+	var owner_health = get_parent().get("health") if get_parent() else null
+	if owner_health is HealthComponent and stats.has("max_health"):
+		var health_component := owner_health as HealthComponent
+		health_component.max_health = float(stats["max_health"])
+		health_component.health = clampf(float(stats.get("health", health_component.max_health)),
+				1.0, health_component.max_health)
+		health_component.changed.emit(health_component.health, health_component.max_health)
 
 
 func damage_multiplier() -> float:
