@@ -122,4 +122,4 @@ The full design is in [docs/GDD.md](docs/GDD.md).
 
 ## Licence
 
-Code is released under the [MIT licence](LICENSE). Copyright (c) 2026 Hamza Rao.
+Code is released under the [MIT licence](LICENSE). Copyright (c) 2026 Hamza Sarwar.

@@ -5,3 +5,10 @@
 export_presets.cfg.bak
 *.translation
 build/
+
+# secrets and local artefacts
+*.keystore
+*.jks
+*.p12
+release-assets/
+.env
