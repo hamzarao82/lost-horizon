@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"warden_flurry"
+damage = 12.0
+stamina_cost = 0.0
+startup_frames = 14
+active_frames = 5
+recovery_frames = 20
+knockback = 5.0
+stagger_time = 0.3
+lunge_speed = 5.0
+hit_stop = 0.08
+shake = 0.35
+swing_arc = 70.0
+swing_flip = false

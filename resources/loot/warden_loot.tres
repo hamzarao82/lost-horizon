@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="LootTable" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/loot_table.gd" id="1_table"]
+
+[resource]
+script = ExtResource("1_table")
+drop_chance = 1.0
+item_paths = PackedStringArray("res://resources/items/warden_blade.tres", "res://resources/items/warden_plate.tres", "res://resources/items/health_potion.tres")
+weights = PackedFloat32Array(1, 1, 1)

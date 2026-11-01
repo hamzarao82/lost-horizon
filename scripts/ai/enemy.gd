@@ -3,6 +3,12 @@ extends CharacterBody3D
 ## Patrol Soldier: idle -> chase -> attack (telegraph, strike, recovery) -> stagger -> dead.
 ## Only one enemy holds the attack token at a time; the rest circle at range.
 
+## Emitted when an attack windup begins (audio / telegraph cues).
+signal swing_started
+## Emitted for every hit that reaches this enemy; dodged is true when it sidestepped instead.
+signal was_hit(dodged: bool)
+signal defeated
+
 enum State { IDLE, CHASE, ATTACK, STAGGER, DEAD }
 
 const FPS: float = 60.0
@@ -217,6 +223,7 @@ func _start_attack() -> void:
 	state = State.ATTACK
 	_attack_frames = 0.0
 	_move_horizontal(Vector3.ZERO, 0.0)
+	swing_started.emit()
 
 
 func _state_attack(delta: float) -> void:
@@ -285,22 +292,38 @@ func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float
 		return false
 	if state == State.CHASE and dodge_chance > 0.0 and randf() < dodge_chance:
 		_sidestep(from_position)
+		was_hit.emit(true)
 		return false
-	var away := global_position - from_position
-	away.y = 0.0
-	away = away.normalized() if away.length_squared() > 0.001 else Vector3.BACK
-	var knockback := attack.knockback * (1.0 - stagger_resist * 0.5)
-	velocity.x = away.x * knockback
-	velocity.z = away.z * knockback
+	var interrupts := _hit_interrupts(attack)
+	if interrupts:
+		var away := global_position - from_position
+		away.y = 0.0
+		away = away.normalized() if away.length_squared() > 0.001 else Vector3.BACK
+		var knockback := attack.knockback * (1.0 - stagger_resist * 0.5)
+		velocity.x = away.x * knockback
+		velocity.z = away.z * knockback
 	_flash_time = 0.08
 	_health.take_damage(attack.damage * damage_scale)
+	was_hit.emit(false)
 	if state != State.DEAD:
-		_hitbox.deactivate()
-		_weapon_pivot.visible = false
-		_release_token()
-		_stagger_time = attack.stagger_time * (1.0 - stagger_resist)
-		state = State.STAGGER
+		_on_damaged()
+		if interrupts and state != State.DEAD:
+			_hitbox.deactivate()
+			_weapon_pivot.visible = false
+			_release_token()
+			_stagger_time = attack.stagger_time * (1.0 - stagger_resist)
+			state = State.STAGGER
 	return true
+
+
+## Override: return false for hits that should not interrupt (super armor).
+func _hit_interrupts(_attack: AttackData) -> bool:
+	return true
+
+
+## Override: called after a landed hit that did not kill (phase changes, rage, ...).
+func _on_damaged() -> void:
+	pass
 
 
 func _sidestep(from_position: Vector3) -> void:
@@ -333,6 +356,7 @@ func _drop_loot() -> void:
 
 func _die() -> void:
 	state = State.DEAD
+	defeated.emit()
 	_release_token()
 	_hitbox.deactivate()
 	remove_from_group("enemies")

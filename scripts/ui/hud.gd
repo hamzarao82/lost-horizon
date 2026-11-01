@@ -17,6 +17,9 @@ var _banner_time: float = 0.0
 var _toast_time: float = 0.0
 var _player: Player
 var _waves: WaveManager
+var _boss: Enemy
+var _boss_bar: ProgressBar
+var _boss_name: Label
 
 
 func _ready() -> void:
@@ -35,6 +38,13 @@ func _ready() -> void:
 	_toast.visible = false
 	_equipment = _make_label(18, 4)
 	_equipment.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+
+	_boss_name = _make_label(20, 4)
+	_boss_name.visible = false
+	_boss_bar = _make_bar(Vector2.ZERO, Color(0.7, 0.1, 0.12))
+	_boss_bar.custom_minimum_size = Vector2(520, 20)
+	_boss_bar.size = _boss_bar.custom_minimum_size
+	_boss_bar.visible = false
 
 	if not TouchControls.is_mobile_platform():
 		var hint := Label.new()
@@ -77,15 +87,33 @@ func _process(delta: float) -> void:
 		_toast.modulate.a = clampf(_toast_time / 0.5, 0.0, 1.0)
 		_toast.visible = _toast_time > 0.0
 
+	_update_boss_bar(viewport_size)
+
 	_check_time += delta
 	if _check_time < 0.25:
 		return
 	_check_time = 0.0
 	_refresh_wave_label()
+	if _boss == null or not is_instance_valid(_boss) or _boss.is_dead():
+		_boss = get_tree().get_first_node_in_group("boss") as Enemy
 	if _player and _player.is_dead():
 		_show_message("YOU DIED", Color(0.9, 0.15, 0.15))
 	elif _arena_cleared():
 		_show_message("ARENA CLEARED", Color(0.95, 0.85, 0.3))
+
+
+func _update_boss_bar(viewport_size: Vector2) -> void:
+	var show_boss := _boss != null and is_instance_valid(_boss) and not _boss.is_dead()
+	_boss_bar.visible = show_boss
+	_boss_name.visible = show_boss
+	if not show_boss:
+		return
+	var health := _boss.get_node("HealthComponent") as HealthComponent
+	_boss_bar.max_value = health.max_health
+	_boss_bar.value = health.health
+	_boss_name.text = _boss.display_name
+	_boss_bar.position = Vector2((viewport_size.x - _boss_bar.size.x) * 0.5, 66)
+	_boss_name.position = Vector2((viewport_size.x - _boss_name.size.x) * 0.5, 40)
 
 
 func _arena_cleared() -> bool:

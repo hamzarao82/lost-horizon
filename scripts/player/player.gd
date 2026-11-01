@@ -114,6 +114,7 @@ func _poll_input(delta: float) -> void:
 		_heal_time = HEAL_BUFFER
 	if _heal_time > 0.0 and (state == State.FREE or state == State.HIT) and inventory.use_potion(health):
 		_heal_time = 0.0
+		_sfx(&"heal")
 	if Input.is_action_just_pressed("dodge"):
 		_set_buffer(&"dodge")
 	elif attacks_allowed and Input.is_action_just_pressed("attack_heavy"):
@@ -250,6 +251,7 @@ func _try_dodge() -> bool:
 	_dodge_time = 0.0
 	_end_attack()
 	state = State.DODGE
+	_sfx(&"dodge")
 	return true
 
 
@@ -272,6 +274,7 @@ func _start_attack(idx: int) -> bool:
 	_attack_idx = idx
 	_attack_frames = 0.0
 	state = State.ATTACK
+	_sfx(&"swing_heavy" if idx == HEAVY_INDEX else &"swing_light")
 	return true
 
 
@@ -305,6 +308,7 @@ func _update_weapon_visual(data: AttackData, active_end: float) -> void:
 
 
 func _on_hit_landed(_body: Node3D, attack: AttackData) -> void:
+	_sfx(&"hit_heavy" if attack.id == &"heavy_1" else &"hit_light")
 	HitStop.trigger(attack.hit_stop)
 	_add_camera_trauma(attack.shake)
 
@@ -329,11 +333,19 @@ func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float
 	velocity.x = away.x * attack.knockback
 	velocity.z = away.z * attack.knockback
 	health.take_damage(attack.damage * damage_scale * (1.0 - inventory.damage_reduction()))
+	_sfx(&"hurt")
 	if state != State.DEAD:
 		state = State.HIT
 		_hit_time = attack.stagger_time
 	_add_camera_trauma(attack.shake * 1.5)
 	return true
+
+
+## Looked up by path so the player (and the tests) work without the AudioManager autoload.
+func _sfx(sfx_name: StringName, volume_db: float = 0.0) -> void:
+	var audio := get_node_or_null("/root/AudioManager")
+	if audio:
+		audio.play(sfx_name, volume_db)
 
 
 func _die() -> void:

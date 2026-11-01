@@ -1,9 +1,10 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://scripts/ui/perf_overlay.gd" id="2_perf"]
 [ext_resource type="Script" path="res://scripts/ui/touch_controls.gd" id="3_touch"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="5_hud"]
+[ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="7_pause"]
 [ext_resource type="Script" path="res://scripts/world/wave_manager.gd" id="6_waves"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_mat"]
@@ -140,3 +141,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("3_touch")
+
+[node name="PauseMenu" type="CanvasLayer" parent="."]
+script = ExtResource("7_pause")

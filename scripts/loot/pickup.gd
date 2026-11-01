@@ -48,5 +48,11 @@ func _process(delta: float) -> void:
 
 func _on_body_entered(body: Node3D) -> void:
 	var player := body as Player
-	if player and player.inventory.add_item(item):
+	if player == null:
+		return
+	if player.inventory.add_item(item):
+		var upgrade := item.kind != ItemData.Kind.CONSUMABLE
+		var audio := get_node_or_null("/root/AudioManager")
+		if audio:
+			audio.play(&"equip" if upgrade else &"pickup")
 		queue_free()

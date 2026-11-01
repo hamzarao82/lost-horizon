@@ -8,11 +8,13 @@ signal all_cleared
 const SOLDIER: String = "res://scenes/enemies/PatrolSoldier.tscn"
 const HEAVY: String = "res://scenes/enemies/HeavySoldier.tscn"
 const HUNTER: String = "res://scenes/enemies/HunterElite.tscn"
+const WARDEN: String = "res://scenes/enemies/Warden.tscn"
 const WAVES: Array[Array] = [
 	[SOLDIER, SOLDIER],
 	[SOLDIER, SOLDIER, HUNTER],
 	[HEAVY, HUNTER, SOLDIER],
 	[HEAVY, HUNTER, HUNTER],
+	[WARDEN],
 ]
 const OBSTACLES: Array[Vector2] = [Vector2(8.0, -6.0), Vector2(-8.0, -4.0)]
 const OBSTACLE_CLEARANCE: float = 4.5
@@ -23,6 +25,7 @@ const WARM_UP: PackedStringArray = [
 	"res://resources/loot/soldier_loot.tres",
 	"res://resources/loot/hunter_loot.tres",
 	"res://resources/loot/heavy_loot.tres",
+	"res://resources/loot/warden_loot.tres",
 ]
 const ARENA_LIMIT: float = 26.0
 const SPAWN_MIN: float = 12.0

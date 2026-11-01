@@ -372,9 +372,20 @@ func _test_waves() -> void:
 		for i in 12:
 			(enemy as Enemy).receive_hit(kill, player.global_position)
 	waited = 0
-	while not wm.is_finished() and waited < 500:
+	while wm.current_wave < 5 and waited < 500:
 		await physics_frame
 		waited += 1
-	_check(wm.is_finished(), "arena is finished after the last wave")
+	_check(wm.current_wave == 5, "wave 5 starts after wave 4 is cleared")
+	_check(get_nodes_in_group("boss").size() == 1, "wave 5 is the Warden")
+	_check(not wm.is_finished(), "arena is not finished while the Warden is alive")
+	# The boss has an invulnerable roar and summons soldiers, so keep hitting until all are down.
+	var rounds := 0
+	while not wm.is_finished() and rounds < 40:
+		for enemy in get_nodes_in_group("enemies"):
+			for i in 12:
+				(enemy as Enemy).receive_hit(kill, player.global_position)
+		await _frames(30)
+		rounds += 1
+	_check(wm.is_finished(), "arena is finished after the Warden and his summons fall")
 	main.queue_free()
 	await _frames(3)
