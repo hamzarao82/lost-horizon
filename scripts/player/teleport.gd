@@ -28,6 +28,12 @@ const MAX_TRIES: int = 40
 const SAFE_SPOTS: Array[Vector2] = [Vector2(22, 22), Vector2(-22, 22), Vector2(22, -22), Vector2(-22, -22)]
 const PLAYER_MASK: int = 1 | 4  # world + enemies
 
+# While the south gate is locked, a player on the beach may only teleport along the beach, so
+# teleporting cannot skip the power puzzle. (Matches the beach colliders in WorldFlow.)
+const BEACH_EDGE_Z: float = 31.0
+const BEACH_RECT: Rect2 = Rect2(-38.0, 36.0, 76.0, 38.0)
+const BEACH_FALLBACK: Vector3 = Vector3(0.0, 0.1, 62.0)
+
 var charges: int = MAX_CHARGES
 var ready_at: float = 0.0  # unix time the next charge returns; 0 when full
 var recharge_seconds: float = DEFAULT_RECHARGE_SECONDS
@@ -218,11 +224,16 @@ func pick_destination(player: Player) -> Vector3:
 		if enemy and not (enemy.has_method("is_dead") and enemy.is_dead()):
 			enemy_positions.append(enemy.global_position)
 
+	var on_locked_beach := _on_locked_beach(origin)
 	var best := Vector3.INF
 	var best_score := -INF
 	for attempt in MAX_TRIES:
 		var candidate := Vector3(
 				rng.randf_range(-ARENA_LIMIT, ARENA_LIMIT), 0.1, rng.randf_range(-ARENA_LIMIT, ARENA_LIMIT))
+		if on_locked_beach:
+			candidate = Vector3(
+					rng.randf_range(BEACH_RECT.position.x, BEACH_RECT.end.x), 0.1,
+					rng.randf_range(BEACH_RECT.position.y, BEACH_RECT.end.y))
 		if not _clear_of_obstacles(candidate) or not _is_free(player, candidate):
 			continue
 		var score := _score(candidate, origin, enemy_positions)
@@ -233,6 +244,8 @@ func pick_destination(player: Player) -> Vector3:
 			return candidate
 	if best != Vector3.INF:
 		return best
+	if on_locked_beach:
+		return BEACH_FALLBACK
 	for spot in SAFE_SPOTS:  # nothing found by chance: use the corner farthest from the player
 		var corner := Vector3(spot.x, 0.1, spot.y)
 		var score := _score(corner, origin, enemy_positions)
@@ -240,6 +253,13 @@ func pick_destination(player: Player) -> Vector3:
 			best_score = score
 			best = corner
 	return best
+
+
+func _on_locked_beach(origin: Vector3) -> bool:
+	if origin.z <= BEACH_EDGE_Z:
+		return false
+	var state := get_node_or_null("/root/WorldState")
+	return state == null or not state.has_flag(&"power_on")
 
 
 func _meets_rules(candidate: Vector3, origin: Vector3, enemies: Array[Vector3]) -> bool:

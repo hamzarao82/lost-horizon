@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_switches"]
+script = ExtResource("2_obj")
+id = &"activate_switches"
+text = "Activate the generator switches"
+type = 0
+targets = PackedStringArray("switch_1", "switch_2", "switch_3")
+count = 3
+progress_label = "Switches"
+
+[sub_resource type="Resource" id="Obj_power"]
+script = ExtResource("2_obj")
+id = &"power_on"
+text = "Restore power to the outpost"
+type = 5
+targets = PackedStringArray("power_on")
+count = 0
+progress_label = ""
+
+[resource]
+script = ExtResource("1_quest")
+id = &"restore_power"
+title = "Restore Power"
+description = "The outpost generator is down. Three switches around the compound feed it, and the courtyard gate stays locked until they are all thrown."
+prerequisites = PackedStringArray("first_signal")
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_switches"), SubResource("Obj_power")])
+rewards = PackedStringArray("light_tactical_armor")
+reward_text = "Light Tactical Armor"
+next_quest = &"broken_perimeter"
+start_captions = PackedStringArray()
+complete_captions = PackedStringArray("The generator is running. The courtyard gate is open, but they will know someone is inside.")
+caption_seconds = 4.5

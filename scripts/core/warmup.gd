@@ -142,6 +142,8 @@ static func _stage_fx() -> void:
 	for node: Node3D in fx.call("make_warmup_nodes"):
 		node.position = Vector3(-1.0 + index, -1.2, -3.5)
 		_stage.add_child(node)
+		if node is CPUParticles3D:
+			(node as CPUParticles3D).emitting = true
 		index += 1
 
 

@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_enter"]
+script = ExtResource("2_obj")
+id = &"enter_courtyard"
+text = "Enter the Outpost 17 courtyard"
+type = 1
+targets = PackedStringArray("courtyard")
+count = 0
+progress_label = ""
+
+[sub_resource type="Resource" id="Obj_waves"]
+script = ExtResource("2_obj")
+id = &"clear_waves"
+text = "Survive and clear the courtyard"
+type = 3
+targets = PackedStringArray()
+count = 5
+progress_label = "Waves"
+
+[resource]
+script = ExtResource("1_quest")
+id = &"broken_perimeter"
+title = "Broken Perimeter"
+description = "Outpost 17 is crawling with guards. Clear the courtyard, every wave of it, including whoever commands them."
+prerequisites = PackedStringArray("restore_power")
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_enter"), SubResource("Obj_waves")])
+rewards = PackedStringArray("health_potion", "health_potion")
+reward_text = "2 Medkits"
+next_quest = &"final_transmission"
+start_captions = PackedStringArray("Hold the courtyard. Whatever they send, finish it.")
+complete_captions = PackedStringArray("The Warden is down. His command keycard will open the terminal inside.")
+caption_seconds = 4.5

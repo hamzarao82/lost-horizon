@@ -53,7 +53,7 @@ func build_save() -> Dictionary:
 	if waves:
 		next_wave = waves.resume_index()
 		completed = waves.is_finished()
-	return {
+	var data := {
 		"version": CURRENT_VERSION,
 		"saved_at": int(Time.get_unix_time_from_system()),
 		"next_wave": next_wave,
@@ -62,6 +62,10 @@ func build_save() -> Dictionary:
 		"player": {"health": player.health.health, "max_health": player.health.max_health},
 		"defeated_bosses": defeated_bosses.duplicate(),
 	}
+	var quest_manager := get_node_or_null("/root/QuestManager")
+	if quest_manager:
+		data["quests"] = quest_manager.to_dict()  # optional field: older saves simply do not have it
+	return data
 
 
 func save_game(reason: String = "manual") -> bool:
@@ -125,6 +129,9 @@ func load_game() -> bool:
 	defeated_bosses.clear()
 	for boss in data["defeated_bosses"]:
 		defeated_bosses.append(boss)
+	var quest_manager := get_node_or_null("/root/QuestManager")
+	if quest_manager:
+		quest_manager.on_game_loaded(data.get("quests", {}))  # a pre-quest save restarts the quest line
 	return true
 
 
@@ -185,7 +192,7 @@ func _sanitize(data: Dictionary) -> Dictionary:
 			"health": clampf(float(player.get("health", max_health)), 1.0, max_health),
 			"max_health": max_health,
 		}
-	return {
+	var result := {
 		"version": CURRENT_VERSION,
 		"saved_at": int(data.get("saved_at", 0)),
 		"next_wave": clampi(int(data.get("next_wave", 1)), 1, WaveManager.WAVES.size()),
@@ -200,6 +207,10 @@ func _sanitize(data: Dictionary) -> Dictionary:
 		"player": clean_player,
 		"defeated_bosses": bosses,
 	}
+	var quests := QuestState.sanitize(data.get("quests", {}))
+	if not quests.is_empty():
+		result["quests"] = quests
+	return result
 
 
 # --- resuming into a fresh scene -------------------------------------------
@@ -244,6 +255,9 @@ func reset_runtime_state() -> void:
 	pending_data = {}
 	checkpoint = {}
 	_notice = ""
+	var quest_manager := get_node_or_null("/root/QuestManager")
+	if quest_manager:
+		quest_manager.reset()  # a fresh run starts the quest line (and the world flags) again
 
 
 func mark_boss_defeated(boss_id: String) -> void:

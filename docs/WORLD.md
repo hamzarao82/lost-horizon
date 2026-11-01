@@ -26,3 +26,40 @@ Merged meshes: `Terrain` (1 draw), `Props` (1: palms, rocks, fences, wreck, outp
 
 ## Editing
 Positions are constants/loops in `_add_*` functions; the layout uses a fixed RNG seed so it is stable between runs.
+
+## Milestone 1 world flow
+
+```
+Beach spawn (0,0.1,64)
+  -> radio hut (-7,58): "Use radio" sets radio_heard and plays the hint
+  -> three breakers (puzzle "restore electrical power"):
+       switch_1 behind the wreck (-17.5, 41.5)
+       switch_2 on the east perimeter fence (34.5, 49)
+       switch_3 at the foot of the watchtower (-30.5, 57)
+     all three thrown => flag power_on
+  -> south gate (z=30, 8 m wide) opens; its collider is removed
+  -> ArenaTrigger (courtyard just inside the gate) starts WaveManager once
+  -> five waves ending with the Warden => all_cleared => flag arena_cleared
+  -> Warden's keycard drops at the arena centre => flag has_keycard
+  -> command terminal on the north side (0,-27.6) unlocks => flag command_terminal_used
+```
+
+Supply crates `crate_1` (11,58) and `crate_2` (-26,46) give a medkit plus a knife / light armor once each.
+
+### Code map
+| File | Role |
+|---|---|
+| `scripts/core/world_state.gd` (autoload `WorldState`) | Boolean flags, `interacted(id)`, `area_entered(id)`, `to_dict/from_dict/reset`. Survives scene reloads, so a death restart keeps the puzzle |
+| `scripts/world/world_flow.gd` (`World` node in Main.tscn) | Builds beach colliders, scenery (one merged mesh), interactables, trigger; wires flags; places the player |
+| `scripts/world/interactor.gd` | Attached to the Player at runtime; nearest interactable within its radius; one press = one interaction (0.3 s cooldown) |
+| `scripts/world/interactables/*.gd` | `Interactable` base, `BreakerSwitch`, `SupplyCrate`, `WorldGate`, `Keycard` |
+| `scripts/ui/touch_controls.gd` | Contextual "Use" button at offset (-60,-290), shown only while something is in reach |
+
+### Rules and decisions
+- The arena (size, obstacles, spawn clamp +-26) is unchanged. `WallS` is now two 26 m halves (x=-17 and x=17) leaving the 8 m gate gap; the beach adds `BeachFloor`, four boundary walls and two fence stubs, all on layer 1.
+- The player starts on the beach only in real play. Headless runs (tests) keep the player at the arena origin, because every suite assumes that; `WorldFlow.start_on_beach` / `place_player()` control it.
+- `WaveManager.autostart` is false in Main.tscn. The courtyard trigger calls `start()`; `has_started()` was added for the guard. An arena already won (`arena_cleared`) never restarts.
+- Teleport (`teleport.gd`): while the player is on the beach side (z > 31) and `power_on` is not set, destinations are chosen only on the beach, so teleporting cannot skip the gate. Arena behaviour is unchanged.
+- Captions: `WorldFlow` shows its own short captions unless the flag `story_captions` is set, in which case the story layer owns them.
+- Flags in use: `radio_heard`, `switch_1..3`, `power_on`, `gate_open`, `crate_1_taken`, `crate_2_taken`, `arena_cleared`, `has_keycard`, `command_terminal_used`.
+- Controls: interact = E, gamepad X, or the touch "Use" button.

@@ -8,7 +8,7 @@ extends Node3D
 const SEED: int = 20261101
 const TEX_SIZE: int = 128
 const SEA_LEVEL: float = -1.0
-const BEACH_START_Z: float = 34.0  # the sand slopes down toward the sea beyond this z
+const BEACH_START_Z: float = 78.0  # flat sand to here (the walkable beach), then it slopes down to the sea
 const EDGE_DIST: float = 130.0     # island shore on the other three sides
 const QUALITY_LOW: int = 0         # matches Settings.Quality
 const QUALITY_MEDIUM: int = 1
@@ -387,8 +387,11 @@ func _height(x: float, z: float) -> float:
 
 
 func _terrain_color(x: float, z: float, h: float) -> Color:
-	var arena_dist := maxf(absf(x), absf(z)) - 34.0
-	var jungle := smoothstep(0.0, 28.0, arena_dist) if z < BEACH_START_Z else 0.0
+	var jungle := 0.0
+	if z < 30.0:
+		jungle = smoothstep(0.0, 28.0, maxf(absf(x), absf(z)) - 34.0)  # jungle thickens away from the arena
+	else:
+		jungle = smoothstep(44.0, 70.0, absf(x))  # the walkable beach stays sand; only its flanks go green
 	var col := SAND_LIGHT.lerp(JUNGLE, jungle * 0.85)
 	var wet := smoothstep(-0.2, -0.9, h)
 	return col.lerp(WET_SAND, wet)
@@ -396,7 +399,7 @@ func _terrain_color(x: float, z: float, h: float) -> Color:
 
 func _add_terrain() -> void:
 	var xs: Array[float] = [-170.0, -130.0, -80.0, -56.0, -44.0, -36.0, -30.0, -15.0, 0.0, 15.0, 30.0, 36.0, 44.0, 56.0, 80.0, 130.0, 170.0]
-	var zs: Array[float] = [-170.0, -130.0, -80.0, -56.0, -44.0, -36.0, -30.0, -15.0, 0.0, 15.0, 30.0, 34.0, 40.0, 46.0, 52.0]
+	var zs: Array[float] = [-170.0, -130.0, -80.0, -56.0, -44.0, -36.0, -30.0, -15.0, 0.0, 15.0, 30.0, 34.0, 46.0, 60.0, 72.0, 78.0, 84.0, 92.0, 100.0]
 	var b := Builder.new()
 	b.uv_scale = 0.07
 	for zi in zs.size() - 1:
@@ -500,7 +503,7 @@ func _palm_position() -> Vector3:
 	# Outside the walls: east/west jungle edge, or the south beach. Never inside the outpost block.
 	for attempt in 40:
 		var x := _rng.randf_range(-70.0, 70.0)
-		var z := _rng.randf_range(-70.0, 46.0)
+		var z := _rng.randf_range(-70.0, 74.0)
 		var inside_arena := absf(x) < 33.0 and z > -33.0 and z < 33.0
 		var in_outpost := absf(x) < 36.0 and z < -33.0
 		var on_wreck := Vector2(x, z).distance_to(Vector2(-12.0, 38.0)) < 9.0
@@ -545,14 +548,38 @@ func _add_rocks(b: Builder) -> void:
 
 
 func _add_rope_fence(b: Builder) -> void:
-	# Replaces the invisible south wall (collider at z = 30).
+	# Replaces the invisible south wall (collider at z = 30). The 8 m gap in the middle is the gate
+	# (WorldGate draws its own posts and leaves), so no posts or ropes cross it.
 	var x := -28.0
 	while x <= 28.0:
-		b.box(Vector3(x, 0.55, 30.0), Vector3(0.14, 1.1, 0.14), WOOD_DARK)
-		if x < 28.0:
+		var in_gate := absf(x) <= 4.5
+		if not in_gate:
+			b.box(Vector3(x, 0.55, 30.0), Vector3(0.14, 1.1, 0.14), WOOD_DARK)
+		if x < 28.0 and not (x >= -4.5 and x + 4.0 <= 4.5):
 			b.box(Vector3(x + 2.0, 0.95, 30.0), Vector3(4.0, 0.04, 0.04), CANVAS)
 			b.box(Vector3(x + 2.0, 0.55, 30.0), Vector3(4.0, 0.04, 0.04), CANVAS)
 		x += 4.0
+	# Visible edge of the walkable beach (matches the invisible colliders in WorldFlow).
+	var edge := 42.0
+	for side in [-1.0, 1.0]:
+		var sx := edge * float(side)
+		var run := 30.0
+		while run <= 82.0:
+			b.box(Vector3(sx, 0.55, run), Vector3(0.14, 1.1, 0.14), WOOD_DARK)
+			if run < 82.0:
+				b.box(Vector3(sx, 0.95, run + 2.0), Vector3(0.04, 0.04, 4.0), CANVAS)
+			run += 4.0
+		var stub := 32.0
+		while stub <= edge:  # rope from the arena fence out to the beach edge, both sides of the gate
+			b.box(Vector3(stub * float(side), 0.55, 30.0), Vector3(0.14, 1.1, 0.14), WOOD_DARK)
+			b.box(Vector3((stub - 2.0) * float(side), 0.95, 30.0), Vector3(4.0, 0.04, 0.04), CANVAS)
+			stub += 4.0
+	var back := -42.0
+	while back <= 42.0:
+		b.box(Vector3(back, 0.55, 82.0), Vector3(0.14, 1.1, 0.14), WOOD_DARK)
+		if back < 42.0:
+			b.box(Vector3(back + 2.0, 0.95, 82.0), Vector3(4.0, 0.04, 0.04), CANVAS)
+		back += 4.0
 
 
 func _local_point(origin: Vector3, basis: Basis, local: Vector3) -> Vector3:

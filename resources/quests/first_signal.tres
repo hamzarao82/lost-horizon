@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_radio"]
+script = ExtResource("2_obj")
+id = &"use_radio"
+text = "Find the emergency radio and use it"
+type = 0
+targets = PackedStringArray("radio")
+count = 0
+progress_label = ""
+
+[resource]
+script = ExtResource("1_quest")
+id = &"first_signal"
+title = "The First Signal"
+description = "You woke on a beach among the wreckage with no memory of the crash. Somewhere nearby an emergency radio is still powered."
+prerequisites = PackedStringArray()
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_radio")])
+rewards = PackedStringArray("combat_knife")
+reward_text = "Combat Knife"
+next_quest = &"restore_power"
+start_captions = PackedStringArray()
+complete_captions = PackedStringArray("...static... Can anyone hear this? If you can hear this, you are not alone.", "Outpost 17 holds what they are hiding. Get inside, but the gate is dead without power.", "Find the generator switches and bring the outpost back online. I will guide you.")
+caption_seconds = 4.5

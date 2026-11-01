@@ -21,6 +21,12 @@ var _waves: WaveManager
 var _boss: Enemy
 var _boss_bar: ProgressBar
 var _boss_name: Label
+var _quests: Node
+var _tracker_title: Label
+var _tracker_objective: Label
+var _subtitle: Label
+var _caption_queue: Array[Dictionary] = []
+var _subtitle_time: float = 0.0
 
 
 func _ready() -> void:
@@ -85,6 +91,8 @@ func _ready() -> void:
 		if not notice.is_empty():
 			_show_toast(notice, Color(0.5, 0.85, 1.0))
 
+	_setup_story()
+
 
 func _process(delta: float) -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
@@ -103,6 +111,7 @@ func _process(delta: float) -> void:
 		_toast.visible = _toast_time > 0.0
 
 	_update_boss_bar(viewport_size)
+	_update_story(viewport_size, delta)
 
 	_check_time += delta
 	if _check_time < 0.25:
@@ -212,6 +221,137 @@ func _refresh_equipment() -> void:
 
 func _on_item_collected(item: ItemData, kept: bool) -> void:
 	_show_toast(("Picked up %s" if kept else "%s (not an upgrade)") % item.display_name, item.color())
+
+
+# --- story: quest tracker and subtitles (presentation only) -----------------
+
+const SUBTITLE_FADE: float = 0.4
+const SHORT_VIEWPORT_HEIGHT: float = 480.0
+const TRACKER_MAX_WIDTH: float = 360.0
+const TRACKER_TALL_Y: float = 205.0   # below the bars (90-134), teleport label (~150) and pause button (140-196)
+const TRACKER_SHORT_Y: float = 46.0   # fallback for very short screens: top centre under the wave label
+const TRACKER_SHORT_MIN_X: float = 290.0  # right of the bars and the teleport label
+const SUBTITLE_MAX_WIDTH: float = 720.0
+const SUBTITLE_BOTTOM_GAP: float = 120.0  # subtitle bottom edge sits this far above the screen bottom (toast is at 110)
+const MAX_QUEUED_CAPTIONS: int = 8
+
+
+func _setup_story() -> void:
+	_tracker_title = _make_label(18, 4)
+	_tracker_title.add_theme_color_override("font_color", Color(0.95, 0.85, 0.3))
+	_tracker_title.visible = false
+	_tracker_objective = _make_label(16, 4)
+	_tracker_objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_tracker_objective.max_lines_visible = 2  # long objectives never grow the tracker past two lines
+	_tracker_objective.visible = false
+	_subtitle = _make_label(22, 6)
+	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_subtitle.max_lines_visible = 3
+	_subtitle.visible = false
+	_quests = get_node_or_null("/root/QuestManager")
+	if _quests == null:
+		return
+	_quests.tracker_changed.connect(_refresh_tracker)
+	_quests.caption_requested.connect(show_caption)
+	_quests.quest_started.connect(_on_quest_started)
+	_quests.quest_completed.connect(_on_quest_completed)
+	_refresh_tracker()
+
+
+## Queue a subtitle line (radio and story captions). Lines show one after another.
+func show_caption(text: String, seconds: float = 4.0) -> void:
+	if _subtitle == null or text.is_empty():
+		return
+	if _caption_queue.size() >= MAX_QUEUED_CAPTIONS:
+		_caption_queue.pop_front()
+	_caption_queue.append({"text": text, "seconds": maxf(seconds, 1.0)})
+
+
+func _refresh_tracker() -> void:
+	if _quests == null or _tracker_title == null:
+		return
+	_tracker_title.text = _quests.tracker_title()
+	_tracker_objective.text = _quests.tracker_objective()
+
+
+func _on_quest_started(quest_id: StringName) -> void:
+	var quest: QuestData = _quests.get_quest(quest_id)
+	if quest:
+		_show_toast("New quest: %s" % quest.title, Color(0.95, 0.85, 0.3))
+
+
+func _on_quest_completed(quest_id: StringName) -> void:
+	var quest: QuestData = _quests.get_quest(quest_id)
+	if quest == null:
+		return
+	_banner.text = "QUEST COMPLETE"
+	_banner.add_theme_color_override("font_color", Color(0.95, 0.85, 0.3))
+	_banner.modulate.a = 1.0
+	_banner.visible = true
+	_banner_time = BANNER_SECONDS
+	var reward := "" if quest.reward_text.is_empty() else "  Reward: %s" % quest.reward_text
+	_show_toast("%s%s" % [quest.title, reward], Color(0.95, 0.85, 0.3))
+
+
+## Places the tracker and the subtitle for a screen size and returns their rectangles.
+## Tall screens: tracker in the left column below the existing widgets. Short screens (landscape
+## phones): tracker at the top centre, subtitle under it. Public so the layout can be tested.
+func layout_story(viewport_size: Vector2) -> Dictionary:
+	var short := viewport_size.y < SHORT_VIEWPORT_HEIGHT
+	var tracker_width := minf(TRACKER_MAX_WIDTH, viewport_size.x * (0.5 if short else 0.4))
+	_tracker_title.custom_minimum_size.x = tracker_width
+	_tracker_title.size.x = tracker_width
+	_tracker_title.clip_text = true
+	_tracker_objective.custom_minimum_size.x = tracker_width
+	_tracker_objective.size.x = tracker_width
+	_tracker_objective.size.y = 0.0
+	var title_height := _tracker_title.get_combined_minimum_size().y
+	var objective_height := _tracker_objective.get_combined_minimum_size().y if _tracker_objective.text != "" else 0.0
+	var tracker_x := maxf((viewport_size.x - tracker_width) * 0.5, TRACKER_SHORT_MIN_X) if short else 16.0
+	var tracker_y := TRACKER_SHORT_Y if short else TRACKER_TALL_Y
+	_tracker_title.position = Vector2(tracker_x, tracker_y)
+	_tracker_objective.position = Vector2(tracker_x, tracker_y + title_height)
+	_tracker_objective.size.y = objective_height
+	var tracker_rect := Rect2(tracker_x, tracker_y, tracker_width, title_height + objective_height)
+
+	var subtitle_width := minf(SUBTITLE_MAX_WIDTH, viewport_size.x * 0.9)
+	_subtitle.custom_minimum_size.x = subtitle_width
+	_subtitle.size.x = subtitle_width
+	_subtitle.size.y = 0.0
+	var subtitle_height := _subtitle.get_combined_minimum_size().y
+	_subtitle.size.y = subtitle_height
+	var subtitle_x := (viewport_size.x - subtitle_width) * 0.5
+	var subtitle_y := viewport_size.y - SUBTITLE_BOTTOM_GAP - subtitle_height
+	if short:
+		subtitle_y = tracker_rect.end.y + 8.0
+	_subtitle.position = Vector2(subtitle_x, subtitle_y)
+	return {
+		"tracker": tracker_rect,
+		"subtitle": Rect2(subtitle_x, subtitle_y, subtitle_width, subtitle_height),
+	}
+
+
+func _update_story(viewport_size: Vector2, delta: float) -> void:
+	if _subtitle == null:
+		return
+	if _subtitle_time > 0.0:
+		_subtitle_time -= delta
+		_subtitle.modulate.a = clampf(_subtitle_time / SUBTITLE_FADE, 0.0, 1.0)
+		if _subtitle_time <= 0.0:
+			_subtitle.visible = false
+	if _subtitle_time <= 0.0 and not _caption_queue.is_empty():
+		var line: Dictionary = _caption_queue.pop_front()
+		_subtitle.text = String(line["text"])
+		_subtitle.modulate.a = 1.0
+		_subtitle.visible = true
+		_subtitle_time = float(line["seconds"])
+	var has_quest := _tracker_title.text != ""
+	var short := viewport_size.y < SHORT_VIEWPORT_HEIGHT
+	var show_tracker := has_quest and not (short and _boss_bar.visible)  # the boss bar owns the top centre
+	_tracker_title.visible = show_tracker
+	_tracker_objective.visible = show_tracker and _tracker_objective.text != ""
+	layout_story(viewport_size)
 
 
 func _on_saved(_reason: String) -> void:

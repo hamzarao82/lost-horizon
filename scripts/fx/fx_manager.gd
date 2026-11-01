@@ -300,7 +300,7 @@ func make_warmup_nodes() -> Array[Node3D]:
 	var nodes: Array[Node3D] = []
 	var burst := _make_particles(SPARK_AMOUNT, 0.2, 2.0, 5.0, Vector3(0, -12, 0), 0.6, 1.2, 180.0)
 	remove_child(burst)
-	burst.emitting = true
+	burst.emitting = false  # Warmup switches it on once it is inside the stage (reading its global transform needs a tree)
 	nodes.append(burst)
 	var label := _make_number_label()
 	label.text = "0123456789+-"  # rasterizes every glyph the damage numbers can use

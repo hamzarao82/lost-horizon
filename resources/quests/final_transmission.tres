@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_keycard"]
+script = ExtResource("2_obj")
+id = &"take_keycard"
+text = "Take the command keycard from the Warden"
+type = 5
+targets = PackedStringArray("has_keycard")
+count = 0
+progress_label = ""
+
+[sub_resource type="Resource" id="Obj_terminal"]
+script = ExtResource("2_obj")
+id = &"use_terminal"
+text = "Use the command terminal"
+type = 0
+targets = PackedStringArray("command_terminal")
+count = 0
+progress_label = ""
+
+[resource]
+script = ExtResource("1_quest")
+id = &"final_transmission"
+title = "The Final Transmission"
+description = "Everything they did on this island is stored in the command terminal. Get it out."
+prerequisites = PackedStringArray("broken_perimeter")
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_keycard"), SubResource("Obj_terminal")])
+rewards = PackedStringArray("health_potion")
+reward_text = "Medkit"
+next_quest = &""
+start_captions = PackedStringArray()
+complete_captions = PackedStringArray("Uploading... personnel files, test logs, every name on the project list.", "Whoever is listening now knows what happened here.", "They will come for the survivor. Stay alive.")
+caption_seconds = 4.5

@@ -20,6 +20,7 @@ const BUTTONS: Array[Dictionary] = [
 	{"label": "Lock", "action": &"lock_on", "offset": Vector2(-330, -60)},
 	{"label": "Spin", "action": &"special", "offset": Vector2(-390, -150)},
 	{"label": "Tele", "action": &"teleport", "offset": Vector2(-250, -250)},
+	{"label": "Use", "action": &"interact", "offset": Vector2(-60, -290), "contextual": true},
 ]
 const MOVE_ACTIONS: Array[StringName] = [
 	&"move_left", &"move_right", &"move_forward", &"move_backward", &"sprint"]
@@ -27,12 +28,18 @@ const MOVE_ACTIONS: Array[StringName] = [
 ## True once the game is known to be on a touch device (mobile platform or a touch was seen).
 static var touch_active: bool = false
 
+## Set by the Interactor while something is in reach; the contextual "Use" button only shows then.
+static var interact_available: bool = false
+
+
+
 var _stick_id: int = -1
 var _stick_origin: Vector2
 var _stick_pos: Vector2
 var _look_id: int = -1
 var _button_for_touch: Dictionary = {}  # touch index -> button dict
 var _pending_release: Array[StringName] = []
+var _drew_interact: bool = false
 
 
 static func is_mobile_platform() -> bool:
@@ -49,6 +56,8 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	if visible and _drew_interact != interact_available:
+		queue_redraw()  # the contextual "Use" button appears/disappears
 	for action in _pending_release:
 		Input.action_release(action)
 	_pending_release.clear()
@@ -94,6 +103,8 @@ func _button_center(button: Dictionary) -> Vector2:
 
 func _button_at(pos: Vector2) -> Variant:
 	for button in BUTTONS:
+		if button.get("contextual", false) and not interact_available:
+			continue
 		if pos.distance_to(_button_center(button)) <= button_radius * 1.2:
 			return button
 	return null
@@ -159,7 +170,10 @@ func _draw() -> void:
 		draw_circle(_stick_origin + (_stick_pos - _stick_origin).limit_length(stick_radius),
 				stick_radius * 0.4, Color(1, 1, 1, 0.35))
 	var font := ThemeDB.fallback_font
+	_drew_interact = interact_available
 	for button in BUTTONS:
+		if button.get("contextual", false) and not interact_available:
+			continue
 		var center := _button_center(button)
 		var pressed := _button_for_touch.values().has(button)
 		draw_circle(center, button_radius, Color(1, 1, 1, 0.4 if pressed else 0.18))

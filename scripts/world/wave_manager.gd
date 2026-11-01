@@ -95,6 +95,11 @@ func is_finished() -> bool:
 	return _finished
 
 
+## True once waves have been started (by autostart or the courtyard trigger) or are all done.
+func has_started() -> bool:
+	return _running or _finished
+
+
 ## The wave a save made right now should resume on: the current wave while its enemies are alive,
 ## the next one between waves, and wave 1 again once the arena has been cleared.
 func resume_index() -> int:

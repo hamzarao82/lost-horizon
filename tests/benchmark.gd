@@ -24,6 +24,9 @@ func _run() -> void:
 	var wm := main.get_node_or_null("WaveManager")
 	if wm:
 		wm.autostart = false
+	var world := main.get_node_or_null("World")
+	if world:
+		world.start_on_beach = false  # the fight is staged around the arena origin
 	root.add_child(main)
 	await process_frame
 	var player := main.get_node("Player") as Player

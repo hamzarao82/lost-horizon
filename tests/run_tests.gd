@@ -355,6 +355,7 @@ func _test_waves() -> void:
 	print("Waves")
 	var main := await _spawn_main(true)
 	var wm := main.get_node("WaveManager") as WaveManager
+	wm.start()  # Main no longer autostarts waves; the courtyard trigger (or a test) starts them
 	var player := main.get_node("Player") as Player
 	player.health.max_health = 100000.0
 	player.health.health = 100000.0
