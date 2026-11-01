@@ -32,6 +32,7 @@ var _dodge_cd: float = 0.0
 var _spin_cd: float = 0.0
 var _heal_cd: float = 0.0
 var _hit_shot_armed: bool = false
+var _claymore: Pickup
 var _hit_shot_due: float = -1.0
 var _loot_shot_due: float = -1.0
 var _clock: float = 0.0
@@ -67,6 +68,7 @@ func _run() -> void:
 		quests.set("intro_done", true)  # skip the opening: the trailer cuts it itself
 	_build_overlay()
 	node_added.connect(_on_node_added)
+	physics_frame.connect(_tick_releases)  # actions pressed by _pulse are released on every physics tick, in every act
 
 	main = (load(MAIN_SCENE) as PackedScene).instantiate() as Node3D
 	root.add_child(main)
@@ -126,9 +128,9 @@ func _build_overlay() -> void:
 	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui.add_child(_fade)
-	_caption = _label(46, 8)
+	_caption = _label(40, 8)
 	_caption.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_caption.position = Vector2(0, 70)
+	_caption.position = Vector2(0, 108)
 	_caption.size = Vector2(1280, 60)
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_caption.modulate.a = 0.0
@@ -304,7 +306,6 @@ func _keep_alive() -> void:
 
 
 func _bot_step(use_spin: bool) -> void:
-	_tick_releases()
 	_clock += TICK
 	_atk_cd -= TICK
 	_dodge_cd -= TICK
@@ -318,6 +319,10 @@ func _bot_step(use_spin: bool) -> void:
 		_loot_shot_due = -1.0
 		_shot("loot_sword")
 
+	# The showcase loot comes first: walk straight to the dropped claymore, then back to the fight.
+	if _claymore != null and is_instance_valid(_claymore) and not _claymore.is_queued_for_deletion():
+		_steer_to(_claymore.global_position, 0.2, true)
+		return
 	var target := _nearest_enemy()
 	var pickup := _nearest_pickup()
 	if target == null:
@@ -384,11 +389,10 @@ func _act_beach() -> void:
 		guard += TICK
 	_stop()
 	_look_at_yaw(radio_pos, 1.0)
-	await _wait(0.3)
+	await _wait(0.5)
+	await _shot("beach_radio")  # the '[E] Use radio' prompt is visible, the captions have not started
 	_pulse("interact", 6)
-	await _wait(1.2)
-	await _shot("beach_radio")
-	await _wait(1.0)
+	await _wait(1.6)
 
 
 func _act_switches() -> void:
@@ -401,7 +405,7 @@ func _act_switches() -> void:
 	for id in spots:
 		var spot: Vector3 = spots[id]
 		await _fade_to(1.0, 0.18)
-		_teleport_player(spot + Vector3(1.1, 0.1, 1.3), spot)
+		_teleport_player(spot + Vector3(-1.2, 0.1, 1.3), spot)
 		await _frames(3)
 		_fade_to(0.0, 0.18)
 		await _wait(0.35)
@@ -438,38 +442,46 @@ func _act_fight() -> void:
 	var claymore_spawned := false
 	var lock_pressed := false
 	var lock_shot := false
+	var lock_at := 0.0
+	var next_lock_try := 0.0
 	var teleport_pressed := false
 	var hud_shot := false
-	while elapsed < 17.0:
+	while elapsed < 15.5:
 		await physics_frame
 		elapsed += TICK
 		_bot_step(true)
 		if elapsed > 3.5 and not claymore_spawned:
 			claymore_spawned = true
 			_say("LOOT", 1.8)
-			Pickup.spawn(main, _item("claymore"), player.global_position + Vector3(2.5, 0.0, -2.5))
-		if elapsed > 6.0 and not lock_pressed and _nearest_enemy() != null:
-			lock_pressed = true
-			_say("LOCK ON", 1.8)
-			_pulse("lock_on")
-		if lock_pressed and not lock_shot and cam.has_lock_target() and elapsed > 7.2:
+			_claymore = Pickup.spawn(main, _item("claymore"), player.global_position + Vector3(3.0, 0.0, -3.0))
+		# Lock-on: try every 0.8 s from the 5 s mark until the targeting accepts an enemy.
+		if elapsed > 5.0 and not lock_pressed and elapsed >= next_lock_try and _nearest_enemy() != null:
+			next_lock_try = elapsed + 0.8
+			player.toggle_lock()
+			if player.lock_target() != null:
+				lock_pressed = true
+				lock_at = elapsed
+				_say("LOCK ON", 1.8)
+			elif cam.has_lock_target():
+				player.toggle_lock()  # a stale lock: release and retry
+		if lock_pressed and not lock_shot and elapsed > lock_at + 1.0 and player.lock_target() != null:
 			lock_shot = true
 			_shot("lock_on")
-		if elapsed > 10.0 and not teleport_pressed:
+		if elapsed > 9.5 and not teleport_pressed:
 			teleport_pressed = true
 			_say("TELEPORT", 1.8)
 			_pulse("teleport")
-		if teleport_pressed and not hud_shot and elapsed > 11.8:
+		if teleport_pressed and not hud_shot and elapsed > 11.0:
 			hud_shot = true
 			_shot("hud_armor_teleport")
-		if elapsed > 13.0 and cam.has_lock_target():
-			_pulse("lock_on")
+		if elapsed > 12.5 and cam.has_lock_target():
+			player.toggle_lock()
 	_stop()
 
 
 func _act_boss() -> void:
-	_say("THE WARDEN", 2.4)
-	_pulse("lock_on", 1)
+	if cam.has_lock_target():
+		player.toggle_lock()
 	_hit_shot_armed = false
 	for node in get_nodes_in_group("enemies"):
 		node.queue_free()

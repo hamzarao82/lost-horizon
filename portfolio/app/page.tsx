@@ -188,7 +188,7 @@ export default function Home() {
           <section id="trailer">
             <div className="wrap">
               <h2>Trailer</h2>
-              <video controls preload="none" playsInline>
+              <video controls preload="none" playsInline poster={asset("/trailer-poster.jpg")}>
                 <source src={asset("/trailer.mp4")} type="video/mp4" />
               </video>
             </div>
