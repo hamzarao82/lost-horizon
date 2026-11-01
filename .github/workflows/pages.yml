@@ -10,7 +10,7 @@ name: Deploy site
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     paths:
       - "portfolio/**"
       - "site-assets/**"
