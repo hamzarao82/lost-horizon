@@ -15,6 +15,10 @@ extends Resource
 @export var shake: float = 0.25
 @export var swing_arc: float = 100.0
 @export var swing_flip: bool = false
+## > 0 makes this a ring attack. With aoe_on_land false the ring pulses once when the active window
+## opens (spin special); with aoe_on_land true it pulses when an air attack touches the ground.
+@export var aoe_radius: float = 0.0
+@export var aoe_on_land: bool = false
 
 
 func total_frames() -> int:
@@ -31,4 +35,6 @@ func validate() -> PackedStringArray:
 		errors.append("%s: every phase needs at least 1 frame" % id)
 	if stamina_cost < 0.0 or knockback < 0.0 or stagger_time < 0.0:
 		errors.append("%s: negative stamina, knockback or stagger" % id)
+	if aoe_radius < 0.0:
+		errors.append("%s: aoe_radius must be >= 0" % id)
 	return errors

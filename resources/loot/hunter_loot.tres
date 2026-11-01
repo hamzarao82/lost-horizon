@@ -5,5 +5,5 @@
 [resource]
 script = ExtResource("1_table")
 drop_chance = 0.85
-item_paths = PackedStringArray("res://resources/items/health_potion.tres", "res://resources/items/combat_knife.tres", "res://resources/items/military_machete.tres", "res://resources/items/tactical_sword.tres", "res://resources/items/light_tactical_armor.tres", "res://resources/items/reinforced_armor.tres")
-weights = PackedFloat32Array(4, 2, 1.5, 0.4, 1, 1)
+item_paths = PackedStringArray("res://resources/items/health_potion.tres", "res://resources/items/armor_plate.tres", "res://resources/items/combat_knife.tres", "res://resources/items/iron_sword.tres", "res://resources/items/military_machete.tres", "res://resources/items/katana.tres", "res://resources/items/tactical_sword.tres", "res://resources/items/light_tactical_armor.tres", "res://resources/items/reinforced_armor.tres")
+weights = PackedFloat32Array(4, 2.5, 1.5, 1.5, 1.5, 0.9, 0.3, 1, 1)

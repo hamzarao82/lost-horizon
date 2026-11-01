@@ -6,6 +6,7 @@ const AUDIO_DIR: String = "res://assets/audio/"
 const SFX_NAMES: Array[StringName] = [
 	&"swing_light", &"swing_heavy", &"hit_light", &"hit_heavy", &"hurt", &"dodge",
 	&"pickup", &"equip", &"heal", &"enemy_swing_windup", &"enemy_death", &"wave_start",
+	&"teleport",
 ]
 const POOL_SIZE: int = 8
 const MUSIC_DB: float = -14.0
@@ -59,6 +60,15 @@ func play(sfx_name: StringName, volume_db: float = 0.0, pitch_jitter: float = 0.
 	player.volume_db = volume_db
 	player.pitch_scale = 1.0 + randf_range(-pitch_jitter, pitch_jitter)
 	player.play()
+
+
+## Plays one sound silently so the mixer/stream setup cost is paid before the first real hit.
+func warm_up(sfx_name: StringName) -> void:
+	play(sfx_name, -80.0, 0.0)
+
+
+func warm_up_names() -> Array[StringName]:
+	return SFX_NAMES
 
 
 func set_master_volume(linear: float) -> void:

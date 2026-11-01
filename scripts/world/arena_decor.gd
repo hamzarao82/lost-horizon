@@ -67,9 +67,19 @@ void fragment() {
 }
 """
 
+signal build_finished
+
+## When true, or under a headless display, the whole decor is built inside _ready() in a single frame
+## (the pre-boot-screen behaviour). Otherwise it is built a stage per frame so Main never freezes.
+static var build_synchronously: bool = false
+## Tests only: build in stages even under the headless display (which otherwise forces sync mode).
+static var force_staged: bool = false
+
 @export var quality_low: bool = false
 
 var quality_level: int = QUALITY_HIGH
+## Milliseconds spent in each stage of the most recent build (for docs/LOADING.md and the boot report).
+var stage_ms: Array[float] = []
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _built_level: int = -1
@@ -80,6 +90,9 @@ var _water_noise: ImageTexture
 var _cloud_tex: GradientTexture2D
 var _water_material: ShaderMaterial
 var _clouds: Node3D
+var _build_serial: int = 0
+var _building: bool = false
+var _stage_mark: int = 0
 
 
 # --- builder -----------------------------------------------------------------
@@ -185,8 +198,7 @@ func _ready() -> void:
 			settings.connect("changed", _on_settings_changed)
 	elif quality_low:
 		quality_level = QUALITY_LOW
-	_hide_placeholder_visuals()
-	_build()
+	_build()  # staged: returns at its first yield unless building synchronously
 
 
 func set_quality(level: int) -> void:
@@ -218,22 +230,64 @@ func _hide_placeholder_visuals() -> void:
 		south.visible = false  # the sea is visible over the south edge; a rope fence replaces it
 
 
+## True once every stage of the current build has run (the Boot screen waits for this).
+func is_built() -> bool:
+	return not _building and _built_level == quality_level
+
+
+func _sync_mode() -> bool:
+	if force_staged:
+		return false
+	return build_synchronously or DisplayServer.get_name() == "headless"
+
+
+## Marks a stage boundary and, unless building synchronously, yields one frame so the frame that ran
+## the stage can present. Returns true if this build was superseded or the node left the tree.
+func _next_stage(serial: int) -> bool:
+	var now := Time.get_ticks_usec()
+	stage_ms.append((now - _stage_mark) / 1000.0)
+	if not _sync_mode() and is_inside_tree():
+		await get_tree().process_frame
+	_stage_mark = Time.get_ticks_usec()
+	return serial != _build_serial or not is_inside_tree()
+
+
 func _build() -> void:
+	_build_serial += 1
+	var serial := _build_serial
+	_building = true
+	stage_ms.clear()
+	_stage_mark = Time.get_ticks_usec()
 	for node in _generated:
 		if is_instance_valid(node):
 			node.queue_free()
 	_generated.clear()
 	_clouds = null
+	set_process(false)
 	_built_level = quality_level
 	_rng.seed = SEED
-	_ensure_textures()
+
+	# Stages are sized to roughly a frame each; see docs/LOADING.md for the measured split.
+	if await _make_textures(serial):
+		return
 	_style_obstacles()
 	_add_terrain()
+	_hide_placeholder_visuals()  # only now: until the sand exists the plain floor stays visible
+	if await _next_stage(serial):
+		return
 	_add_water()
-	_add_props()
+	if await _next_stage(serial):
+		return
+	if await _add_props(serial):
+		return
 	if quality_level != QUALITY_LOW:
 		_add_clouds()
 	set_process(_clouds != null)
+	await _next_stage(serial)
+	if serial != _build_serial:
+		return
+	_building = false
+	build_finished.emit()
 
 
 func _track(node: Node) -> void:
@@ -243,12 +297,23 @@ func _track(node: Node) -> void:
 
 # --- textures and materials --------------------------------------------------
 
-func _ensure_textures() -> void:
+## One texture per stage (each costs ~25 ms on an integrated GPU laptop). Textures survive rebuilds.
+## Returns true if the build was superseded part-way.
+func _make_textures(serial: int) -> bool:
 	if _sand_tex:
-		return
+		return false
 	_sand_tex = _noise_texture(11, 0.05, SAND_DARK, SAND_LIGHT, 0.08)
+	if await _next_stage(serial):
+		return true
 	_rock_tex = _noise_texture(23, 0.09, Color(0.38, 0.35, 0.32), Color(0.66, 0.62, 0.56), 0.04)
+	if await _next_stage(serial):
+		return true
 	_water_noise = _noise_texture(37, 0.04, Color(0.0, 0.0, 0.0), Color(1.0, 1.0, 1.0), 0.0)
+	_make_cloud_texture()
+	return await _next_stage(serial)
+
+
+func _make_cloud_texture() -> void:
 	var gradient := Gradient.new()
 	gradient.colors = PackedColorArray([Color(1.0, 0.93, 0.84, 0.75), Color(1.0, 0.93, 0.84, 0.0)])
 	_cloud_tex = GradientTexture2D.new()
@@ -386,14 +451,21 @@ func _add_water() -> void:
 
 # --- props -------------------------------------------------------------------
 
-func _add_props() -> void:
+## Staged like _build(). Returns true if the build was superseded part-way.
+func _add_props(serial: int) -> bool:
 	var b := Builder.new()
 	_add_palms(b)
 	_add_rocks(b)
+	if await _next_stage(serial):
+		return true
 	_add_rope_fence(b)
 	_add_wreck(b)
 	_add_beach_clutter(b)
+	if await _next_stage(serial):
+		return true
 	_add_outpost(b)
+	if await _next_stage(serial):
+		return true
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
 	material.roughness = 0.95
@@ -412,6 +484,7 @@ func _add_props() -> void:
 	sign_label.modulate = Color(0.95, 0.9, 0.75)
 	sign_label.position = Vector3(0.0, 6.1, -35.7)
 	_track(sign_label)
+	return await _next_stage(serial)
 
 
 func _palm_count() -> int:

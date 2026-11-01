@@ -1,0 +1,43 @@
+name: Release
+
+# Creates (or updates) a GitHub Release and uploads the files in release-assets/
+# (LostHorizon-windows.zip, LostHorizon-android.apk). The site's Download buttons point at
+# /releases/latest/download/<file>, so keep those two file names.
+#
+# Large binaries do not belong in git history. The simpler route is to upload from your machine:
+#   gh release create v0.2.0 LostHorizon-windows.zip LostHorizon-android.apk --generate-notes
+# Use this workflow only if you really do commit release-assets/ (each file must stay under 100 MB).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release, for example v0.2.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check assets
+        run: |
+          ls -la release-assets 2>/dev/null || { echo "::error::release-assets/ is missing"; exit 1; }
+          test -n "$(ls -A release-assets)" || { echo "::error::release-assets/ is empty"; exit 1; }
+
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-assets/* --clobber
+          else
+            gh release create "$TAG" release-assets/* --title "Lost Horizon $TAG" --generate-notes
+          fi

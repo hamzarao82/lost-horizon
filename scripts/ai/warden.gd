@@ -213,18 +213,30 @@ func _drop_loot() -> void:
 
 # --- shockwave -------------------------------------------------------------
 
+static var _ring_mesh: CylinderMesh
+static var _ring_material: StandardMaterial3D
+
+
+## Shared by every shockwave (and by the warm-up), so a slam never builds a mesh or a material.
+static func ring_resources() -> Array:
+	if _ring_mesh == null:
+		_ring_mesh = CylinderMesh.new()
+		_ring_mesh.top_radius = 1.0
+		_ring_mesh.bottom_radius = 1.0
+		_ring_mesh.height = 0.15
+		_ring_material = StandardMaterial3D.new()
+		_ring_material.albedo_color = Color(1.0, 0.25, 0.1, 0.45)
+		_ring_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_ring_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	return [_ring_mesh, _ring_material]
+
+
 func _spawn_shockwave() -> void:
 	var ring := MeshInstance3D.new()
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = 1.0
-	mesh.bottom_radius = 1.0
-	mesh.height = 0.15
-	ring.mesh = mesh
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(1.0, 0.25, 0.1, 0.45)
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	ring.material_override = material
+	var resources := Warden.ring_resources()
+	ring.mesh = resources[0]
+	ring.material_override = resources[1]
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	ring.top_level = true  # stay where the slam landed instead of following the boss
 	add_child(ring)
 	ring.global_position = Vector3(global_position.x, 0.1, global_position.z)

@@ -7,6 +7,7 @@ const TOAST_SECONDS: float = 2.5
 
 var _health_bar: ProgressBar
 var _stamina_bar: ProgressBar
+var _armor_bar: ProgressBar
 var _message: Label
 var _wave_label: Label
 var _banner: Label
@@ -25,7 +26,12 @@ var _boss_name: Label
 func _ready() -> void:
 	layer = 50
 	_health_bar = _make_bar(Vector2(16, 90), Color(0.8, 0.15, 0.15))
-	_stamina_bar = _make_bar(Vector2(16, 112), Color(0.2, 0.75, 0.3))
+	# Armor sits between health and stamina; it is hidden (the gap stays) until armor is equipped.
+	_armor_bar = _make_bar(Vector2(16, 108), Color(0.3, 0.6, 1.0))
+	_armor_bar.custom_minimum_size.y = 12
+	_armor_bar.size.y = 12
+	_armor_bar.visible = false
+	_stamina_bar = _make_bar(Vector2(16, 124), Color(0.2, 0.75, 0.3))
 	_stamina_bar.custom_minimum_size.y = 10
 	_stamina_bar.size.y = 10
 
@@ -57,6 +63,8 @@ func _ready() -> void:
 	_player = get_tree().get_first_node_in_group("player") as Player
 	if _player:
 		_player.health.changed.connect(_on_health_changed)
+		_player.health.armor_changed.connect(_on_armor_changed)
+		_on_armor_changed(_player.health.armor, _player.health.max_armor)  # may be restored from a save
 		_player.stamina_changed.connect(_on_stamina_changed)
 		_on_health_changed(_player.health.health, _player.health.max_health)  # may be restored from a save
 		_on_stamina_changed(_player.max_stamina, _player.max_stamina)
@@ -159,6 +167,13 @@ func _on_health_changed(current: float, maximum: float) -> void:
 	_health_bar.value = current
 
 
+func _on_armor_changed(current: float, maximum: float) -> void:
+	_armor_bar.visible = maximum > 0.0
+	_armor_bar.max_value = maxf(maximum, 1.0)
+	_armor_bar.value = current
+	_refresh_equipment()  # the panel shows "current/max"
+
+
 func _on_stamina_changed(current: float, maximum: float) -> void:
 	_stamina_bar.max_value = maximum
 	_stamina_bar.value = current
@@ -190,6 +205,9 @@ func _refresh_equipment() -> void:
 	var weapon_text := inv.weapon.summary() if inv.weapon else "None"
 	var armor_text := inv.armor.summary() if inv.armor else "None"
 	_equipment.text = "Weapon: %s\nArmor: %s\nMedkits: %d  [R]" % [weapon_text, armor_text, inv.potions]
+	if inv.armor and _player.health.max_armor > 0.0:
+		_equipment.text = _equipment.text.replace("Armor: %s" % armor_text,
+				"Armor: %s  %d/%d" % [armor_text, roundi(_player.health.armor), roundi(_player.health.max_armor)])
 
 
 func _on_item_collected(item: ItemData, kept: bool) -> void:

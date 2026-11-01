@@ -14,3 +14,9 @@ Overlay: F3 toggles (on by default in debug builds).
 | 2026-11-01 | + lock-on, save, fx, island decor | Windows (editor run) | 4 enemies, auto-attacking, vsync off | 142 avg (1% low 71-75) | 173-178 peak | 48 | 109 MB | Intel UHD 620, 1280x720 |
 | 2026-11-01 | same | Web export | n/a | not measured | n/a | n/a | 39 MB wasm + 0.43 MB pck | exported, not run in a browser by me |
 | 2026-11-01 | same | Android debug APK | n/a | not measured | n/a | n/a | 28.7 MB | exported, not run on a device |
+
+## Stutter investigation (2026-11-02)
+Details in docs/STUTTER.md. Benchmark: `godot --path . -s tests/stutter_bench.gd [-- warm]` (Intel UHD 620, vsync off).
+- Hit-stop was the main "lag": 5% game speed for 0.05-0.10 s, chained across enemies (up to 149 ms). Now 30% speed, <= 0.07 s, no chaining.
+- First-use costs (shader compile, glyph rasterizing, disk loads) caused the 60-435 ms spikes; `Warmup.steps()` moves them behind the loading screen. Worst frame in the first heavy fight: 169 ms -> 26-44 ms.
+- Fx calls, Label3D text assignment, and steady-state spawns were measured and are cheap (< 0.2 ms, 0.05 ms, 1-3 ms).

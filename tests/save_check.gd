@@ -121,7 +121,10 @@ func _test_round_trip_and_restore() -> void:
 	restored_waves.start()
 	_check(not _sm.pending_load and _sm.pending_data.is_empty(), "queued load is consumed exactly once")
 	_check(restored_waves.resume_index() == 3, "wave manager resumes on the saved wave")
-	await _frames(10)
+	var spawn_wait := 0
+	while restored_waves.current_wave < 3 and spawn_wait < 120:
+		await physics_frame
+		spawn_wait += 1
 	_check(restored_waves.current_wave == 3 and get_nodes_in_group("enemies").size() == 3, "wave 3 spawns (heavy, hunter, soldier)")
 	restored_main.queue_free()
 	await _frames(3)
@@ -198,7 +201,10 @@ func _test_checkpoint_resume() -> void:
 	player.inventory.add_item(_item("health_potion"))
 	waves.start_delay = 0.0
 	waves.start_wave_at(3)
-	await _frames(10)
+	var cp_wait := 0
+	while waves.current_wave < 3 and cp_wait < 120:
+		await physics_frame
+		cp_wait += 1
 	_check(waves.current_wave == 3, "wave 3 started")
 	_check(int(_sm.checkpoint.get("next_wave", 0)) == 3, "wave start records a checkpoint")
 	_check(_sm.checkpoint["inventory"]["weapon"] == "military_machete", "checkpoint holds the inventory at wave start")

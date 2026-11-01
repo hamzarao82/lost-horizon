@@ -22,9 +22,11 @@ func _ready() -> void:
 
 ## Stable ids only; item definitions are never stored in the save.
 func to_dict() -> Dictionary:
+	var health := _health()
 	return {
 		"weapon": String(weapon.item_id) if weapon else "",
 		"armor": String(armor.item_id) if armor else "",
+		"armor_points": health.armor if health and armor else -1.0,
 		"potions": potions,
 	}
 
@@ -36,6 +38,8 @@ func from_dict(data: Dictionary) -> void:
 		weapon = loaded_weapon
 	armor = _item_by_id(str(data.get("armor", "")), ItemData.Kind.ARMOR)
 	potions = clampi(int(data.get("potions", 0)), 0, MAX_POTIONS)
+	# Saves written before armor became a bar have no points: restore the bar full.
+	_sync_armor_pool(float(data.get("armor_points", -1.0)))
 	changed.emit()
 
 
@@ -79,8 +83,33 @@ func damage_multiplier() -> float:
 	return weapon.damage_multiplier if weapon else 1.0
 
 
+## Swing speed of the equipped weapon (1.0 = normal). The player scales its attack timings by this.
+func attack_speed() -> float:
+	return weapon.attack_speed if weapon else 1.0
+
+
+## Armor is a bar now (see HealthComponent), not a percentage. Kept so older callers still work.
 func damage_reduction() -> float:
-	return armor.damage_reduction if armor else 0.0
+	return 0.0
+
+
+## The owner's HealthComponent holds the armor pool; null for a detached Inventory (unit tests).
+func _health() -> HealthComponent:
+	var parent := get_parent()
+	if parent == null:
+		return null
+	return parent.get("health") as HealthComponent
+
+
+## Size the armor bar to the equipped armor. `points` < 0 fills it; otherwise restores that amount.
+func _sync_armor_pool(points: float) -> void:
+	var health := _health()
+	if health == null:
+		return
+	if armor == null:
+		health.set_armor(0.0, 0.0)
+	else:
+		health.set_armor(armor.armor_points, points)
 
 
 ## Returns true if the item was taken (and should disappear from the world).
@@ -99,6 +128,14 @@ func add_item(item: ItemData) -> bool:
 			if armor == null or item.power() > armor.power():
 				armor = item
 				kept = true
+				_sync_armor_pool(-1.0)  # a better armor starts with a full bar
+		ItemData.Kind.ARMOR_PLATE:
+			# Used on pickup; left on the ground if the bar is already full (or there is no armor).
+			var health := _health()
+			if health:
+				kept = health.restore_armor(item.armor_restore)
+			else:
+				kept = false
 	if kept:
 		changed.emit()
 	item_collected.emit(item, kept)

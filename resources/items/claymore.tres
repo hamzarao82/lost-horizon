@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"claymore"
+display_name = "Claymore"
+kind = 0
+rarity = 3
+damage_multiplier = 2.1
+attack_speed = 0.85
+reach = 1.3
+description = "Slow and enormous. Every hit counts."

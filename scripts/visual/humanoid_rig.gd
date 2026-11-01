@@ -331,7 +331,7 @@ func _pose_attack(delta: float) -> void:
 		_fallback_frames += delta * 60.0
 		frames = _fallback_frames
 
-	var overhead := startup >= 16.0
+	var overhead := startup >= 16.0 or (data != null and (data.id == &"heavy_1" or data.damage >= 20.0))
 	var twist := _weapon_pivot.rotation.y * 0.45 if _weapon_pivot else 0.0
 
 	if frames < startup:

@@ -64,6 +64,7 @@ var _dodge_time: float = 0.0
 var _counted: bool = false
 var _strafe_sign: float = 1.0
 var _token_age: float = 0.0
+var _label_filled: int = -1
 
 
 func _ready() -> void:
@@ -345,7 +346,10 @@ func _sidestep(from_position: Vector3) -> void:
 
 
 func _on_health_changed(current: float, maximum: float) -> void:
-	var filled := ceili(current / maximum * 10.0)
+	var filled := clampi(ceili(current / maximum * 10.0), 0, 10)
+	if filled == _label_filled:
+		return  # Label3D re-shapes its text on every assignment; only rebuild when the bar moved
+	_label_filled = filled
 	_label.text = "%s [%s%s]" % [display_name, "#".repeat(filled), "-".repeat(10 - filled)]
 
 

@@ -251,37 +251,65 @@ func _build_pools() -> void:
 		_shimmers.add(_make_particles(SHIMMER_AMOUNT, 0.6, 0.8, 2.2, Vector3(0, 1.2, 0), 0.6, 1.2, 60.0))
 
 	for i in MAX_RINGS:
-		var sprite := Sprite3D.new()
-		sprite.texture = _ring_texture
-		sprite.axis = Vector3.AXIS_Y
-		sprite.pixel_size = 2.0 / RING_TEXTURE_SIZE  # scale 1 == radius 1 m
-		sprite.shaded = false
-		sprite.transparent = true
-		sprite.double_sided = true
-		sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		sprite.visible = false
+		var sprite := _make_ring_sprite()
 		add_child(sprite)
 		_rings.add(sprite)
 		_ring_radius.append(1.0)
 		_ring_color.append(Color.WHITE)
 
 	for i in MAX_NUMBERS:
-		var label := Label3D.new()
-		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		label.no_depth_test = true
-		label.shaded = false
-		label.pixel_size = 0.008
-		label.font_size = 48
-		label.outline_size = 12
-		label.outline_modulate = Color.BLACK
-		label.render_priority = 10
-		label.outline_render_priority = 9
-		label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		label.visible = false
+		var label := _make_number_label()
 		add_child(label)
 		_numbers.add(label)
 		_number_origin.append(Vector3.ZERO)
 		_number_scale.append(1.0)
+
+
+func _make_ring_sprite() -> Sprite3D:
+	var sprite := Sprite3D.new()
+	sprite.texture = _ring_texture
+	sprite.axis = Vector3.AXIS_Y
+	sprite.pixel_size = 2.0 / RING_TEXTURE_SIZE  # scale 1 == radius 1 m
+	sprite.shaded = false
+	sprite.transparent = true
+	sprite.double_sided = true
+	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sprite.visible = false
+	return sprite
+
+
+func _make_number_label() -> Label3D:
+	var label := Label3D.new()
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.shaded = false
+	label.pixel_size = 0.008
+	label.font_size = 48
+	label.outline_size = 12
+	label.outline_modulate = Color.BLACK
+	label.render_priority = 10
+	label.outline_render_priority = 9
+	label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	label.visible = false
+	return label
+
+
+## Fresh, unparented copies of every effect type (same meshes, materials and flags as the pools),
+## for Warmup to draw once so their shaders and glyphs are ready before the first hit.
+func make_warmup_nodes() -> Array[Node3D]:
+	var nodes: Array[Node3D] = []
+	var burst := _make_particles(SPARK_AMOUNT, 0.2, 2.0, 5.0, Vector3(0, -12, 0), 0.6, 1.2, 180.0)
+	remove_child(burst)
+	burst.emitting = true
+	nodes.append(burst)
+	var label := _make_number_label()
+	label.text = "0123456789+-"  # rasterizes every glyph the damage numbers can use
+	label.visible = true
+	nodes.append(label)
+	var ring := _make_ring_sprite()
+	ring.visible = true
+	nodes.append(ring)
+	return nodes
 
 
 func _make_particles(amount: int, lifetime: float, speed_min: float, speed_max: float,

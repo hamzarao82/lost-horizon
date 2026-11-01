@@ -26,6 +26,7 @@ func _initialize() -> void:
 	_write("enemy_death", _death())
 	_write("wave_start", _fanfare())
 	_write("music_loop", _music())
+	_write("teleport", _teleport())  # last: shares the seeded RNG, so earlier sounds stay byte-identical
 	quit()
 
 
@@ -165,6 +166,16 @@ func _dodge() -> PackedFloat32Array:
 	var n := _highpass(_noise(0.26), 900.0)
 	n = _bell(_lowpass(n, 3000.0, 9000.0))
 	return _normalize(n, 0.6)
+
+
+## Rising whoosh into a falling shimmer: depart, then arrive.
+func _teleport() -> PackedFloat32Array:
+	var up := _env(_sweep(0.22, 300.0, 1800.0, 18.0, 0.04), 0.01, 7.0)
+	var down := _env(_sweep(0.30, 2200.0, 500.0, 11.0, 0.05), 0.01, 6.0)
+	var shimmer := _bell(_highpass(_noise(0.5), 3500.0))
+	var buf := _mix(up, down, 0.9, 0.18)
+	buf = _mix(buf, shimmer, 0.45, 0.1)
+	return _normalize(buf, 0.75)
 
 
 func _blips(freqs: Array, note: float, total: float) -> PackedFloat32Array:

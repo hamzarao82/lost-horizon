@@ -32,6 +32,7 @@ const ARENA_LIMIT: float = 26.0
 const SPAWN_MIN: float = 12.0
 const SPAWN_MAX: float = 16.0
 const POLL_SECONDS: float = 0.5
+const SPAWN_STAGGER: float = 0.12
 
 @export var autostart: bool = true
 @export var start_delay: float = 1.5
@@ -53,15 +54,26 @@ func _ready() -> void:
 		start()
 
 
+## The Boot screen has normally loaded all of this already, so each load() is a cache hit and costs
+## nothing. A resource that is still cold (started without Boot, e.g. tests or a direct scene run) is
+## loaded at most one per frame, so warming never turns into one long freeze.
 func _warm_up() -> void:
+	var paths: Array[String] = []
 	for path in WARM_UP:
+		paths.append(path)
+	for wave in WAVES:
+		for path in wave:
+			if not paths.has(path):
+				paths.append(path)
+	var spread := DisplayServer.get_name() != "headless"
+	for path in paths:
+		var was_cached := ResourceLoader.has_cached(path)
 		var res := load(path)
 		if res is LootTable:
 			for item_path in (res as LootTable).item_paths:
 				load(item_path)
-	for wave in WAVES:
-		for path in wave:
-			load(path)
+		if spread and not was_cached and is_inside_tree():
+			await get_tree().process_frame
 
 
 ## Begin at the wave a queued Load / death checkpoint asks for, otherwise wave 1.
@@ -135,9 +147,17 @@ func _process(delta: float) -> void:
 func _spawn_wave() -> void:
 	_next_wave_in = -1.0
 	_poll_time = 0.0
-	current_wave += 1
+	var wave_number := current_wave + 1
+	_wave_spawned = false  # stays false while the wave is still arriving
 	var parent := get_parent()
-	for path in WAVES[current_wave - 1]:
+	var first := true
+	for path in WAVES[wave_number - 1]:
+		if not first:
+			# One enemy per short interval: spawning a whole wave in one frame is a visible hitch.
+			await get_tree().create_timer(SPAWN_STAGGER).timeout
+			if not is_instance_valid(parent) or not is_inside_tree():
+				return
+		first = false
 		var scene := load(path) as PackedScene
 		if scene == null:
 			push_warning("WaveManager: missing enemy scene %s" % path)
@@ -149,6 +169,7 @@ func _spawn_wave() -> void:
 		parent.add_child(enemy)
 		if enemy.has_method("aggro"):
 			enemy.call("aggro")
+	current_wave = wave_number
 	_wave_spawned = true
 	var save_manager := _save_manager()
 	if save_manager:

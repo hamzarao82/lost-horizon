@@ -86,10 +86,10 @@ func _test_inventory() -> void:
 	_check(inv.add_item(_item("combat_knife")) and inv.weapon.item_id == &"combat_knife", "better weapon is equipped")
 	_check(not inv.add_item(_item("improvised_blade")) and inv.weapon.item_id == &"combat_knife", "worse weapon is rejected")
 	_check(inv.add_item(_item("tactical_sword")) and is_equal_approx(inv.damage_multiplier(), 1.9), "sword replaces knife")
-	_check(inv.damage_reduction() == 0.0, "no armor means no reduction")
-	_check(inv.add_item(_item("reinforced_armor")) and is_equal_approx(inv.damage_reduction(), 0.2), "armor is equipped")
+	_check(inv.armor == null and inv.damage_reduction() == 0.0, "starts with no armor, and armor is no longer a percentage")
+	_check(inv.add_item(_item("reinforced_armor")) and is_equal_approx(inv.armor.armor_points, 60.0), "armor is equipped")
 	_check(not inv.add_item(_item("light_tactical_armor")), "weaker armor is rejected")
-	_check(inv.add_item(_item("heavy_combat_armor")) and is_equal_approx(inv.damage_reduction(), 0.35), "stronger armor replaces it")
+	_check(inv.add_item(_item("heavy_combat_armor")) and is_equal_approx(inv.armor.armor_points, 100.0), "stronger armor replaces it")
 
 	var health := HealthComponent.new()
 	health.max_health = 100.0
@@ -121,7 +121,11 @@ func _test_loot_table() -> void:
 	var rate := float(drops) / rolls
 	_check(absf(rate - table.drop_chance) < 0.03, "drop rate matches table (%.3f vs %.2f)" % [rate, table.drop_chance])
 	var potion_share := float(potions) / maxf(drops, 1)
-	_check(absf(potion_share - 5.0 / 9.5) < 0.04, "weights respected (potion share %.3f)" % potion_share)
+	var weight_total := 0.0
+	for w in table.weights:
+		weight_total += w
+	var expected_share := table.weights[0] / weight_total  # the potion is the first entry
+	_check(absf(potion_share - expected_share) < 0.04, "weights respected (potion share %.3f vs %.3f)" % [potion_share, expected_share])
 	var guaranteed := load("res://resources/loot/heavy_loot.tres") as LootTable
 	var all_drop := true
 	for i in 200:
@@ -226,13 +230,17 @@ func _test_equipment_in_combat() -> void:
 	await _frames(40)
 	var swing := load("res://resources/attacks/enemy_swing.tres") as AttackData
 	var hp := player.health.health
+	_check(is_equal_approx(player.health.armor, 60.0), "equipping reinforced armor fills a 60 point armor bar")
 	player.receive_hit(swing, player.global_position + Vector3(0, 0, -1))
-	_check(is_equal_approx(hp - player.health.health, swing.damage * 0.8), "reinforced armor cuts damage by 20%")
+	_check(is_equal_approx(player.health.health, hp) and is_equal_approx(player.health.armor, 60.0 - swing.damage),
+			"armor absorbs damage before health")
 
 	await _frames(40)
+	player.health.take_damage(player.health.armor + 30.0)  # strip the armor, then hurt the player
+	var hurt_hp := player.health.health
 	player.inventory.add_item(_item("health_potion"))
 	await _press("use_item")
-	_check(player.inventory.potions == 0 and player.health.health > hp - swing.damage * 0.8, "use_item key consumes a medkit and heals")
+	_check(player.inventory.potions == 0 and player.health.health > hurt_hp, "use_item key consumes a medkit and heals")
 
 	# A heal tapped mid-attack is buffered and used as soon as the attack ends
 	await _frames(40)
@@ -327,11 +335,13 @@ func _test_variants_and_drops() -> void:
 			pickups.append(child)
 	_check(soldier.is_dead() and pickups.size() == 1, "dead enemy drops a pickup (found %d)" % pickups.size())
 
-	if pickups.size() == 1:
-		var pickup := pickups[0]
-		pickup.global_position = player.global_position
-		await _frames(4)
-		_check(not is_instance_valid(pickup) or pickup.is_queued_for_deletion(), "walking into a pickup collects it")
+	# Collection is tested with a medkit we control: a random drop can be an armor plate, which is
+	# deliberately left on the ground when no armor is worn.
+	for stray in pickups:
+		stray.queue_free()
+	var medkit := Pickup.spawn(main, _item("health_potion"), player.global_position)
+	await _frames(8)
+	_check(not is_instance_valid(medkit) or medkit.is_queued_for_deletion(), "walking into a pickup collects it")
 
 	var worse := Pickup.spawn(main, _item("improvised_blade"), player.global_position)
 	player.inventory.add_item(_item("military_machete"))

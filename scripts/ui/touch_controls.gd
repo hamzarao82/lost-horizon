@@ -18,6 +18,8 @@ const BUTTONS: Array[Dictionary] = [
 	{"label": "Dodge", "action": &"dodge", "offset": Vector2(-60, -190)},
 	{"label": "Heal", "action": &"use_item", "offset": Vector2(-270, -150)},
 	{"label": "Lock", "action": &"lock_on", "offset": Vector2(-330, -60)},
+	{"label": "Spin", "action": &"special", "offset": Vector2(-390, -150)},
+	{"label": "Tele", "action": &"teleport", "offset": Vector2(-250, -250)},
 ]
 const MOVE_ACTIONS: Array[StringName] = [
 	&"move_left", &"move_right", &"move_forward", &"move_backward", &"sprint"]

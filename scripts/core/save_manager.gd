@@ -193,6 +193,8 @@ func _sanitize(data: Dictionary) -> Dictionary:
 		"inventory": {
 			"weapon": str(inventory.get("weapon", "")),
 			"armor": str(inventory.get("armor", "")),
+			# Optional (added after v1 shipped): current armor bar; -1 or missing means full.
+			"armor_points": maxf(float(inventory.get("armor_points", -1.0)), -1.0),
 			"potions": clampi(int(inventory.get("potions", 0)), 0, MAX_POTIONS),
 		},
 		"player": clean_player,

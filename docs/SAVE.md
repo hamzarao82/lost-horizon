@@ -11,12 +11,14 @@ Local, versioned, ID-based (GDD section 20). Code: `scripts/core/save_manager.gd
   "saved_at": 1762000000,
   "next_wave": 3,
   "completed": false,
-  "inventory": { "weapon": "military_machete", "armor": "heavy_combat_armor", "potions": 2 },
+  "inventory": { "weapon": "military_machete", "armor": "heavy_combat_armor", "armor_points": 72.0, "potions": 2 },
   "player": { "health": 55.0, "max_health": 100.0 },
   "defeated_bosses": ["warden"]
 }
 ```
 Items are stored by `item_id`, which is the file name in `resources/items/`. No node, resource or path is ever stored. Unknown ids, items in the wrong slot, and out-of-range numbers are ignored or clamped on load.
+
+**`armor_points`** (optional, added after v1 shipped, no version bump): the current armor bar, since armor is a bar that drains. A missing value (older saves, the v0 migration) or `-1` means "full"; values are clamped to the equipped armor's maximum on load. Armor Plates are consumed on pickup, so they are not stored.
 
 ## Writing
 `write_data()` writes the whole file to `<file>.tmp`, then replaces the real file. A crash mid-write leaves the previous save intact. (On Windows, Godot removes the old file just before the rename, so it is not a single atomic operation at the OS level, but a partial file is never left behind as the save.)

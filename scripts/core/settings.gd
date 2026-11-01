@@ -23,6 +23,7 @@ var music_volume: float = 1.0
 var mouse_sensitivity: float = 1.0  # multiplier on the camera's authored value
 var touch_sensitivity: float = 1.0  # multiplier on TouchControls' authored value
 var quality: Quality = Quality.HIGH
+var hit_stop: HitStop.Level = HitStop.Level.NORMAL  # impact slow-motion: Off / Light / Normal
 
 var _save_timer: float = -1.0
 
@@ -87,6 +88,12 @@ func set_quality(value: Quality) -> void:
 	_touched()
 
 
+func set_hit_stop(value: HitStop.Level) -> void:
+	hit_stop = value
+	HitStop.level = value
+	_touched()
+
+
 func flush() -> void:
 	if _save_timer >= 0.0:
 		save()
@@ -102,6 +109,7 @@ func save() -> void:
 	cfg.set_value("settings", "mouse_sensitivity", mouse_sensitivity)
 	cfg.set_value("settings", "touch_sensitivity", touch_sensitivity)
 	cfg.set_value("settings", "quality", int(quality))
+	cfg.set_value("settings", "hit_stop", int(hit_stop))
 	cfg.save(config_path)
 
 
@@ -116,9 +124,12 @@ func load_settings() -> void:
 	touch_sensitivity = clampf(float(cfg.get_value("settings", "touch_sensitivity", touch_sensitivity)),
 			MIN_SENSITIVITY, MAX_SENSITIVITY)
 	quality = clampi(int(cfg.get_value("settings", "quality", int(quality))), 0, Quality.HIGH) as Quality
+	hit_stop = clampi(int(cfg.get_value("settings", "hit_stop", int(hit_stop))),
+			HitStop.Level.OFF, HitStop.Level.NORMAL) as HitStop.Level
 
 
 func apply_all() -> void:
+	HitStop.level = hit_stop
 	_apply_audio()
 	_apply_quality()
 	_for_each_node(get_tree().root, _apply_sensitivity)
