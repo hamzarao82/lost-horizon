@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"light_2"
+damage = 12.0
+stamina_cost = 5.0
+startup_frames = 6
+active_frames = 4
+recovery_frames = 12
+knockback = 3.5
+stagger_time = 0.25
+lunge_speed = 3.5
+hit_stop = 0.05
+shake = 0.25
+swing_arc = 110.0
+swing_flip = true
