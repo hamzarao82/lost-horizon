@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=29 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://scripts/ui/perf_overlay.gd" id="2_perf"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/world/wave_manager.gd" id="6_waves"]
 [ext_resource type="Script" path="res://scripts/world/arena_decor.gd" id="8_decor"]
 [ext_resource type="Script" path="res://scripts/world/world_flow.gd" id="9_world"]
+[ext_resource type="Script" path="res://scripts/world/outpost17.gd" id="10_outpost"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_mat"]
 sky_top_color = Color(0.27, 0.46, 0.74, 1)
@@ -55,6 +56,18 @@ size = Vector3(60, 4, 1)
 
 [sub_resource type="BoxShape3D" id="Shape_wall_half"]
 size = Vector3(26, 4, 1)
+
+[sub_resource type="BoxShape3D" id="Shape_wall_n_left"]
+size = Vector3(40, 4, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_wall_n_left"]
+size = Vector3(40, 4, 1)
+
+[sub_resource type="BoxShape3D" id="Shape_wall_n_right"]
+size = Vector3(16, 4, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_wall_n_right"]
+size = Vector3(16, 4, 1)
 
 [sub_resource type="BoxMesh" id="Mesh_wall_ew"]
 size = Vector3(60, 4, 1)
@@ -109,13 +122,22 @@ shape = SubResource("Shape_box")
 mesh = SubResource("Mesh_box")
 
 [node name="WallN" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -30)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 2, -30)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="WallN"]
-shape = SubResource("Shape_wall_ew")
+shape = SubResource("Shape_wall_n_left")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="WallN"]
-mesh = SubResource("Mesh_wall_ew")
+mesh = SubResource("Mesh_wall_n_left")
+
+[node name="WallN2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 2, -30)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WallN2"]
+shape = SubResource("Shape_wall_n_right")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="WallN2"]
+mesh = SubResource("Mesh_wall_n_right")
 
 [node name="WallS" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 2, 30)
@@ -152,6 +174,7 @@ mesh = SubResource("Mesh_wall_ns")
 
 [node name="Decor" type="Node3D" parent="."]
 script = ExtResource("8_decor")
+skip_north_outpost = true
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
@@ -162,6 +185,9 @@ autostart = false
 
 [node name="World" type="Node3D" parent="."]
 script = ExtResource("9_world")
+
+[node name="Outpost17" type="Node3D" parent="."]
+script = ExtResource("10_outpost")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("5_hud")

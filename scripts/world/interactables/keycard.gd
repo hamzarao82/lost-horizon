@@ -5,16 +5,20 @@ extends Area3D
 
 static var _material: StandardMaterial3D
 
+var flag_id: StringName = &"has_keycard"
+var label_text: String = "Command Keycard"
 var _age: float = 0.0
 var _base_y: float = 0.0
 var _mesh: MeshInstance3D
 
 
-static func spawn(parent: Node, position: Vector3) -> Keycard:
+static func spawn(parent: Node, position: Vector3, flag: StringName = &"has_keycard", label: String = "Command Keycard") -> Keycard:
 	if not is_instance_valid(parent) or not parent.is_inside_tree():
 		return null
 	var card := Keycard.new()
 	card.position = position  # before add_child, so _ready sees the real height
+	card.flag_id = flag
+	card.label_text = label
 	parent.add_child(card)
 	return card
 
@@ -42,7 +46,7 @@ func _ready() -> void:
 	_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_mesh)
 	var label := Label3D.new()
-	label.text = "Command Keycard"
+	label.text = label_text
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.pixel_size = 0.008
 	label.modulate = Color(1.0, 0.85, 0.4)
@@ -62,8 +66,8 @@ func _on_body_entered(body: Node3D) -> void:
 		return
 	var state := get_node_or_null("/root/WorldState")
 	if state:
-		state.set_flag(&"has_keycard", true)
-		state.emit_interacted(&"keycard")
+		state.set_flag(flag_id, true)
+		state.emit_interacted(&"keycard" if flag_id == &"has_keycard" else &"access_card")
 	var audio := get_node_or_null("/root/AudioManager")
 	if audio and audio.has_method("play"):
 		audio.play(&"equip")

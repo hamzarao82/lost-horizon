@@ -46,6 +46,10 @@ var _boss_name: Label
 var _quests: Node
 var _tracker_title: Label
 var _tracker_objective: Label
+var _optional_line: Label
+var _location_label: Label
+var _location_time: float = 0.0
+var _last_location: String = ""
 var _subtitle: Label
 var _caption_queue: Array[Dictionary] = []
 var _subtitle_time: float = 0.0
@@ -358,6 +362,16 @@ func _on_item_collected(item: ItemData, kept: bool) -> void:
 
 const SUBTITLE_FADE: float = 0.4
 const SHORT_VIEWPORT_HEIGHT: float = 480.0
+const LOCATION_Y: float = 146.0       # under the banner band (98-138), clear of the teleport label on the left
+const LOCATION_SIZE: Vector2 = Vector2(420, 32)
+const LOCATION_SECONDS: float = 2.6
+## World area id -> name shown by the location banner (Milestone 3: Outpost 17).
+const AREA_NAMES: Dictionary = {
+	"area_a_perimeter": "Outer Perimeter",
+	"area_b_compound": "Military Compound",
+	"area_c_research": "Research Access Facility",
+	"area_d_command": "Command Center",
+}
 const TRACKER_MAX_WIDTH: float = 360.0
 const TRACKER_TALL_Y: float = 205.0   # below the bars (90-134), teleport label (~150) and pause button (140-196)
 const TRACKER_SHORT_Y: float = 46.0   # fallback for very short screens: top centre under the wave label
@@ -378,14 +392,27 @@ func _setup_story() -> void:
 	_tracker_objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tracker_objective.max_lines_visible = 2  # long objectives never grow the tracker past two lines
 	_tracker_objective.visible = false
+	_optional_line = _make_label(14, 4)
+	_optional_line.add_theme_color_override("font_color", Color(0.8, 0.72, 0.4, 0.9))  # dim gold: optional
+	_optional_line.clip_text = true
+	_optional_line.visible = false
+	_location_label = _make_label(22, 6)
+	_location_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_location_label.add_theme_color_override("font_color", Color(0.92, 0.92, 0.88))
+	_location_label.visible = false
 	_subtitle = _make_label(22, 6)
 	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_subtitle.max_lines_visible = SUBTITLE_LINES
 	_subtitle.visible = false
+	var world := get_node_or_null("/root/WorldState")
+	if world != null and world.has_signal("area_entered"):
+		world.area_entered.connect(_on_area_entered)
 	_quests = get_node_or_null("/root/QuestManager")
 	if _quests == null:
 		return
+	if _quests.has_signal("quest_item_added"):
+		_quests.quest_item_added.connect(_on_quest_item_added)
 	_quests.tracker_changed.connect(_refresh_tracker)
 	_quests.caption_requested.connect(show_caption)
 	_quests.quest_started.connect(_on_quest_started)
@@ -438,6 +465,8 @@ func _refresh_tracker() -> void:
 		return
 	_tracker_title.text = _quests.tracker_title()
 	_tracker_objective.text = _quests.tracker_objective()
+	var optional_text: String = _quests.tracker_optional() if _quests.has_method("tracker_optional") else ""
+	_optional_line.text = optional_text
 
 
 func _on_quest_started(quest_id: StringName) -> void:
@@ -450,9 +479,30 @@ func _on_quest_completed(quest_id: StringName) -> void:
 	var quest: QuestData = _quests.get_quest(quest_id)
 	if quest == null:
 		return
-	_queue_banner("QUEST COMPLETE", Color(0.95, 0.85, 0.3))
+	_queue_banner("MISSION COMPLETE" if quest.show_mission_banner else "QUEST COMPLETE", Color(0.95, 0.85, 0.3))
 	var reward := "" if quest.reward_text.is_empty() else "  Reward: %s" % quest.reward_text
 	_show_toast("%s%s" % [quest.title, reward], Color(0.95, 0.85, 0.3))
+
+
+func _on_quest_item_added(id: StringName) -> void:
+	_show_toast("Quest item: %s" % QuestItems.display_name(id), Color(0.95, 0.85, 0.3))
+
+
+func _on_area_entered(id: StringName) -> void:
+	var area_name: String = AREA_NAMES.get(String(id), "")
+	if not area_name.is_empty():
+		show_location(area_name)
+
+
+## Location banner: shows an area name for a moment (not again for the same area in a row).
+func show_location(area_name: String) -> void:
+	if area_name.is_empty() or area_name == _last_location:
+		return
+	_last_location = area_name
+	_location_label.text = area_name
+	_location_label.modulate.a = 1.0
+	_location_label.visible = true
+	_location_time = LOCATION_SECONDS
 
 
 ## Places the tracker and the subtitle for a screen size and returns their rectangles.
@@ -474,7 +524,18 @@ func layout_story(viewport_size: Vector2) -> Dictionary:
 	_tracker_title.position = Vector2(tracker_x, tracker_y)
 	_tracker_objective.position = Vector2(tracker_x, tracker_y + title_height)
 	_tracker_objective.size.y = objective_height
-	var tracker_rect := Rect2(tracker_x, tracker_y, tracker_width, title_height + objective_height)
+	# Optional-objective line: one dim line directly under the objective (part of the tracker block).
+	_optional_line.custom_minimum_size.x = tracker_width
+	_optional_line.size.x = tracker_width
+	var optional_height := _optional_line.get_combined_minimum_size().y if _optional_line.text != "" else 0.0
+	_optional_line.position = Vector2(tracker_x, tracker_y + title_height + objective_height)
+	_optional_line.size.y = optional_height
+	var tracker_rect := Rect2(tracker_x, tracker_y, tracker_width, title_height + objective_height + optional_height)
+	# Location banner: centred under the banner band; not used on very short screens.
+	var location_rect := Rect2((viewport_size.x - LOCATION_SIZE.x) * 0.5, LOCATION_Y, LOCATION_SIZE.x, LOCATION_SIZE.y)
+	_location_label.custom_minimum_size.x = LOCATION_SIZE.x
+	_location_label.size.x = LOCATION_SIZE.x
+	_location_label.position = location_rect.position
 
 	# Width, centre and the clear-of-touch-buttons rule come from plan_layout (wrap at ~60% of the screen).
 	var sub_plan: Rect2 = plan_layout(viewport_size, TouchControls.touch_active)["subtitle"]
@@ -493,6 +554,7 @@ func layout_story(viewport_size: Vector2) -> Dictionary:
 	return {
 		"tracker": tracker_rect,
 		"subtitle": Rect2(subtitle_x, subtitle_y, subtitle_width, subtitle_height),
+		"location": location_rect,
 	}
 
 
@@ -515,6 +577,11 @@ func _update_story(viewport_size: Vector2, delta: float) -> void:
 	var show_tracker := has_quest and not (short and _boss_bar.visible)  # the boss bar owns the top centre
 	_tracker_title.visible = show_tracker
 	_tracker_objective.visible = show_tracker and _tracker_objective.text != ""
+	_optional_line.visible = show_tracker and _optional_line.text != ""
+	if _location_time > 0.0:
+		_location_time -= delta
+		_location_label.modulate.a = clampf(_location_time / 0.6, 0.0, 1.0)
+		_location_label.visible = _location_time > 0.0 and not short  # the banner is skipped on very short screens
 	layout_story(viewport_size)
 
 

@@ -4,6 +4,8 @@ extends Resource
 
 const ITEM_DIR: String = "res://resources/items/"
 
+enum Category { MAIN, SIDE, EXPLORATION }
+
 @export var id: StringName
 @export var title: String
 @export_multiline var description: String
@@ -17,6 +19,20 @@ const ITEM_DIR: String = "res://resources/items/"
 @export var start_captions: PackedStringArray
 @export var complete_captions: PackedStringArray
 @export var caption_seconds: float = 4.0
+@export var category: Category = Category.MAIN
+## Short pointer for the player ("Outer Perimeter"), shown by the HUD when the quest starts.
+@export var location_hint: String
+## Completing this quest shows the MISSION COMPLETE banner instead of QUEST COMPLETE.
+@export var show_mission_banner: bool = false
+
+
+## Objectives that have to be done for the quest to complete (optional ones are excluded).
+func required_indices() -> Array[int]:
+	var result: Array[int] = []
+	for index in objectives.size():
+		if objectives[index] != null and not objectives[index].optional:
+			result.append(index)
+	return result
 
 
 func validate() -> PackedStringArray:
@@ -27,6 +43,8 @@ func validate() -> PackedStringArray:
 		errors.append("%s: no title" % id)
 	if objectives.is_empty():
 		errors.append("%s: no objectives" % id)
+	elif required_indices().is_empty():
+		errors.append("%s: every objective is optional" % id)
 	var seen_ids: Array[StringName] = []
 	for objective in objectives:
 		if objective == null:

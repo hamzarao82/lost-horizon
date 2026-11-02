@@ -11,6 +11,8 @@ signal tracker_changed
 ## Story / radio lines for the HUD subtitle queue.
 signal caption_requested(text: String, seconds: float)
 signal ending_started
+## A quest item (not an inventory item) was granted: HUD toast.
+signal quest_item_added(id: StringName)
 
 const QUEST_PATHS: Array[String] = [
 	"res://resources/quests/first_signal.tres",
@@ -21,6 +23,11 @@ const QUEST_PATHS: Array[String] = [
 const FIRST_QUEST: StringName = &"first_signal"
 const FINAL_QUEST: StringName = &"final_transmission"
 const KEYCARD_FLAG: StringName = &"has_keycard"
+## Milestone 3 chain: the access card is a quest item; the terminal unlocks the next mission location.
+const ACCESS_CARD_FLAG: StringName = &"has_access_card"
+const ACCESS_CARD_ITEM: StringName = &"access_card"
+const TERMINAL_ID: StringName = &"military_terminal"
+const NEXT_LOCATION_FLAG: StringName = &"next_location_unlocked"
 const INTRO_SCENE: String = "res://scenes/story/Intro.tscn"
 const ENDING_SCENE: String = "res://scenes/story/Ending.tscn"
 const INTRO_SETTLE_SECONDS: float = 0.6
@@ -33,6 +40,8 @@ var completed: Array[StringName] = []
 var intro_done: bool = false
 var ending_shown: bool = false
 
+## Quest items by stable id; separate from the inventory on purpose.
+var quest_items: QuestItems = QuestItems.new()
 var _rewarded: Array[StringName] = []
 var _pending_rewards: Array[String] = []
 ## "type:target" of every non-counting event seen so far; replayed when a quest starts, so doing
@@ -153,8 +162,12 @@ func _replay_history(quest_id: StringName) -> void:
 func _check_complete(quest_id: StringName) -> void:
 	if not active.has(quest_id):
 		return
-	for done in active[quest_id]["done"]:
-		if not done:
+	var quest := get_quest(quest_id)
+	var done_flags: Array = active[quest_id]["done"]
+	for index in done_flags.size():
+		# Optional objectives never block completion.
+		var optional := quest != null and index < quest.objectives.size() and quest.objectives[index].optional
+		if not done_flags[index] and not optional:
 			return
 	_complete(quest_id)
 
@@ -311,6 +324,8 @@ func _bind_waves(waves: WaveManager) -> void:
 
 func _on_interacted(id: StringName) -> void:
 	notify(ObjectiveData.Type.INTERACT, id)
+	if id == TERMINAL_ID and _world != null and _world.has_method("set_flag") and not _world.has_flag(NEXT_LOCATION_FLAG):
+		_world.set_flag(NEXT_LOCATION_FLAG, true)  # the terminal reveals the next mission location
 
 
 func _on_area_entered(id: StringName) -> void:
@@ -318,8 +333,31 @@ func _on_area_entered(id: StringName) -> void:
 
 
 func _on_flag_changed(id: StringName, value: bool) -> void:
-	if value:
-		notify(ObjectiveData.Type.FLAG, id)
+	if not value:
+		return
+	if id == ACCESS_CARD_FLAG:
+		add_quest_item(ACCESS_CARD_ITEM)
+	notify(ObjectiveData.Type.FLAG, id)
+	# "doc_<id>_found" flags (lore documents) also count as discoveries / interactions of <id>.
+	var text := String(id)
+	if text.begins_with("doc_") and text.ends_with("_found") and text.length() > 10:
+		var doc_id := StringName(text.substr(4, text.length() - 10))
+		notify(ObjectiveData.Type.DISCOVER, doc_id)
+		notify(ObjectiveData.Type.INTERACT, doc_id)
+
+
+# --- quest items -----------------------------------------------------------
+
+## Grants a quest item once. Never touches the inventory, so gear changes cannot remove it.
+func add_quest_item(id: StringName) -> bool:
+	if not quest_items.add(id):
+		return false
+	quest_item_added.emit(id)
+	return true
+
+
+func has_quest_item(id: StringName) -> bool:
+	return quest_items.has(id)
 
 
 func _on_wave_cleared(index: int) -> void:
@@ -387,15 +425,37 @@ func tracker_objective() -> String:
 			continue
 		var state: Dictionary = active[quest_id]
 		for index in quest.objectives.size():
-			if state["done"][index]:
-				continue
 			var objective: ObjectiveData = quest.objectives[index]
-			var needed := objective.required()
-			if needed > 1:
-				var label := objective.progress_label if not objective.progress_label.is_empty() else "Progress"
-				return "%s (%s %d/%d)" % [objective.text, label, int(state["progress"][index]), needed]
-			return objective.text
+			if state["done"][index] or objective.optional:
+				continue
+			return _objective_text(objective, int(state["progress"][index]))
 	return ""
+
+
+## The first unfinished OPTIONAL objective that is visible (its hidden_until flag, if any, is set).
+## Shown on its own HUD line; it never blocks the quest.
+func tracker_optional() -> String:
+	for quest_id in active.keys():
+		var quest := get_quest(quest_id)
+		if quest == null:
+			continue
+		var state: Dictionary = active[quest_id]
+		for index in quest.objectives.size():
+			var objective: ObjectiveData = quest.objectives[index]
+			if not objective.optional or state["done"][index]:
+				continue
+			if objective.hidden_until != &"" and not (_world != null and _world.has_method("has_flag") and _world.has_flag(objective.hidden_until)):
+				continue
+			return _objective_text(objective, int(state["progress"][index]))
+	return ""
+
+
+func _objective_text(objective: ObjectiveData, progress: int) -> String:
+	var needed := objective.required()
+	if needed > 1:
+		var label := objective.progress_label if not objective.progress_label.is_empty() else "Progress"
+		return "%s (%s %d/%d)" % [objective.text, label, progress, needed]
+	return objective.text
 
 
 # --- intro -----------------------------------------------------------------
@@ -466,6 +526,7 @@ func to_dict() -> Dictionary:
 		"pending_rewards": _pending_rewards.duplicate(),
 		"history": _history.keys(),
 		"intro_done": intro_done,
+		"quest_items": quest_items.to_dict(),
 	}
 	if _world != null and _world.has_method("to_dict"):
 		data["world"] = _world.to_dict()
@@ -491,6 +552,7 @@ func from_dict(raw: Variant) -> void:
 	for entry in data["history"]:
 		_history[String(entry)] = true
 	intro_done = bool(data["intro_done"])
+	quest_items.from_dict(data.get("quest_items", []))
 	var active_data: Dictionary = data["active"]
 	for key in active_data.keys():
 		var quest_id := StringName(key)
@@ -509,6 +571,9 @@ func from_dict(raw: Variant) -> void:
 			_world.from_dict(world_data)
 		else:
 			_world_stash = world_data
+	# A restored world that already has the access card keeps the quest item even if the save predates it.
+	if _world != null and _world.has_method("has_flag") and _world.has_flag(ACCESS_CARD_FLAG):
+		quest_items.add(ACCESS_CARD_ITEM)
 	_ensure_progress()
 	_flush_rewards()
 	tracker_changed.emit()
@@ -527,6 +592,7 @@ func _clear_state() -> void:
 	_pending_rewards.clear()
 	_history.clear()
 	_kill_ids.clear()
+	quest_items.clear()
 	_world_stash = {}
 
 

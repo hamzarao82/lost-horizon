@@ -1,27 +1,93 @@
-[gd_resource type="Resource" script_class="QuestData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="QuestData" load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
 [ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
 
-[sub_resource type="Resource" id="Obj_radio"]
+[sub_resource type="Resource" id="O1"]
 script = ExtResource("2_obj")
-id = &"use_radio"
-text = "Find the emergency radio and use it"
+id = &"reach_perimeter"
+text = "Reach the outer perimeter"
+type = 1
+targets = PackedStringArray("area_a_perimeter")
+
+[sub_resource type="Resource" id="O2"]
+script = ExtResource("2_obj")
+id = &"investigate_checkpoint"
+text = "Investigate the abandoned checkpoint"
+type = 0
+targets = PackedStringArray("checkpoint_desk")
+
+[sub_resource type="Resource" id="O3"]
+script = ExtResource("2_obj")
+id = &"find_transmission"
+text = "Find the source of the transmission"
 type = 0
 targets = PackedStringArray("radio")
-count = 0
-progress_label = ""
+
+[sub_resource type="Resource" id="O4"]
+script = ExtResource("2_obj")
+id = &"eliminate_soldiers"
+text = "Eliminate the hostile soldiers"
+type = 2
+count = 4
+progress_label = "Soldiers"
+
+[sub_resource type="Resource" id="O5"]
+script = ExtResource("2_obj")
+id = &"find_access_card"
+text = "Locate the security access card"
+type = 5
+targets = PackedStringArray("has_access_card")
+
+[sub_resource type="Resource" id="O6"]
+script = ExtResource("2_obj")
+id = &"restore_comms_power"
+text = "Restore power to the communications facility"
+type = 5
+targets = PackedStringArray("comms_power_on")
+
+[sub_resource type="Resource" id="O7"]
+script = ExtResource("2_obj")
+id = &"access_terminal"
+text = "Access the military terminal"
+type = 0
+targets = PackedStringArray("military_terminal")
+
+[sub_resource type="Resource" id="O8"]
+script = ExtResource("2_obj")
+id = &"discover_research"
+text = "Discover the restricted research facility"
+type = 1
+targets = PackedStringArray("area_c_research")
+
+[sub_resource type="Resource" id="O9"]
+script = ExtResource("2_obj")
+id = &"unlock_next_location"
+text = "Unlock the next mission location"
+type = 5
+targets = PackedStringArray("next_location_unlocked")
+
+[sub_resource type="Resource" id="OPT"]
+script = ExtResource("2_obj")
+id = &"find_security_log"
+text = "Optional: find the missing security log"
+type = 0
+targets = PackedStringArray("log_missing_security")
+optional = true
 
 [resource]
 script = ExtResource("1_quest")
 id = &"first_signal"
 title = "The First Signal"
-description = "You woke on a beach among the wreckage with no memory of the crash. Somewhere nearby an emergency radio is still powered."
+description = "A weak military transmission is coming from Outpost 17. Find out who is sending it, and what they are hiding."
 prerequisites = PackedStringArray()
-objectives = Array[ExtResource("2_obj")]([SubResource("Obj_radio")])
+objectives = Array[ExtResource("2_obj")]([SubResource("O1"), SubResource("O2"), SubResource("O3"), SubResource("O4"), SubResource("O5"), SubResource("O6"), SubResource("O7"), SubResource("O8"), SubResource("O9"), SubResource("OPT")])
 rewards = PackedStringArray("combat_knife")
 reward_text = "Combat Knife"
 next_quest = &"restore_power"
-start_captions = PackedStringArray()
-complete_captions = PackedStringArray("...static... Can anyone hear this? If you can hear this, you are not alone.", "Outpost 17 holds what they are hiding. Get inside, but the gate is dead without power.", "Find the generator switches and bring the outpost back online. I will guide you.")
+start_captions = PackedStringArray("...static... Can anyone hear this? If you can hear this, you are not alone.", "A weak signal is coming from Outpost 17. Find the source.")
+complete_captions = PackedStringArray("Transmission traced. The research complex coordinates are on your display.", "Whatever they are hiding, it starts here. Be careful out there.")
 caption_seconds = 4.5
+category = 0
+location_hint = "Outer Perimeter"
+show_mission_banner = true

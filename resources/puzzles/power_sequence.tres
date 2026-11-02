@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="SequenceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/puzzle/sequence_data.gd" id="1_seq"]
+
+[resource]
+script = ExtResource("1_seq")
+id = &"power_sequence"
+order = PackedStringArray("power_switch_b", "power_switch_a", "power_switch_c")
+requires_flag = &"panel_inspected"
+solved_flag = &"comms_power_on"
+step_flag_prefix = "puzzle_power_step_"
+hint_not_ready = "The breakers are dead. Find the damaged panel first."

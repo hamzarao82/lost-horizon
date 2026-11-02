@@ -78,8 +78,35 @@ func _drop(node: Node) -> void:
 	await _frames(2)
 
 
-func _complete_first_two(qm: Node) -> void:
+## Quest 1 is the Milestone 3 nine-objective chain: feed it every event it needs (the old radio-only quest is gone).
+func _finish_first_signal(qm: Node) -> void:
+	qm.notify(OBJ.ENTER_AREA, &"area_a_perimeter")
+	qm.notify(OBJ.INTERACT, &"checkpoint_desk")
 	qm.notify(OBJ.INTERACT, &"radio")
+	for i in 4:
+		qm.notify(OBJ.KILL_COUNT, &"Soldier", 1, 9000 + i)
+	qm.notify(OBJ.FLAG, &"has_access_card")
+	qm.notify(OBJ.FLAG, &"comms_power_on")
+	qm.notify(OBJ.INTERACT, &"military_terminal")
+	qm.notify(OBJ.ENTER_AREA, &"area_c_research")
+	qm.notify(OBJ.FLAG, &"next_location_unlocked")
+
+
+## Same chain through the real WorldState (kills still come through notify: they need live enemies).
+func _finish_first_signal_via_world(qm: Node, world: Node) -> void:
+	world.emit_area_entered(&"area_a_perimeter")
+	world.emit_interacted(&"checkpoint_desk")
+	world.emit_interacted(&"radio")
+	for i in 4:
+		qm.notify(OBJ.KILL_COUNT, &"Soldier", 1, 9100 + i)
+	world.set_flag(&"has_access_card", true)
+	world.set_flag(&"comms_power_on", true)
+	world.emit_interacted(&"military_terminal")  # the manager sets next_location_unlocked itself
+	world.emit_area_entered(&"area_c_research")
+
+
+func _complete_first_two(qm: Node) -> void:
+	_finish_first_signal(qm)
 	for id in [&"switch_1", &"switch_2", &"switch_3"]:
 		qm.notify(OBJ.INTERACT, id)
 	qm.notify(OBJ.FLAG, &"power_on")
@@ -181,17 +208,17 @@ func _test_flow() -> void:
 	events.clear()
 
 	_check(qm.is_active(&"first_signal") and qm.completed.is_empty(), "a fresh run starts The First Signal")
-	_check(qm.tracker_title() == "The First Signal" and qm.tracker_objective().contains("radio"), "the tracker shows quest and objective")
+	_check(qm.tracker_title() == "The First Signal" and qm.tracker_objective().contains("outer perimeter"), "the tracker shows quest and objective")
 	_check(not qm.start_quest(&"restore_power"), "a quest cannot start before its prerequisite is done")
 	_check(not qm.start_quest(&"first_signal"), "an active quest cannot be started twice")
 
 	qm.notify(OBJ.INTERACT, &"not_the_radio")
 	_check(qm.is_active(&"first_signal"), "an unrelated interaction does nothing")
 	var knife_before: StringName = player.inventory.weapon.item_id
-	qm.notify(OBJ.INTERACT, &"radio")
-	_check(qm.is_completed(&"first_signal") and qm.is_active(&"restore_power"), "using the radio completes quest 1 and starts quest 2")
+	_finish_first_signal(qm)
+	_check(qm.is_completed(&"first_signal") and qm.is_active(&"restore_power"), "finishing the nine-objective chain completes quest 1 and starts quest 2")
 	_check(player.inventory.weapon.item_id == &"combat_knife" and knife_before == &"improvised_blade", "the quest 1 reward (combat knife) is granted")
-	_check(captions.size() == 3 and captions[0].contains("not alone"), "the radio lines are queued as captions (%d)" % captions.size())
+	_check(captions.size() >= 2 and captions.any(func(c: String) -> bool: return c.contains("Transmission traced")), "the closing lines are queued as captions (%d)" % captions.size())
 	qm.notify(OBJ.INTERACT, &"radio")
 	_check(qm.completed.size() == 1 and events.count("done:first_signal") == 1, "repeating the event does not complete it again")
 
@@ -247,7 +274,7 @@ func _test_history_replay() -> void:
 	qm.notify(OBJ.INTERACT, &"switch_1")  # before the radio: quest 2 is not even active yet
 	qm.notify(OBJ.INTERACT, &"switch_2")
 	qm.notify(OBJ.INTERACT, &"switch_3")
-	qm.notify(OBJ.INTERACT, &"radio")
+	_finish_first_signal(qm)
 	_check(qm.is_active(&"restore_power") and qm.objective_progress(&"restore_power", 0) == 3, "switches thrown before the quest began still count")
 	qm.notify(OBJ.FLAG, &"power_on")
 	_check(qm.is_completed(&"restore_power"), "the quest then finishes on power_on")
@@ -290,7 +317,7 @@ func _test_save_round_trip() -> void:
 	var qm := await _make_manager()
 	var player := await _make_player()
 	qm.reset()
-	qm.notify(OBJ.INTERACT, &"radio")
+	_finish_first_signal(qm)
 	qm.notify(OBJ.INTERACT, &"switch_1")
 	qm.notify(OBJ.INTERACT, &"switch_3")
 	var through_file: Variant = JSON.parse_string(JSON.stringify(qm.to_dict()))  # what a save file does to numbers
@@ -331,7 +358,7 @@ func _test_resilience() -> void:
 	qm._world = null
 	qm.reset()
 	qm.notify(OBJ.BOSS_DEFEATED, &"warden")  # the keycard path must cope with no WorldState
-	qm.notify(OBJ.INTERACT, &"radio")
+	_finish_first_signal(qm)
 	_check(qm.is_completed(&"first_signal"), "events work with no WorldState and no WaveManager in the scene")
 	_check(qm.get_quest(&"nope") == null and not qm.start_quest(&"nope"), "an unknown quest id is harmless")
 	_check(qm.boss_id_for("The Warden") == &"warden", "boss ids derive from display names")
@@ -347,7 +374,7 @@ func _test_world_and_wave_wiring() -> void:
 	if world == null:
 		await _drop(player)
 		return
-	world.emit_interacted(&"radio")
+	_finish_first_signal_via_world(am, world)
 	_check(am.is_completed(&"first_signal"), "WorldState.interacted advances the quest")
 	for id in [&"switch_1", &"switch_2", &"switch_3"]:
 		world.emit_interacted(id)
@@ -387,7 +414,7 @@ func _test_save_manager() -> void:
 	_sm.reset_runtime_state()
 	_sm.delete_save()
 	am.reset()
-	am.notify(OBJ.INTERACT, &"radio")
+	_finish_first_signal(am)
 	am.notify(OBJ.INTERACT, &"switch_2")
 	_check(_sm.save_game("test"), "the game saves with quest data present")
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(_sm.save_path()))

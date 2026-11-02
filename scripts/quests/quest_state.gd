@@ -40,6 +40,7 @@ static func sanitize(raw: Variant) -> Dictionary:
 		"rewarded": _string_list(data.get("rewarded", [])),
 		"pending_rewards": _string_list(data.get("pending_rewards", [])),
 		"history": _string_list(data.get("history", [])),
+		"quest_items": _string_list(data.get("quest_items", [])),  # optional: older saves have none
 		"intro_done": typeof(data.get("intro_done", false)) == TYPE_BOOL and data.get("intro_done", false),
 		"world": world,
 	}

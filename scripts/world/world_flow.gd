@@ -46,6 +46,7 @@ var _caption_tween: Tween
 
 
 func _ready() -> void:
+	add_to_group("world_flow")
 	_waves = get_parent().get_node_or_null("WaveManager")
 	_build_colliders()
 	_build_scenery()
@@ -402,6 +403,8 @@ func _on_trigger_entered(body: Node3D) -> void:
 	var state := _state()
 	if state:
 		state.emit_area_entered(&"courtyard")
+		state.set_flag(&"discovered_area_b_compound", true)
+		state.emit_area_entered(&"area_b_compound")  # Milestone 3 area id for the same courtyard entry
 	if courtyard_started:
 		return
 	courtyard_started = true

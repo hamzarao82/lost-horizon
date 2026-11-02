@@ -76,6 +76,9 @@ static var build_synchronously: bool = false
 static var force_staged: bool = false
 
 @export var quality_low: bool = false
+## Milestone 3: the north outpost silhouette (huts, mast, truck) is replaced by the real Area C/D greybox.
+@export var skip_north_outpost: bool = false
+
 
 var quality_level: int = QUALITY_HIGH
 ## Milliseconds spent in each stage of the most recent build (for docs/LOADING.md and the boot report).
@@ -361,6 +364,7 @@ func _style_obstacles() -> void:
 	_apply_material("../Box1/MeshInstance3D", _metal_material(Color(0.62, 0.17, 0.12), box_extents, Vector2(9.0, 9.0)))
 	_apply_material("../Box2/MeshInstance3D", _metal_material(Color(0.14, 0.38, 0.5), box_extents, Vector2(9.0, 9.0)))
 	_apply_material("../WallN/MeshInstance3D", _metal_material(Color(0.5, 0.42, 0.32), Vector3(30.0, 2.0, 0.5), Vector2(7.0, 0.0)))
+	_apply_material("../WallN2/MeshInstance3D", _metal_material(Color(0.5, 0.42, 0.32), Vector3(8.0, 2.0, 0.5), Vector2(3.0, 0.0)))
 	var rock := StandardMaterial3D.new()
 	rock.albedo_texture = _rock_tex
 	rock.albedo_color = Color(0.85, 0.8, 0.74)
@@ -620,6 +624,8 @@ func _add_beach_clutter(b: Builder) -> void:
 
 
 func _add_outpost(b: Builder) -> void:
+	if skip_north_outpost:
+		return
 	# Barbed fence 6 m behind the north wall.
 	var x := -34.0
 	while x <= 34.0:

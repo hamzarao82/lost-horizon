@@ -2,7 +2,8 @@ class_name ObjectiveData
 extends Resource
 ## One step of a quest. Progress comes from gameplay events, never from scene scripts.
 
-enum Type { INTERACT, ENTER_AREA, KILL_COUNT, WAVE_CLEARED, ITEM_COLLECTED, FLAG, BOSS_DEFEATED }
+## DISCOVER (appended last so saved resources keep their numbers): a clue, document or place id found by exploring.
+enum Type { INTERACT, ENTER_AREA, KILL_COUNT, WAVE_CLEARED, ITEM_COLLECTED, FLAG, BOSS_DEFEATED, DISCOVER }
 
 @export var id: StringName
 @export var text: String
@@ -15,6 +16,10 @@ enum Type { INTERACT, ENTER_AREA, KILL_COUNT, WAVE_CLEARED, ITEM_COLLECTED, FLAG
 @export var count: int = 0
 ## Shown as "<label> n/m" in the tracker when more than one step is needed (e.g. "Switches").
 @export var progress_label: String
+## Optional objectives never block the quest from completing; the HUD shows them on a separate line.
+@export var optional: bool = false
+## Flag id: the objective is not shown on the HUD until this world flag is set (it still counts).
+@export var hidden_until: StringName
 
 
 ## How much progress completes this objective.
