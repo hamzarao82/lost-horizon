@@ -6,7 +6,7 @@ const AUDIO_DIR: String = "res://assets/audio/"
 const SFX_NAMES: Array[StringName] = [
 	&"swing_light", &"swing_heavy", &"hit_light", &"hit_heavy", &"hurt", &"dodge",
 	&"pickup", &"equip", &"heal", &"enemy_swing_windup", &"enemy_death", &"wave_start",
-	&"teleport",
+	&"teleport", &"boss_slam", &"boss_charge", &"boss_leap", &"boss_roar", &"boss_fire", &"mission_complete",
 ]
 const POOL_SIZE: int = 8
 const MUSIC_DB: float = -14.0
@@ -45,6 +45,8 @@ func _ready() -> void:
 			_load_sfx(sfx_name)
 		_install_music()
 
+
+	_connect_mission.call_deferred()
 
 func _process(_delta: float) -> void:
 	if _lazy_wait_frames > 0:
@@ -159,3 +161,14 @@ func _exit_tree() -> void:
 		_music.stop()
 		_music.stream = null
 	_streams.clear()
+
+
+## Mission-complete jingle; QuestManager is an autoload that may not exist in minimal test scenes.
+func _connect_mission() -> void:
+	var quests := get_node_or_null("/root/QuestManager")
+	if quests and quests.has_signal("mission_completed"):
+		quests.mission_completed.connect(_on_mission_completed)
+
+
+func _on_mission_completed(_quest_id: StringName) -> void:
+	play(&"mission_complete")

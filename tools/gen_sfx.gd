@@ -27,6 +27,12 @@ func _initialize() -> void:
 	_write("wave_start", _fanfare())
 	_write("music_loop", _music())
 	_write("teleport", _teleport())  # last: shares the seeded RNG, so earlier sounds stay byte-identical
+	_write("boss_slam", _boss_slam())
+	_write("boss_charge", _boss_charge())
+	_write("boss_leap", _boss_leap())
+	_write("boss_roar", _boss_roar())
+	_write("boss_fire", _boss_fire())
+	_write("mission_complete", _blips([392.0, 494.0, 587.3, 784.0, 988.0], 0.14, 1.0))
 	quit()
 
 
@@ -268,3 +274,30 @@ func _write(sfx_name: String, buf: PackedFloat32Array) -> void:
 	file.store_buffer(header + data)
 	file.close()
 	print("wrote %s.wav  %.2f s  %d KB" % [sfx_name, float(buf.size()) / RATE, (data.size() + 44) / 1024])
+
+
+func _boss_slam() -> PackedFloat32Array:
+	var thud := _env(_sweep(0.45, 90.0, 38.0, 6.0, 0.02), 0.004, 7.0)
+	var crack := _bell(_lowpass(_noise(0.3), 2500.0, 6000.0))
+	return _normalize(_mix(thud, crack, 0.5, 0.0), 0.85)
+
+
+func _boss_charge() -> PackedFloat32Array:
+	var rush := _lowpass(_saw(0.6, 70.0, 220.0), 700.0, 1400.0)
+	return _normalize(_bell(rush), 0.7)
+
+
+func _boss_leap() -> PackedFloat32Array:
+	var up := _env(_sweep(0.5, 150.0, 700.0, 10.0, 0.03), 0.01, 5.0)
+	return _normalize(_mix(up, _bell(_highpass(_noise(0.4), 1500.0)), 0.3, 0.1), 0.7)
+
+
+func _boss_roar() -> PackedFloat32Array:
+	var low := _lowpass(_saw(1.4, 85.0, 60.0), 500.0, 900.0)
+	var grit := _lowpass(_noise(1.4), 1200.0, 2200.0)
+	return _normalize(_bell(_mix(low, grit, 0.5, 0.0)), 0.8)
+
+
+func _boss_fire() -> PackedFloat32Array:
+	var hiss := _bell(_lowpass(_highpass(_noise(0.9), 800.0), 4500.0, 7000.0))
+	return _normalize(hiss, 0.55)
