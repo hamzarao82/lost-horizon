@@ -10,28 +10,64 @@ const SFX_NAMES: Array[StringName] = [
 ]
 const POOL_SIZE: int = 8
 const MUSIC_DB: float = -14.0
+const MUSIC_NAME: StringName = &"music_loop"
+const LAZY_START_FRAMES: int = 90
 
 var _streams: Dictionary = {}
 var _pool: Array[AudioStreamPlayer] = []
 var _next: int = 0
 var _music: AudioStreamPlayer
+var _lazy_queue: Array[StringName] = []
+var _lazy_wait_frames: int = 0
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	for sfx_name in SFX_NAMES:
-		var stream := _load_stream(sfx_name)
-		if stream:
-			_streams[sfx_name] = stream
 	for i in POOL_SIZE:
 		var player := AudioStreamPlayer.new()
 		add_child(player)
 		_pool.append(player)
-
 	_music = AudioStreamPlayer.new()
 	_music.volume_db = MUSIC_DB
 	add_child(_music)
-	var music_stream := _load_stream(&"music_loop")
+	get_tree().node_added.connect(_on_node_added)
+
+	if OS.has_feature("web"):
+		# Single-threaded wasm: loading 13 streams and the music loop here would delay the first frame of
+		# the boot screen. Load one per frame once the game is up (Boot has usually cached them already).
+		_lazy_queue.assign(SFX_NAMES)
+		_lazy_queue.append(MUSIC_NAME)
+		_lazy_wait_frames = LAZY_START_FRAMES
+		set_process(true)
+	else:
+		set_process(false)
+		for sfx_name in SFX_NAMES:
+			_load_sfx(sfx_name)
+		_install_music()
+
+
+func _process(_delta: float) -> void:
+	if _lazy_wait_frames > 0:
+		_lazy_wait_frames -= 1
+		return
+	if _lazy_queue.is_empty():
+		set_process(false)
+		return
+	var next: StringName = _lazy_queue.pop_front()
+	if next == MUSIC_NAME:
+		_install_music()
+	else:
+		_load_sfx(next)
+
+
+func _load_sfx(sfx_name: StringName) -> void:
+	var stream := _load_stream(sfx_name)
+	if stream:
+		_streams[sfx_name] = stream
+
+
+func _install_music() -> void:
+	var music_stream := _load_stream(MUSIC_NAME)
 	if music_stream is AudioStreamWAV:
 		var wav := music_stream as AudioStreamWAV
 		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
@@ -42,8 +78,6 @@ func _ready() -> void:
 		# The headless dummy audio driver leaks the looping playback at exit; nothing to hear there.
 		if DisplayServer.get_name() != "headless":
 			_music.play()
-
-	get_tree().node_added.connect(_on_node_added)
 
 
 func play(sfx_name: StringName, volume_db: float = 0.0, pitch_jitter: float = 0.06) -> void:

@@ -60,11 +60,25 @@ func _input(event: InputEvent) -> void:
 		pressed = event.pressed
 	if pressed:
 		get_viewport().set_input_as_handled()
+		if event is InputEventMouseButton:
+			_capture_mouse()  # same click: browsers only grant pointer lock inside a user gesture
 		skip()
 
 
 func skip() -> void:
 	_finish()
+
+
+func _on_skip_pressed() -> void:
+	_capture_mouse()
+	skip()
+
+
+## The click that skips the intro is consumed here, so the camera never sees it: capture the pointer now
+## (desktop and web; touch devices have no pointer to capture).
+func _capture_mouse() -> void:
+	if not TouchControls.is_mobile_platform() and DisplayServer.get_name() != "headless":
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
 # --- sequence --------------------------------------------------------------
@@ -173,7 +187,7 @@ func _build_ui() -> void:
 	_skip_button.text = "Skip"
 	_skip_button.custom_minimum_size = Vector2(120, 48)
 	_skip_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
-	_skip_button.pressed.connect(skip)
+	_skip_button.pressed.connect(_on_skip_pressed)
 	add_child(_skip_button)
 
 

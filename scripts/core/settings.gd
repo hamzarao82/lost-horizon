@@ -28,11 +28,17 @@ var hit_stop: HitStop.Level = HitStop.Level.NORMAL  # impact slow-motion: Off / 
 var _save_timer: float = -1.0
 
 
+## Desktop-browser default. See docs/WEB_QA.md for the measurement behind this value.
+const WEB_DESKTOP_QUALITY: Quality = Quality.HIGH
+
+
 static func default_quality() -> Quality:
 	if TouchControls.is_mobile_platform():
 		return Quality.LOW
 	if OS.has_feature("web") and bool(JavaScriptBridge.eval("/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)")):
 		return Quality.LOW
+	if OS.has_feature("web"):
+		return WEB_DESKTOP_QUALITY
 	return Quality.HIGH
 
 

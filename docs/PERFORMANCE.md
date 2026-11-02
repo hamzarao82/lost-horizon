@@ -22,3 +22,4 @@ Details in docs/STUTTER.md. Benchmark: `godot --path . -s tests/stutter_bench.gd
 - Fx calls, Label3D text assignment, and steady-state spawns were measured and are cheap (< 0.2 ms, 0.05 ms, 1-3 ms).
 | 2026-11-02 | Milestone 1 | Android debug APK (arm64) | static analysis only | not measured | n/a | not measured | 29.4 MiB (libgodot 72 MiB unpacked) | NOT RUN: no phone attached; emulator refused to boot (needs 7.4 GB free, C: has 3.1 GB). See docs/ANDROID_QA.md. Export also packs about 9 MB of website/test files (node_modules) |
 | 2026-11-02 | Milestone 1 | Android (Redmi K80) | n/a | pending | pending | pending | n/a | awaiting the owner's device test; run tools/androidqa/device_test.ps1 |
+| 2026-11-02 | M1 web fix | Web (Chromium, UHD 620, real GPU, fresh profile) | boot to playable | n/a | n/a | ~1.0 GB browser | 38.5 MB total | 27 s to playable (was 63–92 s); vertex shading on web, cache-busted names |

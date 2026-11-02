@@ -426,6 +426,7 @@ func _test_hud_layout() -> void:
 	hud._tracker_title.text = "Restore Power"
 	hud._tracker_objective.text = "Activate the generator switches (Switches 1/3)"
 	hud._subtitle.text = "The generator is running. The courtyard gate is open, but they will know someone is inside."
+	await _frames(8)  # let the text server finish shaping; headless label metrics are wrong before that
 
 	# With stretch canvas_items + expand the logical size is never smaller than 1280x720 (a 800x360 window
 	# or a 20:9 phone is 1600x720), so those are the real cases; 800x360 exercises the short-screen fallback.
@@ -456,7 +457,7 @@ func _test_hud_layout() -> void:
 			_check(not tracker.intersects(boss) and not subtitle.intersects(boss), "%s: story widgets clear the boss bar" % label)
 		else:
 			_check(not subtitle.intersects(boss) and not subtitle.intersects(wave_label) and not subtitle.intersects(equipment),
-					"%s: short fallback: the subtitle sits below the boss bar, wave label and equipment panel" % label)
+					"%s: short fallback: the subtitle sits below the boss bar, wave label and equipment panel (sub=%s boss=%s wave=%s eq=%s)" % [label, subtitle, boss, wave_label, equipment])
 
 	# Short screens hide the tracker while the boss bar owns the top centre
 	hud._boss_bar.visible = true

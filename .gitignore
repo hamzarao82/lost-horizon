@@ -12,3 +12,4 @@ build/
 *.p12
 release-assets/
 .env
+tools/webqa/.logs/

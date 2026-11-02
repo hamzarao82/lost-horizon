@@ -15,7 +15,7 @@ signal progress_changed(value: float)
 signal finished(main: Node)
 signal failed(message: String)
 
-enum Phase { LOADING, WARMING, BUILDING, WARM_RENDER, SETTLING, FADING, ERROR, DONE }
+enum Phase { LOADING, WARMING, BUILDING, REVEAL, WARM_RENDER, SETTLING, FADING, ERROR, DONE }
 
 const MAIN_SCENE: String = "res://scenes/main/Main.tscn"
 const FRAME_BUDGET_USEC: int = 8000
@@ -23,6 +23,7 @@ const FADE_SECONDS: float = 0.35
 const SETTLE_FRAMES: int = 3
 const BUILD_TIMEOUT_SECONDS: float = 20.0
 const TIP_SECONDS: float = 2.6
+const REVEAL_FRAMES: float = 40.0
 const DECOR_STAGES: float = 10.0  # stage boundaries ArenaDecor reports in a first (texture-generating) build
 ## Share of the bar owned by each phase (sums to 1).
 const W_LOAD: float = 0.50
@@ -75,6 +76,11 @@ var _steps_total: int = 0
 var _steps_done: int = 0
 var _decor: Node
 var _warm_nodes: Array[Node] = []
+## Web: the 3D world starts hidden and is shown piece by piece (one per frame) so the first-draw shader
+## compiles are spread over many small stalls behind the loading screen instead of one huge one.
+var _hidden_top: Array[Node3D] = []
+var _reveal_queue: Array[Node3D] = []
+var _reveal_total: int = 0
 var _warm_frames: int = 0
 var _settle_left: int = 0
 var _fade_left: float = 0.0
@@ -84,6 +90,8 @@ var _tip_index: int = 0
 var _worst_frame_ms: float = 0.0
 var _frames: int = 0
 var _report_mode: bool = false
+var _log_phases: bool = false
+var _last_phase_name: String = ""
 var _post_frames: int = 0
 var _post_worst_ms: float = 0.0
 
@@ -99,6 +107,8 @@ var _retry: Button
 func _ready() -> void:
 	layer = 200  # above the HUD, pause menu and touch layers that Main adds underneath
 	_report_mode = OS.get_cmdline_user_args().has("--boot-report")
+	_log_phases = _report_mode or OS.has_feature("web")
+	_mark("boot_ready")
 	report["first_frame_ms"] = Time.get_ticks_msec()  # since engine start, includes autoloads
 	_build_ui()
 	if auto_start:
@@ -203,6 +213,8 @@ func _process(delta: float) -> void:
 	var frame_start := Time.get_ticks_usec()
 	_frames += 1
 	_worst_frame_ms = maxf(_worst_frame_ms, delta * 1000.0)
+	if _log_phases and delta > 0.25:
+		_log("BOOT_LONG_FRAME %d ms in %s" % [roundi(delta * 1000.0), Phase.keys()[phase]])
 
 	match phase:
 		Phase.LOADING:
@@ -211,6 +223,8 @@ func _process(delta: float) -> void:
 			_step_warming(frame_start)
 		Phase.BUILDING:
 			_step_building(delta)
+		Phase.REVEAL:
+			_step_reveal()
 		Phase.WARM_RENDER:
 			_step_warm_render()
 		Phase.SETTLING:
@@ -279,6 +293,7 @@ func _step_loading(frame_start: int) -> void:
 	_status.text = "Loading... %d / %d" % [_done.size(), _total_requests]
 	if all_done:
 		report["load_done_ms"] = Time.get_ticks_msec()
+		_mark("load_done")
 		_begin_warming()
 
 
@@ -325,13 +340,17 @@ func _step_warming(frame_start: int) -> void:
 	while not _steps.is_empty():
 		var step: Callable = _steps.pop_front()
 		var solo: bool = _solo.pop_front()
+		var step_start := Time.get_ticks_usec()
 		step.call()
+		if _log_phases and Time.get_ticks_usec() - step_start > 40000:
+			_log("BOOT_SLOW_STEP %d %s %d ms" % [_steps_done, step.get_method(), (Time.get_ticks_usec() - step_start) / 1000])
 		_steps_done += 1
 		_set_progress(W_LOAD + W_WARM * float(_steps_done) / maxf(_steps_total, 1.0))
 		if solo or phase == Phase.ERROR or Time.get_ticks_usec() - frame_start >= FRAME_BUDGET_USEC:
 			break
 	if phase == Phase.WARMING and _steps.is_empty():
 		report["warm_done_ms"] = Time.get_ticks_msec()
+		_mark("warm_done")
 		phase = Phase.BUILDING
 		_status.text = "Building the island..."
 
@@ -351,6 +370,12 @@ func _step_add_main() -> void:
 	get_tree().root.add_child(main_node)  # runs every _ready in Main
 	get_tree().current_scene = main_node  # so reload_current_scene() restarts Main, not Boot
 	_decor = main_node.get_node_or_null("Decor")
+	if _reveal_in_slices():
+		for child in main_node.get_children():
+			var item := child as Node3D
+			if item != null and item.visible:
+				item.visible = false  # nothing is drawn (or compiled) until its turn in REVEAL
+				_hidden_top.append(item)
 
 
 ## Steps from the optional external warm-up script: `static func steps() -> Array[Callable]`.
@@ -390,9 +415,58 @@ func _step_building(delta: float) -> void:
 	_set_progress(W_LOAD + W_WARM + W_BUILD * (1.0 if built else fraction * 0.95))
 	if built or _build_wait >= BUILD_TIMEOUT_SECONDS:
 		report["build_done_ms"] = Time.get_ticks_msec()
+		_mark("build_done")
 		if _decor != null and _decor.get(&"stage_ms") is Array:
 			report["decor_stage_ms"] = (_decor.get(&"stage_ms") as Array).duplicate()
-		_begin_warm_render()
+			_log("BOOT_DECOR_STAGES %s" % [str(report["decor_stage_ms"])])
+		if _reveal_in_slices():
+			_begin_reveal()
+		else:
+			_begin_warm_render()
+
+
+# --- REVEAL ---------------------------------------------------------------------
+
+func _reveal_in_slices() -> bool:
+	return OS.has_feature("web") and Warmup.web_light
+
+
+func _begin_reveal() -> void:
+	phase = Phase.REVEAL
+	_mark("reveal_start")
+	_reveal_queue.clear()
+	for item in _hidden_top:
+		if not is_instance_valid(item):
+			continue
+		if item.get_child_count() > 12:  # a container like Decor: show it, then its pieces one by one
+			item.visible = true
+			for piece in item.get_children():
+				var part := piece as Node3D
+				if part != null and part.visible:
+					part.visible = false
+					_reveal_queue.append(part)
+		else:
+			_reveal_queue.append(item)
+	_hidden_top.clear()
+	_reveal_total = maxi(_reveal_queue.size(), 1)
+	_log("BOOT_REVEAL_PIECES %d" % _reveal_total)
+	_status.text = "Preparing graphics..."
+
+
+func _step_reveal() -> void:
+	if not _reveal_queue.is_empty():
+		# About REVEAL_FRAMES frames in total however many pieces there are (decor has hundreds).
+		var batch := maxi(1, ceili(float(_reveal_total) / REVEAL_FRAMES))
+		for i in batch:
+			if _reveal_queue.is_empty():
+				break
+			var item: Node3D = _reveal_queue.pop_front()
+			if is_instance_valid(item):
+				item.visible = true
+		_set_progress(W_LOAD + W_WARM + W_BUILD + W_RENDER * float(_reveal_total - _reveal_queue.size()) / float(_reveal_total))
+		return
+	_mark("reveal_done")
+	_begin_warm_render()
 
 
 # --- WARM_RENDER --------------------------------------------------------------
@@ -402,6 +476,9 @@ func _step_building(delta: float) -> void:
 func _begin_warm_render() -> void:
 	phase = Phase.WARM_RENDER
 	_warm_frames = 0
+	_mark("warm_render")
+	if OS.has_feature("web") and Warmup.web_light:
+		return  # shaders compile when first used; _step_warm_render just passes through
 	var player := main_node.get_node_or_null("Player") as Node3D if main_node else null
 	if player == null:
 		return
@@ -444,6 +521,7 @@ func _begin_fade() -> void:
 	if main_node != null:
 		main_node.process_mode = Node.PROCESS_MODE_INHERIT  # the game starts now
 	report["playable_ms"] = Time.get_ticks_msec()
+	_mark("DONE")
 	report["worst_frame_ms"] = _worst_frame_ms
 	report["frames"] = _frames
 	phase = Phase.FADING
@@ -508,3 +586,18 @@ func _print_report() -> void:
 		report.get("build_done_ms", -1), report.get("playable_ms", -1)])
 	print("BOOT worst_frame_ms_during_boot=%.1f frames=%d" % [_worst_frame_ms, _frames])
 	print("BOOT decor_stage_ms=%s" % str(report.get("decor_stage_ms", [])))
+
+
+## Timing markers (milliseconds since engine start): `BOOT_PHASE <name> <ms>`; only on web or with --boot-report.
+func _mark(name: String) -> void:
+	_log("BOOT_PHASE %s" % name)
+
+
+## Console/JS-array logging for web diagnostics (release web builds may drop print()).
+func _log(text: String) -> void:
+	if not _log_phases:
+		return
+	var line := "%s %d" % [text, Time.get_ticks_msec()]
+	print(line)
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("(window.__boot = window.__boot || []).push(%s)" % JSON.stringify(line))

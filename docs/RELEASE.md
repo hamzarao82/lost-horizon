@@ -101,3 +101,12 @@ It reads only. It fails on keystores or private keys, token patterns, files over
 ## Versioning
 
 Bump `version/code` and `version/name` in the Android preset in `export_presets.cfg` for each release, tag the commit `vX.Y.Z`, and note the changes in the GitHub release.
+
+## Web build packaging (required)
+Always package the web export before committing it to `site-assets/play`:
+
+```
+Godot --headless --path . --export-release "Web" build/web/index.html
+powershell -File tools/package_web.ps1 -Source build/web -Dest site-assets/play
+```
+The script renames the assets to `index-<hash>.*` and patches `index.html` so a Pages cache can never serve a new `.wasm` with an old `.pck`. It deletes the previous `index*` files in the destination first.

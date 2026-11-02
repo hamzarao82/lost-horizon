@@ -487,7 +487,8 @@ func layout_story(viewport_size: Vector2) -> Dictionary:
 	var subtitle_x := sub_plan.position.x
 	var subtitle_y := viewport_size.y - SUBTITLE_BOTTOM_GAP - subtitle_height
 	if short:
-		subtitle_y = tracker_rect.end.y + 8.0
+		# Below the tracker, and never inside the equipment panel (top-right, bottom edge at y=112).
+		subtitle_y = maxf(tracker_rect.end.y + 8.0, 120.0)
 	_subtitle.position = Vector2(subtitle_x, subtitle_y)
 	return {
 		"tracker": tracker_rect,

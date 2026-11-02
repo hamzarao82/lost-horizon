@@ -22,6 +22,10 @@ const PRELOAD_DIRS: PackedStringArray = [
 ]
 
 static var _stage: SubViewport
+## Web only: skip the render-heavy steps (hidden-stage draws, silent SFX plays). A shader costs the same to
+## compile at boot or at first use, and the single-threaded wasm build pays ~10x for it: only what the
+## player actually meets should compile, when it appears. Desktop/Android-native builds keep the full warm-up.
+static var web_light: bool = true
 static var _done: bool = false
 static var _held: Array[Resource] = []  # keeps preloaded resources in the engine cache
 
@@ -34,6 +38,8 @@ static func steps() -> Array[Callable]:
 	var list: Array[Callable] = []
 	for dir_path in PRELOAD_DIRS:
 		list.append(Warmup._preload_dir.bind(dir_path))
+	if web_light and OS.has_feature("web"):
+		return list
 	list.append_array([
 		Warmup._open_stage,
 		Warmup._stage_lit_and_emissive,
