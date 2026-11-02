@@ -6,7 +6,7 @@ const AUDIO_DIR: String = "res://assets/audio/"
 const SFX_NAMES: Array[StringName] = [
 	&"swing_light", &"swing_heavy", &"hit_light", &"hit_heavy", &"hurt", &"dodge",
 	&"pickup", &"equip", &"heal", &"enemy_swing_windup", &"enemy_death", &"wave_start",
-	&"teleport", &"boss_slam", &"boss_charge", &"boss_leap", &"boss_roar", &"boss_fire", &"mission_complete",
+	&"teleport", &"boss_slam", &"boss_charge", &"boss_leap", &"boss_roar", &"boss_fire", &"mission_complete", &"ui_click",
 ]
 const POOL_SIZE: int = 8
 const MUSIC_DB: float = -14.0
@@ -47,6 +47,7 @@ func _ready() -> void:
 
 
 	_connect_mission.call_deferred()
+	get_tree().node_added.connect(_on_node_added)
 
 func _process(_delta: float) -> void:
 	if _lazy_wait_frames > 0:
@@ -172,3 +173,9 @@ func _connect_mission() -> void:
 
 func _on_mission_completed(_quest_id: StringName) -> void:
 	play(&"mission_complete")
+
+
+## Every button gets a click without each screen wiring its own sound.
+func _on_node_added(node: Node) -> void:
+	if node is BaseButton:
+		(node as BaseButton).pressed.connect(play.bind(&"ui_click", -6.0))

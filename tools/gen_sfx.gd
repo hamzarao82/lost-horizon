@@ -33,6 +33,7 @@ func _initialize() -> void:
 	_write("boss_roar", _boss_roar())
 	_write("boss_fire", _boss_fire())
 	_write("mission_complete", _blips([392.0, 494.0, 587.3, 784.0, 988.0], 0.14, 1.0))
+	_write("ui_click", _blips([880.0, 1320.0], 0.035, 0.09))
 	quit()
 
 
