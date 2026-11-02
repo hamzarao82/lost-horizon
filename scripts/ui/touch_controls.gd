@@ -164,18 +164,40 @@ func _set_axis(action: StringName, strength: float) -> void:
 		Input.action_release(action)
 
 
+## Vector icon per action (hud_icons.gd); labels stay as a small caption under the icon.
+const BUTTON_ICONS: Dictionary = {
+	&"jump": &"chevron", &"attack_light": &"sword", &"attack_heavy": &"heavy", &"dodge": &"dodge",
+	&"use_item": &"medkit", &"lock_on": &"crosshair", &"special": &"spin", &"teleport": &"swirl",
+	&"interact": &"use",
+}
+
+
 func _draw() -> void:
 	if _stick_id != -1:
-		draw_circle(_stick_origin, stick_radius, Color(1, 1, 1, 0.15))
-		draw_circle(_stick_origin + (_stick_pos - _stick_origin).limit_length(stick_radius),
-				stick_radius * 0.4, Color(1, 1, 1, 0.35))
+		draw_circle(_stick_origin, stick_radius, Color(0.04, 0.06, 0.09, 0.3))
+		draw_arc(_stick_origin, stick_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.35), 2.0)
+		var knob := _stick_origin + (_stick_pos - _stick_origin).limit_length(stick_radius)
+		draw_circle(knob, stick_radius * 0.4, Color(1, 1, 1, 0.32))
+		draw_arc(knob, stick_radius * 0.4, 0.0, TAU, 32, Color(1, 1, 1, 0.6), 2.0)
 	var font := ThemeDB.fallback_font
 	_drew_interact = interact_available
 	for button in BUTTONS:
-		if button.get("contextual", false) and not interact_available:
+		var contextual: bool = button.get("contextual", false)
+		if contextual and not interact_available:
 			continue
 		var center := _button_center(button)
 		var pressed := _button_for_touch.values().has(button)
-		draw_circle(center, button_radius, Color(1, 1, 1, 0.4 if pressed else 0.18))
-		draw_string(font, center + Vector2(-button_radius, 6), button["label"],
-				HORIZONTAL_ALIGNMENT_CENTER, button_radius * 2.0, 16)
+		# Rounded translucent disc, a clear ring, an icon and a small caption (readable on any background).
+		draw_circle(center, button_radius, Color(0.04, 0.06, 0.09, 0.6 if pressed else 0.42))
+		if pressed:
+			draw_circle(center, button_radius - 4.0, Color(HudTheme.GOLD, 0.25))
+		var ring_color := HudTheme.GOLD if (pressed or contextual) else Color(1, 1, 1, 0.45)
+		draw_arc(center, button_radius - 1.0, 0.0, TAU, 40, ring_color, 3.0 if pressed else 2.0)
+		var icon: StringName = BUTTON_ICONS.get(button["action"], &"")
+		var tint := Color.WHITE if pressed else Color(1, 1, 1, 0.9)
+		HudIcons.draw(self, icon, Rect2(center + Vector2(-16.0, -26.0), Vector2(32.0, 32.0)), tint)
+		var caption: String = button["label"]
+		draw_string_outline(font, center + Vector2(-button_radius, 24.0), caption, HORIZONTAL_ALIGNMENT_CENTER,
+				button_radius * 2.0, 13, 4, Color.BLACK)
+		draw_string(font, center + Vector2(-button_radius, 24.0), caption, HORIZONTAL_ALIGNMENT_CENTER,
+				button_radius * 2.0, 13, tint)

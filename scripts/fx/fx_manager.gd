@@ -10,6 +10,7 @@ const MAX_DUST: int = 4
 const MAX_BURSTS: int = 3
 const MAX_SHIMMERS: int = 6
 const MAX_RINGS: int = 6
+const MAX_TRAILS: int = 8            # one weapon trail per character that holds a hitbox (player + enemies)
 
 const SPARK_AMOUNT: int = 12
 const DUST_AMOUNT: int = 8
@@ -33,6 +34,20 @@ const NUMBER_KILL: Color = Color(1.0, 0.55, 0.15)
 const NUMBER_HURT: Color = Color(1.0, 0.25, 0.25)
 const NUMBER_HEAL: Color = Color(0.35, 1.0, 0.45)
 
+# Enemy hit reaction: a short recoil of VisualRoot (position only, so the death tween and the
+# facing/scale code in enemy.gd are never fought).
+const REACT_SECONDS: float = 0.14
+const REACT_LIGHT: float = 0.12
+const REACT_HEAVY: float = 0.24
+const REACT_DIP: float = 0.06
+
+# Boss slam telegraph: a floor wedge whose fill completes exactly on the first active frame.
+const DECAL_TEXTURE_SIZE: int = 96
+const DECAL_HALF_ANGLE_DEG: float = 36.0
+const DECAL_COLOR: Color = Color(1.0, 0.22, 0.1)
+const DECAL_REACH_PAD: float = 0.6
+const DECAL_AFTER_ACTIVE_FRAMES: float = 6.0
+
 ## Scales particle counts: 0 disables particles and rings, numbers always stay.
 var quality_scale: float = 1.0: set = set_quality_scale
 
@@ -55,6 +70,14 @@ var _number_scale: PackedFloat32Array = PackedFloat32Array()
 var _number_drift: PackedFloat32Array = PackedFloat32Array()  # sideways drift (m) over the lifetime
 var _ring_radius: PackedFloat32Array = PackedFloat32Array()
 var _ring_color: PackedColorArray = PackedColorArray()
+
+var _trails: Dictionary = {}        # character instance id -> WeaponTrail
+var _wedge_outline_texture: ImageTexture
+var _wedge_fill_texture: ImageTexture
+var _decal_outline: Sprite3D
+var _decal_fill: Sprite3D
+var _decal_boss: Enemy
+var _decal_radius: float = 3.0
 
 var _player: Player
 var _last_hp: float = 100.0
@@ -118,8 +141,12 @@ func spark(position: Vector3, damage: float) -> void:
 	var heavy := damage >= HEAVY_DAMAGE
 	var i := _sparks.take(_clock)
 	var p := _sparks.nodes[i] as CPUParticles3D
-	p.initial_velocity_min = 3.0 if heavy else 2.0
-	p.initial_velocity_max = 8.0 if heavy else 5.0
+	# Two shapes from the same pooled emitter: light = quick, fine, wide; heavy = fast, chunky, tighter.
+	p.initial_velocity_min = 3.5 if heavy else 2.0
+	p.initial_velocity_max = 9.0 if heavy else 5.0
+	p.scale_amount_min = 0.9 if heavy else 0.5
+	p.scale_amount_max = 1.8 if heavy else 1.1
+	p.spread = 120.0 if heavy else 180.0
 	p.color = SPARK_HEAVY if heavy else SPARK_LIGHT
 	_fire(_sparks, i, position, p.lifetime)
 
@@ -140,7 +167,9 @@ func death_burst(position: Vector3, color: Color) -> void:
 	var p := _bursts.nodes[i] as CPUParticles3D
 	p.color = color
 	_fire(_bursts, i, position, p.lifetime)
-	ring(Vector3(position.x, 0.0, position.z), 2.2, color, 0.5)
+	var ground := Vector3(position.x, 0.0, position.z)
+	ring(ground, 2.6, color, 0.6)
+	ring(ground, 1.2, Color.WHITE, 0.25)  # quick bright core under the colored shockring
 
 
 func shimmer(position: Vector3, color: Color) -> void:
@@ -194,6 +223,19 @@ func damage_number(position: Vector3, amount: float, was_kill: bool = false) -> 
 	number(position, str(roundi(amount)), color, size)
 
 
+func trail_count() -> int:
+	return _trails.size()
+
+
+## The weapon trail that follows `character`'s hitbox, or null.
+func trail_for(character: Node) -> WeaponTrail:
+	return _trails.get(character.get_instance_id()) as WeaponTrail
+
+
+func decal_active() -> bool:
+	return _decal_outline != null and _decal_outline.visible
+
+
 func active_count() -> int:
 	var total := 0
 	for pool in [_sparks, _dust, _bursts, _shimmers, _rings, _numbers]:
@@ -210,9 +252,13 @@ func pool_sizes() -> Dictionary:
 
 func set_quality_scale(value: float) -> void:
 	quality_scale = clampf(value, 0.0, 1.0)
+	for trail in _trails.values():
+		(trail as WeaponTrail).quality_scale = quality_scale
 	if _sparks.size() == 0:
 		return  # pools not built yet; _ready applies the scale
 	_apply_particle_amounts()
+	if quality_scale <= 0.0:
+		_end_decal()
 
 
 # --- construction ----------------------------------------------------------
@@ -240,6 +286,44 @@ func _build_shared_resources() -> void:
 			var band := 1.0 - clampf(absf(d - 0.82) / 0.14, 0.0, 1.0)  # soft ring near the edge
 			image.set_pixel(x, y, Color(1, 1, 1, band * band))
 	_ring_texture = ImageTexture.create_from_image(image)
+	_wedge_outline_texture = _make_wedge_texture(true)
+	_wedge_fill_texture = _make_wedge_texture(false)
+
+
+## Pie wedge pointing "up" in the image (apex at the centre). Outline = bright edges plus a faint fill;
+## fill = a gradient that gets stronger toward the rim. Built once at startup.
+func _make_wedge_texture(outline: bool) -> ImageTexture:
+	var image := Image.create(DECAL_TEXTURE_SIZE, DECAL_TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
+	var half := DECAL_TEXTURE_SIZE * 0.5
+	var half_angle := deg_to_rad(DECAL_HALF_ANGLE_DEG)
+	for y in DECAL_TEXTURE_SIZE:
+		for x in DECAL_TEXTURE_SIZE:
+			var v := Vector2(x + 0.5 - half, y + 0.5 - half) / half  # x right, y down
+			var r := v.length()
+			var alpha := 0.0
+			if r <= 1.0 and v.y < 0.0:
+				var angle := atan2(v.x, -v.y)  # 0 straight up, +-half_angle at the wedge sides
+				if absf(angle) <= half_angle:
+					if outline:
+						var edge := minf((half_angle - absf(angle)) * r, 1.0 - r)  # distance to the nearest border
+						alpha = maxf(0.1, 1.0 - clampf(edge / 0.05, 0.0, 1.0))
+					else:
+						alpha = 0.3 + 0.55 * r
+			image.set_pixel(x, y, Color(1, 1, 1, alpha))
+	return ImageTexture.create_from_image(image)
+
+
+func _make_wedge_sprite(texture: Texture2D) -> Sprite3D:
+	var sprite := Sprite3D.new()
+	sprite.texture = texture
+	sprite.axis = Vector3.AXIS_Y
+	sprite.pixel_size = 2.0 / DECAL_TEXTURE_SIZE  # scale 1 == reach 1 m
+	sprite.shaded = false
+	sprite.transparent = true
+	sprite.double_sided = true
+	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sprite.visible = false
+	return sprite
 
 
 func _build_pools() -> void:
@@ -266,6 +350,11 @@ func _build_pools() -> void:
 		_number_origin.append(Vector3.ZERO)
 		_number_scale.append(1.0)
 		_number_drift.append(0.0)
+
+	_decal_outline = _make_wedge_sprite(_wedge_outline_texture)
+	_decal_fill = _make_wedge_sprite(_wedge_fill_texture)
+	add_child(_decal_outline)
+	add_child(_decal_fill)
 
 
 func _make_ring_sprite() -> Sprite3D:
@@ -312,6 +401,21 @@ func make_warmup_nodes() -> Array[Node3D]:
 	var ring := _make_ring_sprite()
 	ring.visible = true
 	nodes.append(ring)
+	var wedge_a := _make_wedge_sprite(_wedge_outline_texture)  # both wedge textures and the trail material
+	wedge_a.visible = true
+	wedge_a.position = Vector3(0.0, 0.0, -1.0)
+	nodes.append(wedge_a)
+	var wedge_b := _make_wedge_sprite(_wedge_fill_texture)
+	wedge_b.visible = true
+	wedge_b.position = Vector3(0.6, 0.0, -1.0)
+	nodes.append(wedge_b)
+	var trail := MeshInstance3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.4, 0.4)
+	quad.material = WeaponTrail.shared_material()
+	trail.mesh = quad
+	trail.position = Vector3(-0.6, 0.0, -1.0)
+	nodes.append(trail)
 	return nodes
 
 
@@ -382,29 +486,157 @@ func _set_amounts(pool: Pool, base: int) -> void:
 func _on_node_added(node: Node) -> void:
 	if node is Enemy:
 		var enemy := node as Enemy
-		enemy.damaged.connect(_on_enemy_damaged)
+		enemy.damaged.connect(_on_enemy_damaged.bind(enemy))
 		enemy.defeated.connect(_on_enemy_defeated.bind(enemy))
 		enemy.swing_started.connect(_on_enemy_swing.bind(enemy))
 		enemy.was_hit.connect(_on_enemy_was_hit.bind(enemy))
+		_attach_trail.call_deferred(enemy, false)  # deferred: the tree is busy adding this very node
 	elif node is Player:
 		_hook_player(node as Player)
+		_attach_trail.call_deferred(node, true)
 	elif node is Pickup:
 		_hook_pickup(node as Pickup)
 
 
-func _on_enemy_damaged(amount: float, position: Vector3, was_kill: bool) -> void:
+func _on_enemy_damaged(amount: float, position: Vector3, was_kill: bool, enemy: Enemy) -> void:
 	spark(position, amount)
 	damage_number(position + Vector3(0, 0.6, 0), amount, was_kill)
+	if is_instance_valid(enemy):
+		if amount >= HEAVY_DAMAGE:
+			var feet := Vector3(enemy.global_position.x, 0.0, enemy.global_position.z)
+			ring(feet, 1.4, SPARK_HEAVY, 0.22)   # short flash ring on heavy impacts
+			dust(feet + Vector3(0, 0.1, 0))      # and the dust a heavy knockback kicks up
+		if not was_kill:
+			_hit_react(enemy, amount >= HEAVY_DAMAGE)
 
 
 func _on_enemy_defeated(enemy: Enemy) -> void:
 	if is_instance_valid(enemy):
+		_clear_hit_react(enemy)
 		death_burst(enemy.global_position + Vector3(0, 0.9, 0), enemy.body_color.lightened(0.2))
 
 
 func _on_enemy_swing(enemy: Enemy) -> void:
 	if is_instance_valid(enemy):
 		ring(enemy.global_position, enemy.attack_range, WINDUP_RING_COLOR, 0.35)
+		if enemy is Warden:
+			_start_decal(enemy)
+
+
+# --- weapon trails -----------------------------------------------------------
+
+func _attach_trail(character: Node, is_player: bool) -> void:
+	if not is_instance_valid(character) or not character.is_inside_tree() or not (character is Node3D):
+		return
+	var id := character.get_instance_id()
+	if _trails.has(id) or _trails.size() >= MAX_TRAILS:
+		return
+	var hitbox := character.get_node_or_null("VisualRoot/WeaponPivot/Hitbox") as Hitbox
+	if hitbox == null:
+		return
+	var trail := WeaponTrail.new()
+	trail.character = character as Node3D
+	trail.hitbox = hitbox
+	trail.is_player = is_player
+	trail.quality_scale = quality_scale
+	add_child(trail)
+	_trails[id] = trail
+	character.tree_exiting.connect(_on_trail_owner_exiting.bind(id))
+
+
+func _on_trail_owner_exiting(id: int) -> void:
+	var trail := _trails.get(id) as WeaponTrail
+	_trails.erase(id)
+	if is_instance_valid(trail):
+		trail.queue_free()
+
+
+# --- enemy hit reaction (visual only) ---------------------------------------
+
+## Pushes the enemy's VisualRoot back and down for a moment, then eases home. Position only: scale,
+## rotation and the death tween belong to enemy.gd and the rig.
+func _hit_react(enemy: Enemy, heavy: bool) -> void:
+	if quality_scale <= 0.0 or enemy.is_dead():
+		return
+	var visual_root := enemy.get_node_or_null("VisualRoot") as Node3D
+	if visual_root == null:
+		return
+	var away := Vector3.BACK
+	if is_instance_valid(_player):
+		away = enemy.global_position - _player.global_position
+		away.y = 0.0
+		away = away.normalized() if away.length_squared() > 0.001 else Vector3.BACK
+	var push := REACT_HEAVY if heavy else REACT_LIGHT
+	_clear_hit_react(enemy)
+	visual_root.position = Vector3(away.x * push, -REACT_DIP, away.z * push)
+	var tween := visual_root.create_tween()  # bound to the node: dies with it
+	tween.tween_property(visual_root, "position", Vector3.ZERO, REACT_SECONDS) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	enemy.set_meta(&"fx_react", tween)
+
+
+func _clear_hit_react(enemy: Enemy) -> void:
+	if enemy.has_meta(&"fx_react"):
+		var tween: Variant = enemy.get_meta(&"fx_react")
+		if tween is Tween and (tween as Tween).is_valid():
+			(tween as Tween).kill()
+		enemy.remove_meta(&"fx_react")
+	var visual_root := enemy.get_node_or_null("VisualRoot") as Node3D
+	if visual_root:
+		visual_root.position = Vector3.ZERO
+
+
+# --- boss slam telegraph decal ----------------------------------------------
+
+func _start_decal(boss: Enemy) -> void:
+	if quality_scale <= 0.0:
+		return
+	_decal_boss = boss
+	_decal_radius = boss.attack_range + DECAL_REACH_PAD
+	for sprite in [_decal_outline, _decal_fill]:
+		(sprite as Sprite3D).visible = true
+	_decal_outline.modulate = Color(DECAL_COLOR, 0.9)
+	_decal_fill.modulate = Color(DECAL_COLOR, 0.3)
+	_decal_outline.scale = Vector3.ONE * _decal_radius
+	_decal_fill.scale = Vector3.ONE * _decal_radius * 0.1
+	_update_decal()
+
+
+func _end_decal() -> void:
+	_decal_boss = null
+	if _decal_outline:
+		_decal_outline.visible = false
+		_decal_fill.visible = false
+
+
+## Driven by the boss's own attack frames (read-only), so the fill reaches the rim on the very frame the
+## slam becomes active, whatever the hit-stop, speed or phase.
+func _update_decal() -> void:
+	if _decal_boss == null or not is_instance_valid(_decal_boss) or _decal_boss.is_dead() \
+			or _decal_boss.state != Enemy.State.ATTACK:
+		_end_decal()
+		return
+	var data := _decal_boss.get("_swing") as AttackData
+	var frames: Variant = _decal_boss.get("_attack_frames")
+	if data == null or not (frames is float):
+		_end_decal()
+		return
+	var startup := maxf(float(data.startup_frames), 1.0)
+	var elapsed: float = frames
+	if elapsed > startup + data.active_frames + DECAL_AFTER_ACTIVE_FRAMES:
+		_end_decal()
+		return
+	var progress := clampf(elapsed / startup, 0.0, 1.0)
+	var origin := _decal_boss.global_position
+	var visual_root := _decal_boss.get_node_or_null("VisualRoot") as Node3D
+	var yaw := visual_root.global_rotation.y if visual_root else 0.0
+	for sprite in [_decal_outline, _decal_fill]:
+		(sprite as Sprite3D).global_position = Vector3(origin.x, 0.07 if sprite == _decal_fill else 0.06, origin.z)
+		(sprite as Sprite3D).rotation.y = yaw
+	_decal_fill.scale = Vector3.ONE * _decal_radius * lerpf(0.1, 1.0, progress)
+	var committed := elapsed >= startup
+	_decal_fill.modulate = Color(Color.WHITE if committed else DECAL_COLOR, 0.35 + 0.5 * progress)
+	_decal_outline.modulate = Color(Color.WHITE if committed else DECAL_COLOR, 0.9)
 
 
 func _on_enemy_was_hit(dodged: bool, enemy: Enemy) -> void:
@@ -456,6 +688,8 @@ func _on_pickup_exiting(pickup: Pickup, color: Color) -> void:
 func _process(delta: float) -> void:
 	_clock += delta
 	_poll_player()
+	if _decal_boss != null:
+		_update_decal()
 	if _clock > _busy_until:
 		return  # nothing animating
 	for i in _numbers.size():

@@ -12,3 +12,7 @@ build/
 *.p12
 release-assets/
 .env
+
+# python caches from Blender scripts
+__pycache__/
+*.pyc

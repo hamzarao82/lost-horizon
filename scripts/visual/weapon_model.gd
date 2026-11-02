@@ -34,6 +34,35 @@ const FALLBACK_SPEC: Dictionary = {"blade": 0.9, "w": 0.1, "t": 0.03, "guard": 0
 
 const EMISSION_BY_RARITY: Array[float] = [0.0, 0.0, 0.25, 0.45, 0.8]
 
+## Authored models (tools/blender/weapons_build.py). One GLB per item id; the code-built model below stays
+## the fallback and the swing visual. Contract for the visual adapter:
+##  - origin = centre of the grip, blade along -Z, up = +Y, 1 unit = 1 metre
+##  - the blade is a plate: width along X (edges sideways, for horizontal slashes), flat faces up/down
+##  - one mesh, one material, vertex colours only (the importer sets vertex_color_use_as_albedo)
+const GLB_DIR: String = "res://assets/weapons/"
+## Local transform of a weapon scene relative to the hand socket (a BoneAttachment3D on Hand_R). Identity
+## means "grip centre at the socket, blade pointing forward"; the adapter exposes it for adjustment.
+const ATTACH_OFFSET: Transform3D = Transform3D.IDENTITY
+
+static var _scene_cache: Dictionary = {}
+
+
+## The authored GLB scene for an item id, or null when none exists (callers fall back to the code model).
+static func scene_for(item_id: StringName) -> PackedScene:
+	if _scene_cache.has(item_id):
+		return _scene_cache[item_id]
+	var path := GLB_DIR + String(item_id) + ".glb"
+	var scene: PackedScene = null
+	if ResourceLoader.exists(path):
+		scene = load(path) as PackedScene
+	_scene_cache[item_id] = scene
+	return scene
+
+
+## Placeholder grip offset for the adapter; see ATTACH_OFFSET.
+static func attach_offset() -> Transform3D:
+	return ATTACH_OFFSET
+
 var _metal: StandardMaterial3D
 var _trim: StandardMaterial3D
 var _grip: MeshInstance3D

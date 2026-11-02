@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/combat/hitbox.gd" id="4_hitbox"]
 [ext_resource type="Script" path="res://scripts/visual/humanoid_rig.gd" id="5_rig"]
 [ext_resource type="Script" path="res://scripts/visual/weapon_model.gd" id="6_weapon"]
+[ext_resource type="PackedScene" path="res://scenes/characters/SkinnedVisual.tscn" id="90_visual"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.4
@@ -44,6 +45,8 @@ surface_material_override/0 = SubResource("Mat_body")
 script = ExtResource("5_rig")
 accent_color = Color(0.6, 0.9, 1, 1)
 fallback_body_color = Color(0.25, 0.45, 0.8, 1)
+
+[node name="SkinnedVisual" parent="VisualRoot" instance=ExtResource("90_visual")]
 
 [node name="WeaponPivot" type="Node3D" parent="VisualRoot"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
