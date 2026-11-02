@@ -25,6 +25,7 @@ const TEAL: Color = Color(0.2, 0.55, 0.62)
 var triggers: Dictionary = {}  # area id -> AreaTrigger
 var doors: Dictionary = {}     # door id -> Door
 var encounter: EncounterGroup
+var boss_intro: BossIntro
 
 var _b: ArenaDecor.Builder
 var _banner: Label
@@ -43,12 +44,14 @@ static func say(from: Node, text: String, seconds: float = 4.5) -> void:
 func _ready() -> void:
 	_b = ArenaDecor.Builder.new()
 	_build_geometry()
+	AreaDressing.build(self, _b)
 	_finish_mesh()
 	_build_doors()
 	_build_triggers()
 	_build_interactables()
 	_build_encounter()
 	_build_patrols()
+	_build_boss_encounter()
 	# The HUD shows the area-name banner now (Hud.show_location); a second label here doubled the text.
 	# _build_banner() is kept for headless use but not called.
 	var state := get_node_or_null("/root/WorldState")
@@ -271,6 +274,15 @@ func _build_interactables() -> void:
 	cmd.terminal_title = "Command terminal"
 	cmd.pages = PackedStringArray(["Command net: all patrols recalled to the lower levels.", "The Warden is holding the courtyard."])
 	_place(cmd, &"command_terminal_d", Vector3(0.0, 0.2, -78.4))
+
+
+# --- boss ---------------------------------------------------------------------
+
+## The Warden waits in the command building: the first entry into Area D runs his introduction.
+func _build_boss_encounter() -> void:
+	boss_intro = BossIntro.new()
+	boss_intro.name = "BossIntro"
+	add_child(boss_intro)
 
 
 # --- patrols -----------------------------------------------------------------

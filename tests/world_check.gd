@@ -116,14 +116,14 @@ func _run() -> void:
 	_check(_ray_hit(main, Vector3(12, 1, -25), Vector3(12, 1, -35)) == "", "the opening is passable")
 
 	print("Encounter")
-	_check(get_nodes_in_group("enemies").is_empty(), "no encounter enemies exist before the player enters the compound")
+	_check(_squad().is_empty(), "no encounter enemies exist before the player enters the compound")
 	_state.emit_area_entered(&"area_b_compound")
 	await _frames(2)
-	_check(get_nodes_in_group("enemies").filter(func(e: Node) -> bool: return not e.has_method("_has_route") or not e._has_route()).size() == 2, "entering the compound spawns the squad (2)")
+	_check(_squad().size() == 2, "entering the compound spawns the squad (2)")
 	_check(Enemy.active_patrollers == 2, "and wakes the two research-wing guards")
 	_state.emit_area_entered(&"area_b_compound")
 	await _frames(2)
-	_check(get_nodes_in_group("enemies").size() == 4 and Enemy.active_patrollers == 2, "it spawns only once")
+	_check(_squad().size() == 2 and Enemy.active_patrollers == 2, "it spawns only once")
 	var kill := load("res://resources/attacks/heavy_1.tres") as AttackData
 	for enemy in get_nodes_in_group("enemies"):
 		for i in 5:
@@ -194,3 +194,9 @@ class _FakePuzzle extends Node:
 	func try_press(id: StringName) -> bool:
 		pressed.append(id)
 		return accept
+
+
+## The courtyard squad only: not the research-wing guards (patrollers) and not the Warden (boss).
+func _squad() -> Array:
+	return get_nodes_in_group("enemies").filter(func(e: Node) -> bool:
+		return not e.is_in_group("boss") and not (e.has_method("_has_route") and e._has_route()))
