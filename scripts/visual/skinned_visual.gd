@@ -28,13 +28,14 @@ const ATTACK_CLIPS: Dictionary = {
 	&"sprint_attack": "sprint_attack", &"air_attack": "air_attack", &"spin_special": "spin",
 	&"enemy_swing": "light_1", &"heavy_swing": "heavy", &"hunter_slash": "light_2",
 	&"warden_slam": "slam", &"warden_flurry": "flurry", &"warden_shockwave": "shockwave_cast",
+	&"warden_charge": "heavy", &"warden_leap": "shockwave_cast", &"warden_fire": "shockwave_cast",
 }
 const VISUAL_HEIGHT: float = 1.8  # the figure the old capsule rig, the colliders and the hitboxes are built around
 const FLASH_STRENGTH: float = 0.55
 ## Saturated tints (red windup, blue dodge) are scaled down so a telegraph glows without hiding the model.
 const TELEGRAPH_SCALE: float = 0.6
 const ENRAGE_STRENGTH: float = 0.2
-const ROAR_TIME: float = 1.5
+const ROAR_TIME: float = 2.5  # matches Warden.ROAR_TIME
 
 ## Overrides the automatic choice (player.glb, soldier.glb, heavy.glb, elite.glb, warden.glb).
 @export var model_path: String = ""

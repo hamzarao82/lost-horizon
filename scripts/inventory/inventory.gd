@@ -11,6 +11,9 @@ const MAX_POTIONS: int = 99
 
 var weapon: ItemData
 var armor: ItemData
+## The gear that was replaced last, kept only so the equipment screen can compare (not saved).
+var previous_weapon: ItemData
+var previous_armor: ItemData
 var potions: int = 0
 var potion_heal: float = 40.0
 
@@ -122,10 +125,12 @@ func add_item(item: ItemData) -> bool:
 			kept = true
 		ItemData.Kind.WEAPON:
 			if weapon == null or item.power() > weapon.power():
+				previous_weapon = weapon
 				weapon = item
 				kept = true
 		ItemData.Kind.ARMOR:
 			if armor == null or item.power() > armor.power():
+				previous_armor = armor
 				armor = item
 				kept = true
 				_sync_armor_pool(-1.0)  # a better armor starts with a full bar

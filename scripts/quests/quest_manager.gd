@@ -7,6 +7,9 @@ extends Node
 signal quest_started(quest_id: StringName)
 signal objective_updated(quest_id: StringName, objective_index: int, progress: int, required: int)
 signal quest_completed(quest_id: StringName)
+## The vertical-slice mission (MISSION_QUEST) finished: emitted exactly once per run, after quest_completed
+## and the reward. The results screen listens to this. See docs/QUESTS.md.
+signal mission_completed(quest_id: StringName)
 signal tracker_changed
 ## Story / radio lines for the HUD subtitle queue.
 signal caption_requested(text: String, seconds: float)
@@ -21,6 +24,11 @@ const QUEST_PATHS: Array[String] = [
 	"res://resources/quests/final_transmission.tres",
 ]
 const FIRST_QUEST: StringName = &"first_signal"
+## Completing this quest ends the Milestone 4 mission: flag, autosave, mission_completed.
+const MISSION_QUEST: StringName = &"first_signal"
+const MISSION_COMPLETE_FLAG: StringName = &"mission_first_signal_complete"
+const RADIO_CARD: String = "That card opens the research wing. Whatever they're hiding is behind it."
+const RADIO_TERMINAL: String = "Coordinates received. Now the command center. The Warden holds it."
 const FINAL_QUEST: StringName = &"final_transmission"
 const KEYCARD_FLAG: StringName = &"has_keycard"
 ## Milestone 3 chain: the access card is a quest item; the terminal unlocks the next mission location.
@@ -48,6 +56,9 @@ var _pending_rewards: Array[String] = []
 ## things "early" (a switch before the radio) still counts once the quest begins.
 var _history: Dictionary = {}
 var _kill_ids: Dictionary = {}
+var _radio_said: Dictionary = {}
+## Tests turn the mission autosave off when they must not touch the save file.
+var mission_autosave: bool = true
 var _world: Node
 var _world_stash: Dictionary = {}
 var _intro: Node
@@ -189,8 +200,21 @@ func _complete(quest_id: StringName) -> void:
 		if quest.next_quest != &"":
 			start_quest(quest.next_quest)
 	tracker_changed.emit()
+	if quest_id == MISSION_QUEST:
+		_finish_mission(quest_id)
 	if quest_id == FINAL_QUEST:
 		_begin_ending(quest)
+
+
+## Mission end (once: _complete is guarded): flag, autosave after the state has settled, then the signal.
+func _finish_mission(quest_id: StringName) -> void:
+	if _world != null and _world.has_method("set_flag"):
+		_world.set_flag(MISSION_COMPLETE_FLAG, true)
+	if mission_autosave:
+		var saves := get_node_or_null("/root/SaveManager")
+		if saves != null and saves.has_method("autosave"):
+			saves.autosave.call_deferred("mission")
+	mission_completed.emit(quest_id)
 
 
 # --- rewards ---------------------------------------------------------------
@@ -324,6 +348,8 @@ func _bind_waves(waves: WaveManager) -> void:
 
 func _on_interacted(id: StringName) -> void:
 	notify(ObjectiveData.Type.INTERACT, id)
+	if id == TERMINAL_ID:
+		_radio_once(&"terminal", RADIO_TERMINAL)
 	if id == TERMINAL_ID and _world != null and _world.has_method("set_flag") and not _world.has_flag(NEXT_LOCATION_FLAG):
 		_world.set_flag(NEXT_LOCATION_FLAG, true)  # the terminal reveals the next mission location
 
@@ -337,6 +363,7 @@ func _on_flag_changed(id: StringName, value: bool) -> void:
 		return
 	if id == ACCESS_CARD_FLAG:
 		add_quest_item(ACCESS_CARD_ITEM)
+		_radio_once(&"card", RADIO_CARD)
 	notify(ObjectiveData.Type.FLAG, id)
 	# "doc_<id>_found" flags (lore documents) also count as discoveries / interactions of <id>.
 	var text := String(id)
@@ -344,6 +371,14 @@ func _on_flag_changed(id: StringName, value: bool) -> void:
 		var doc_id := StringName(text.substr(4, text.length() - 10))
 		notify(ObjectiveData.Type.DISCOVER, doc_id)
 		notify(ObjectiveData.Type.INTERACT, doc_id)
+
+
+## Radio transmissions R4 / R5 (docs/STORY_AND_MISSION_FLOW.md): said once per run.
+func _radio_once(key: StringName, text: String) -> void:
+	if _radio_said.has(key):
+		return
+	_radio_said[key] = true
+	say(text, 4.5)
 
 
 # --- quest items -----------------------------------------------------------
@@ -592,6 +627,7 @@ func _clear_state() -> void:
 	_pending_rewards.clear()
 	_history.clear()
 	_kill_ids.clear()
+	_radio_said.clear()
 	quest_items.clear()
 	_world_stash = {}
 

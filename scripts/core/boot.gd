@@ -15,7 +15,7 @@ signal progress_changed(value: float)
 signal finished(main: Node)
 signal failed(message: String)
 
-enum Phase { LOADING, WARMING, BUILDING, REVEAL, WARM_RENDER, SETTLING, FADING, ERROR, DONE }
+enum Phase { LOADING, WARMING, BUILDING, REVEAL, WARM_RENDER, SETTLING, FADING, ERROR, DONE, MENU, RELOADING }
 
 const MAIN_SCENE: String = "res://scenes/main/Main.tscn"
 const FRAME_BUDGET_USEC: int = 8000
@@ -58,6 +58,8 @@ const TIPS: Array[String] = [
 var warmup_script_path: String = "res://scripts/core/warmup.gd"
 var extra_paths: PackedStringArray = PackedStringArray()
 var auto_start: bool = true
+## Show the title menu once loading finishes. Headless runs (tests) and `-- --no-menu` start the game directly.
+var show_menu: bool = DisplayServer.get_name() != "headless" and not OS.get_cmdline_user_args().has("--no-menu")
 
 var phase: Phase = Phase.LOADING
 var progress: float = 0.0
@@ -65,6 +67,7 @@ var error_text: String = ""
 ## Filled in as the boot runs; printed by --boot-report.
 var report: Dictionary = {}
 var main_node: Node
+var menu: MainMenu
 
 var _pending: Array[String] = []
 var _issued: Array[String] = []
@@ -82,6 +85,8 @@ var _hidden_top: Array[Node3D] = []
 var _reveal_queue: Array[Node3D] = []
 var _reveal_total: int = 0
 var _warm_frames: int = 0
+var _menu_done: bool = false
+var _old_main: Node
 var _settle_left: int = 0
 var _fade_left: float = 0.0
 var _build_wait: float = 0.0
@@ -230,7 +235,9 @@ func _process(delta: float) -> void:
 		Phase.SETTLING:
 			_settle_left -= 1
 			if _settle_left <= 0:
-				_begin_fade()
+				_settled()
+		Phase.RELOADING:
+			_step_reloading()
 		Phase.FADING:
 			_step_fading(delta)
 	_update_ui(delta)
@@ -512,6 +519,75 @@ func _step_warm_render() -> void:
 	phase = Phase.SETTLING
 	_settle_left = SETTLE_FRAMES
 	_status.text = "Ready"
+
+
+# --- MENU / RELOADING ---------------------------------------------------------
+
+## Loading is done: wait for the player's choice instead of starting. Main stays disabled behind.
+func _settled() -> void:
+	if not show_menu or _menu_done:
+		_begin_fade()
+		return
+	phase = Phase.MENU
+	_set_progress(1.0)
+	_status.text = "Ready"
+	menu = MainMenu.new()
+	menu.new_game_pressed.connect(_on_new_game)
+	menu.continue_pressed.connect(_on_continue)
+	menu.quit_pressed.connect(func() -> void: get_tree().quit())
+	add_child(menu)
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func _close_menu() -> void:
+	_menu_done = true
+	if menu != null and is_instance_valid(menu):
+		menu.queue_free()
+	menu = null
+
+
+## A fresh Main is already loaded and nothing has been played, so only leftover runtime state
+## (a queued load, a checkpoint, defeated bosses from an earlier run in this process) needs clearing.
+func _on_new_game() -> void:
+	var saves := get_node_or_null("/root/SaveManager")
+	if saves != null and (saves.pending_load or not saves.world_checkpoint.is_empty()
+			or not saves.defeated_bosses.is_empty() or not saves.checkpoint.is_empty()):
+		saves.reset_runtime_state()
+	var stats := get_node_or_null("/root/RunStats")
+	if stats:
+		stats.reset()
+	_close_menu()
+	_begin_fade()
+
+
+## The save is restored while the scene is created, so Main is reloaded (the same way the pause
+## menu's Load works) while this screen keeps covering the world.
+func _on_continue() -> void:
+	var saves := get_node_or_null("/root/SaveManager")
+	if saves == null or not saves.load_game():
+		menu.refresh()  # a broken or missing file turns Continue off
+		return
+	_close_menu()
+	_old_main = main_node
+	phase = Phase.RELOADING
+	_build_wait = 0.0
+	_status.text = "Loading save..."
+	get_tree().reload_current_scene()
+
+
+func _step_reloading() -> void:
+	_build_wait += get_process_delta_time()
+	var scene := get_tree().current_scene
+	if scene == null or scene == _old_main or not is_instance_valid(scene):
+		if _build_wait >= BUILD_TIMEOUT_SECONDS:
+			_fail("Could not load the save.")
+		return
+	main_node = scene
+	main_node.process_mode = Node.PROCESS_MODE_DISABLED
+	_decor = main_node.get_node_or_null("Decor")
+	_build_wait = 0.0
+	phase = Phase.BUILDING
+	_status.text = "Building the island..."
 
 
 # --- SETTLING / FADING --------------------------------------------------------

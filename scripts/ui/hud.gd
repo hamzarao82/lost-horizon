@@ -235,7 +235,8 @@ func _process(delta: float) -> void:
 		_cut_captions()  # the boss is the news now: old radio chatter must not run over him
 	_boss_seen = boss_alive
 	if _player and _player.is_dead():
-		_show_message("YOU DIED", Color(0.9, 0.15, 0.15))
+		if get_tree().get_first_node_in_group("death_screen") == null:  # DeathScreen shows its own
+			_show_message("YOU DIED", Color(0.9, 0.15, 0.15))
 	elif _arena_cleared():
 		_show_message("ARENA CLEARED", Color(0.95, 0.85, 0.3))
 

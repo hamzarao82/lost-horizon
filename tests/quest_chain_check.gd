@@ -82,8 +82,8 @@ func _test_data() -> void:
 	print("Quest data")
 	var quest := load("res://resources/quests/first_signal.tres") as QuestData
 	_check(quest != null and quest.validate().is_empty(), "first_signal loads and validates")
-	_check(quest.objectives.size() == 10, "nine objectives plus one optional (found %d)" % quest.objectives.size())
-	_check(quest.required_indices().size() == 9, "nine objectives are required")
+	_check(quest.objectives.size() == 16, "fifteen objectives plus one optional (found %d)" % quest.objectives.size())
+	_check(quest.required_indices().size() == 15, "fifteen objectives are required (nine of Acts 1-3, six of Acts 4-6)")
 	_check(quest.category == QuestData.Category.MAIN and quest.show_mission_banner, "it is a MAIN quest with the mission banner")
 	var optional := 0
 	for objective in quest.objectives:
@@ -147,7 +147,9 @@ func _test_chain_in_order() -> void:
 	qm.notify(OBJ.ENTER_AREA, &"area_c_research")
 	_check(qm.is_active(&"first_signal") and qm.tracker_objective() == "Unlock the next mission location", "objective 8 -> 9, the quest is still open")
 	qm.notify(OBJ.FLAG, &"next_location_unlocked")
-	_check(qm.is_completed(&"first_signal"), "objective 9 completes the quest (the optional one is not needed)")
+	_check(qm.is_active(&"first_signal") and qm.tracker_objective() == "Enter the command center", "objective 9 -> Act 4, the quest stays open")
+	_finish_acts_4_to_6(qm)
+	_check(qm.is_completed(&"first_signal"), "the last Act 6 objective completes the quest (the optional one is not needed)")
 	_check(player.inventory.weapon.item_id == &"combat_knife", "the reward (combat knife) is granted")
 	qm.notify(OBJ.FLAG, &"next_location_unlocked")
 	_check(qm.completed.count(&"first_signal") == 1, "a repeated event does not complete it twice")
@@ -171,6 +173,8 @@ func _test_chain_out_of_order() -> void:
 	qm.notify(OBJ.INTERACT, &"checkpoint_desk")
 	_kills(qm, 4, 300)
 	qm.notify(OBJ.FLAG, &"has_access_card")
+	_check(qm.is_active(&"first_signal"), "Acts 4-6 are still open after the old nine objectives")
+	_finish_acts_4_to_6(qm)
 	_check(qm.is_completed(&"first_signal"), "earlier events counted, so the last missing step finishes it")
 	await _drop(player)
 
@@ -262,3 +266,13 @@ func _test_flag_wiring() -> void:
 		qm._world = null
 		world.reset()
 	await _drop(player)
+
+
+## Acts 4-6 events of The First Signal (command center, guards, file, Warden, reward, terminal).
+func _finish_acts_4_to_6(qm: Node) -> void:
+	qm.notify(OBJ.ENTER_AREA, &"area_d_command")
+	qm.notify(OBJ.FLAG, &"patrol_d_guards_cleared")
+	qm.notify(OBJ.INTERACT, &"log_project_black_site")
+	qm.notify(OBJ.FLAG, &"boss_warden_defeated")
+	qm.notify(OBJ.ITEM_COLLECTED, &"warden_blade")
+	qm.notify(OBJ.INTERACT, &"command_terminal_d")

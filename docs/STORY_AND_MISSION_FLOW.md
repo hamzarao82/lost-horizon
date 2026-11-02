@@ -68,3 +68,6 @@ Shown after objective 6 completes. Content: mission title and "COMPLETE", time t
 ## 8. Unverified
 - Nobody has measured how long the six acts take a human; the 20–30 minute target is an estimate.
 - The wording above is a draft for approval.
+
+## 9. Implementation status (Milestone 4, mission agent)
+Acts 4–6 of section 4 are `[IMPLEMENTED]` on `milestone-004` as objectives 10–15 of `first_signal` (see `docs/QUESTS.md`), including R4, R5 and R7 subtitles and the `mission_completed` signal for the results screen. Not done: moving the radio objective earlier (Act 1), the extra "read one military record" objective of Act 2, R1 timing, mission-update banners per act. Verified by headless tests only; nothing here was played by a human.

@@ -273,8 +273,17 @@ func _build_interactables() -> void:
 	_place(missing, &"log_missing_security", Vector3(-19.0, 0.7, -89.0))
 	var cmd := Terminal.new()
 	cmd.terminal_title = "Command terminal"
-	cmd.pages = PackedStringArray(["Command net: all patrols recalled to the lower levels.", "The Warden is holding the courtyard."])
+	cmd.requires_flag = &"boss_warden_defeated"  # Act 6: usable only after the Warden has fallen
+	cmd.locked_text = "Command terminal locked: the Warden holds the command room"
+	cmd.pages = PackedStringArray([
+		"Uplink open. Relaying your position to the outside.",
+		"Signal confirmed. Project Black Site is no longer a secret."])
 	_place(cmd, &"command_terminal_d", Vector3(0.0, 0.2, -78.4))
+	# The file that names the experiment and the Director (mission objective, Act 4).
+	var black_site := LoreDocument.new()
+	black_site.title = "Project Black Site"
+	black_site.body_text = "Project Black Site: live trials on the island, run under the Director. The Warden was the first subject to keep his mind. Outpost 17 exists to keep the trials quiet."
+	_place(black_site, &"log_project_black_site", Vector3(-8.0, 0.7, -72.4))  # in front of the west desk (x -10..-6, z -74.75..-73.25)
 
 
 # --- boss ---------------------------------------------------------------------
@@ -302,6 +311,20 @@ func _build_patrols() -> void:
 		Vector3(-1.0, 0.1, -36.0), Vector3(-1.0, 0.1, -47.0), Vector3(-1.0, 0.1, -58.0)])
 	guards.loop = false  # ping-pong along the corridor
 	add_child(guards)
+
+	# Area D: the command guards walk the east yard beside the command building (x = 18; the boss
+	# arena zone x -12..12 stays clear). They wake when the player enters the research wing, so they are on
+	# their beat before the player crosses the C-D door. Killing both sets `patrol_d_guards_cleared`.
+	var command := PatrolGroup.new()
+	command.name = "PatrolD"
+	command.group_id = &"d_guards"
+	command.area_id = &"area_c_research"
+	command.scene_paths = PackedStringArray([
+		"res://scenes/enemies/HunterElite.tscn", "res://scenes/enemies/PatrolSoldier.tscn"])
+	command.route_points = PackedVector3Array([
+		Vector3(18.0, 0.1, -68.0), Vector3(18.0, 0.1, -76.0), Vector3(18.0, 0.1, -81.0)])
+	command.loop = false
+	add_child(command)
 
 
 # --- encounter ---------------------------------------------------------------

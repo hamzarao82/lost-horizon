@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="QuestData" load_steps=14 format=3]
+[gd_resource type="Resource" script_class="QuestData" load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
 [ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
@@ -75,18 +75,61 @@ type = 0
 targets = PackedStringArray("log_missing_security")
 optional = true
 
+[sub_resource type="Resource" id="N1"]
+script = ExtResource("2_obj")
+id = &"enter_command_center"
+text = "Enter the command center"
+type = 1
+targets = PackedStringArray("area_d_command")
+
+[sub_resource type="Resource" id="N2"]
+script = ExtResource("2_obj")
+id = &"defeat_command_guards"
+text = "Defeat the command guards"
+type = 5
+targets = PackedStringArray("patrol_d_guards_cleared")
+
+[sub_resource type="Resource" id="N3"]
+script = ExtResource("2_obj")
+id = &"read_black_site_file"
+text = "Read the Project Black Site file"
+type = 0
+targets = PackedStringArray("log_project_black_site")
+
+[sub_resource type="Resource" id="N4"]
+script = ExtResource("2_obj")
+id = &"defeat_warden"
+text = "Defeat the Warden"
+type = 5
+targets = PackedStringArray("boss_warden_defeated")
+
+[sub_resource type="Resource" id="N5"]
+script = ExtResource("2_obj")
+id = &"take_warden_reward"
+text = "Take the Warden's signature reward"
+type = 4
+targets = PackedStringArray("warden_blade", "warden_plate")
+count = 1
+
+[sub_resource type="Resource" id="N6"]
+script = ExtResource("2_obj")
+id = &"contact_outside"
+text = "Contact the outside from the command terminal"
+type = 0
+targets = PackedStringArray("command_terminal_d")
+
 [resource]
 script = ExtResource("1_quest")
 id = &"first_signal"
 title = "The First Signal"
 description = "A weak military transmission is coming from Outpost 17. Find out who is sending it, and what they are hiding."
 prerequisites = PackedStringArray()
-objectives = Array[ExtResource("2_obj")]([SubResource("O1"), SubResource("O2"), SubResource("O3"), SubResource("O4"), SubResource("O5"), SubResource("O6"), SubResource("O7"), SubResource("O8"), SubResource("O9"), SubResource("OPT")])
+objectives = Array[ExtResource("2_obj")]([SubResource("O1"), SubResource("O2"), SubResource("O3"), SubResource("O4"), SubResource("O5"), SubResource("O6"), SubResource("O7"), SubResource("O8"), SubResource("O9"), SubResource("OPT"), SubResource("N1"), SubResource("N2"), SubResource("N3"), SubResource("N4"), SubResource("N5"), SubResource("N6")])
 rewards = PackedStringArray("combat_knife")
 reward_text = "Combat Knife"
 next_quest = &"restore_power"
 start_captions = PackedStringArray("...static... Can anyone hear this? If you can hear this, you are not alone.", "A weak signal is coming from Outpost 17. Find the source.")
-complete_captions = PackedStringArray("Transmission traced. The research complex coordinates are on your display.", "Whatever they are hiding, it starts here. Be careful out there.")
+complete_captions = PackedStringArray("Signal confirmed. They know you're alive now. Move.", "The First Signal: complete.")
 caption_seconds = 4.5
 category = 0
 location_hint = "Outer Perimeter"

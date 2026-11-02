@@ -136,6 +136,9 @@ func build_save() -> Dictionary:
 	var quest_manager := get_node_or_null("/root/QuestManager")
 	if quest_manager:
 		data["quests"] = quest_manager.to_dict()  # optional field: older saves simply do not have it
+	var run_stats := get_node_or_null("/root/RunStats")
+	if run_stats:
+		data["stats"] = run_stats.to_dict()  # optional too
 	var world := {"checkpoint_id": "", "position": null}
 	if not world_checkpoint.is_empty():
 		var p: Variant = _position_from(world_checkpoint.get("position", null))
@@ -232,6 +235,10 @@ func load_game() -> bool:
 	var quest_manager := get_node_or_null("/root/QuestManager")
 	if quest_manager:
 		quest_manager.on_game_loaded(data.get("quests", {}))  # a pre-quest save restarts the quest line
+	var run_stats := get_node_or_null("/root/RunStats")
+	if run_stats:
+		run_stats.reset()
+		run_stats.from_dict(data.get("stats", {}))
 	return true
 
 
@@ -321,6 +328,11 @@ func _sanitize(data: Dictionary) -> Dictionary:
 	if not quests.is_empty():
 		result["quests"] = quests
 	result["world"] = _sanitize_world(data.get("world", {}))
+	var run_stats := get_node_or_null("/root/RunStats")
+	if run_stats:
+		var stats: Dictionary = run_stats.sanitize(data.get("stats", {}))
+		if not stats.is_empty():
+			result["stats"] = stats
 	return result
 
 
@@ -389,6 +401,9 @@ func reset_runtime_state() -> void:
 	var quest_manager := get_node_or_null("/root/QuestManager")
 	if quest_manager:
 		quest_manager.reset()  # a fresh run starts the quest line (and the world flags) again
+	var run_stats := get_node_or_null("/root/RunStats")
+	if run_stats:
+		run_stats.reset()
 
 
 func mark_boss_defeated(boss_id: String) -> void:

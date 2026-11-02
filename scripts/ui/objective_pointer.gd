@@ -10,6 +10,7 @@ const LABELS: Dictionary = {
 	&"military_terminal": "Terminal", &"security_panel": "Panel", &"log_missing_security": "Missing log",
 	&"power_switch_a": "Switch A", &"power_switch_b": "Switch B", &"power_switch_c": "Switch C",
 	&"card_reader_c": "Card reader", &"command_terminal": "Terminal",
+	&"log_project_black_site": "Black Site file", &"command_terminal_d": "Command terminal",
 }
 const HIDE_WITHIN: float = 6.0
 const REFRESH_SECONDS: float = 0.25
@@ -103,6 +104,8 @@ func _resolve_flag_target(objective: ObjectiveData) -> void:
 					_point_at_nearest_enemy()
 			"comms_power_on":
 				_point_at_power_step()
+			"patrol_d_guards_cleared", "boss_warden_defeated":
+				_point_at_nearest_enemy()
 			"next_location_unlocked":
 				_point_at_interactable(&"military_terminal")
 			_:

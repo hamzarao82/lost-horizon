@@ -44,3 +44,27 @@ Use `SequencePuzzle.ensure(parent)` to find or create the node (group `sequence_
 
 ## Tests
 `tests/quest_chain_check.gd` (48), `tests/puzzle_check.gd` (27); `tests/quest_check.gd` now finishes quest 1 through the helper `_finish_first_signal` (the old one-event "radio" quest no longer exists).
+
+## Milestone 4: Acts 4–6 of The First Signal `[IMPLEMENTED]`
+`first_signal` now has 15 required objectives plus the optional log (index 9 unchanged). Objectives 10–15 are appended and event-driven like the rest, so they also complete out of order:
+
+| # | id | Type | Target |
+|---|---|---|---|
+| 10 | `enter_command_center` | ENTER_AREA | `area_d_command` |
+| 11 | `defeat_command_guards` | FLAG | `patrol_d_guards_cleared` (PatrolGroup `d_guards`: elite + soldier walking the east yard of Area D, woken by `area_c_research`) |
+| 12 | `read_black_site_file` | INTERACT | `log_project_black_site` (LoreDocument in the command building) |
+| 13 | `defeat_warden` | FLAG | `boss_warden_defeated` (set by any Warden death, also the wave-5 one) |
+| 14 | `take_warden_reward` | ITEM_COLLECTED | `warden_blade` or `warden_plate` (one is enough; the item must be kept by the inventory) |
+| 15 | `contact_outside` | INTERACT | `command_terminal_d` (locked until `boss_warden_defeated`) |
+
+The quest (and its reward, the combat knife) now completes at objective 15, no longer at the old objective 9; the follow-up quest `restore_power` starts then.
+
+### Signal contract: `QuestManager.mission_completed(quest_id: StringName)`
+- Emitted exactly once per run when `QuestManager.MISSION_QUEST` (`first_signal`) completes, after `quest_completed` and after the reward was queued.
+- Before it: the world flag `mission_first_signal_complete` is set and `SaveManager.autosave("mission")` is queued (deferred; `QuestManager.mission_autosave = false` disables it for tests).
+- Not emitted again by repeated events, reloads of a finished game, or the arena quests.
+- Radio subtitles: R4 (card found) and R5 (military terminal) are said once through `QuestManager.say`; R7 is the first complete caption of the quest.
+
+Saves from before this change (10 objective slots) do not match the new 16-slot list: the quest restarts from its event history, so Acts 1–3 progress is kept and the new objectives start open.
+
+Tests: `tests/mission_check.gd` (50 checks), the extended `tests/playthrough_bot.gd` (all six acts, the Warden killed through `receive_hit`, the command terminal after the boss), `quest_chain_check` and `quest_check` helpers updated.

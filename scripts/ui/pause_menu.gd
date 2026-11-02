@@ -10,17 +10,14 @@ const BUTTON_SIZE: Vector2 = Vector2(380, 56)
 const FONT_SIZE: int = 24
 const PAUSE_BUTTON_POSITION: Vector2 = Vector2(16, 140)  # just below the stamina bar, left side
 const PAUSE_BUTTON_SIZE: Vector2 = Vector2(56, 56)
-const SENSITIVITY_MIN: float = 0.25  # keep in sync with Settings.MIN_SENSITIVITY
-const SENSITIVITY_MAX: float = 3.0
 
 var _open: bool = false
 var _root: Control
 var _main_page: VBoxContainer
-var _settings_page: VBoxContainer
+var _settings_page: SettingsPage
+var _equipment: EquipmentScreen
 var _pause_button: Button
 var _load_button: Button
-var _quality_buttons: Array[Button] = []
-var _sliders: Dictionary = {}  # name -> HSlider
 
 
 func _ready() -> void:
@@ -51,7 +48,7 @@ func open() -> void:
 	_open = true
 	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	_sync_controls()
+	_settings_page.sync_controls()
 	_refresh_load_button()
 	_show_page(_main_page)
 	_root.visible = true
@@ -78,6 +75,11 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_I:
+		if not _equipment.is_open():
+			show_equipment()
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("pause") and not event.is_echo():
 		toggle()
 		get_viewport().set_input_as_handled()
@@ -142,9 +144,13 @@ func _build_ui() -> void:
 	margin.add_child(holder)
 
 	_main_page = _build_main_page()
-	_settings_page = _build_settings_page()
+	_settings_page = SettingsPage.new()
+	_settings_page.back_pressed.connect(func() -> void: _show_page(_main_page))
 	holder.add_child(_main_page)
 	holder.add_child(_settings_page)
+
+	_equipment = EquipmentScreen.new()
+	add_child(_equipment)
 
 	_pause_button = Button.new()
 	_pause_button.text = "||"
@@ -165,6 +171,7 @@ func _build_main_page() -> VBoxContainer:
 	page.add_theme_constant_override("separation", 12)
 	page.add_child(_title("PAUSED"))
 	page.add_child(_button("Resume", close))
+	page.add_child(_button("Equipment", show_equipment))
 	page.add_child(_button("Save", _on_save))
 	_load_button = _button("Load", _on_load)
 	page.add_child(_load_button)
@@ -172,40 +179,6 @@ func _build_main_page() -> VBoxContainer:
 	page.add_child(_button("Settings", func() -> void: _show_page(_settings_page)))
 	if not OS.has_feature("web") and not TouchControls.is_mobile_platform():
 		page.add_child(_button("Quit", func() -> void: get_tree().quit()))
-	return page
-
-
-func _build_settings_page() -> VBoxContainer:
-	var page := VBoxContainer.new()
-	page.add_theme_constant_override("separation", 10)
-	page.add_child(_title("SETTINGS"))
-	_add_slider(page, "master", "Master volume", 0.0, 1.0, 0.05, "set_master_volume")
-	_add_slider(page, "music", "Music volume", 0.0, 1.0, 0.05, "set_music_volume")
-	_add_slider(page, "mouse", "Mouse sensitivity", SENSITIVITY_MIN, SENSITIVITY_MAX, 0.05, "set_mouse_sensitivity")
-	_add_slider(page, "touch", "Touch look sensitivity", SENSITIVITY_MIN, SENSITIVITY_MAX, 0.05, "set_touch_sensitivity")
-
-	var quality_label := Label.new()
-	quality_label.text = "Quality"
-	quality_label.add_theme_font_size_override("font_size", FONT_SIZE)
-	page.add_child(quality_label)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	var group := ButtonGroup.new()
-	for i in 3:
-		var b := _button(["Low", "Medium", "High"][i], _on_quality_pressed.bind(i))
-		b.toggle_mode = true
-		b.button_group = group
-		b.custom_minimum_size = Vector2((BUTTON_SIZE.x - 16.0) / 3.0, BUTTON_SIZE.y)
-		row.add_child(b)
-		_quality_buttons.append(b)
-	page.add_child(row)
-
-	# F3 does not exist on touch devices, so the FPS/draw-call readout gets a menu button too.
-	page.add_child(_button("Show / hide FPS", func() -> void:
-		for overlay in get_tree().get_nodes_in_group("perf_overlay"):
-			overlay.call("toggle")))
-
-	page.add_child(_button("Back", func() -> void: _show_page(_main_page)))
 	return page
 
 
@@ -227,25 +200,6 @@ func _button(text: String, on_pressed: Callable) -> Button:
 	return b
 
 
-func _add_slider(page: VBoxContainer, key: String, title: String, min_value: float,
-		max_value: float, step: float, setter: String) -> void:
-	var label := Label.new()
-	label.text = title
-	label.add_theme_font_size_override("font_size", 20)
-	page.add_child(label)
-	var slider := HSlider.new()
-	slider.min_value = min_value
-	slider.max_value = max_value
-	slider.step = step
-	slider.custom_minimum_size = Vector2(BUTTON_SIZE.x, 40)
-	slider.value_changed.connect(func(value: float) -> void:
-		var settings := _settings()
-		if settings:
-			settings.call(setter, value))
-	page.add_child(slider)
-	_sliders[key] = slider
-
-
 # --- behaviour -------------------------------------------------------------
 
 func _show_page(page: Control) -> void:
@@ -254,31 +208,7 @@ func _show_page(page: Control) -> void:
 	if page == _main_page:
 		(_main_page.get_child(1) as Control).grab_focus()
 	else:
-		_sync_controls()
-		(_sliders["master"] as Control).grab_focus()
-
-
-## Pull the stored values into the controls without re-triggering the setters.
-func _sync_controls() -> void:
-	var settings := _settings()
-	if settings == null:
-		return
-	_set_slider("master", settings.master_volume)
-	_set_slider("music", settings.music_volume)
-	_set_slider("mouse", settings.mouse_sensitivity)
-	_set_slider("touch", settings.touch_sensitivity)
-	for i in _quality_buttons.size():
-		_quality_buttons[i].set_pressed_no_signal(i == int(settings.quality))
-
-
-func _set_slider(key: String, value: float) -> void:
-	(_sliders[key] as HSlider).set_value_no_signal(value)
-
-
-func _on_quality_pressed(index: int) -> void:
-	var settings := _settings()
-	if settings:
-		settings.set_quality(index)
+		_settings_page.show_page()
 
 
 func _on_restart() -> void:
@@ -315,3 +245,9 @@ func _refresh_load_button() -> void:
 	var available: bool = save_manager != null and save_manager.has_save()
 	_load_button.disabled = not available
 	_load_button.text = "Load" if available else "Load (no save)"
+
+
+## Opens the pause menu (if needed) and the equipment screen on top of it. Key I does this too.
+func show_equipment() -> void:
+	open()
+	_equipment.open()

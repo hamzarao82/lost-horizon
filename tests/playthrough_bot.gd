@@ -15,6 +15,7 @@ var _player: Player
 var _qm: Node
 var _world: Node
 var _sm: Node
+var _mission_signals: int = 0
 
 
 func _initialize() -> void:
@@ -97,6 +98,7 @@ func _run() -> void:
 	_sm = root.get_node("SaveManager")
 	_sm.reset_runtime_state()  # a fresh run: the quest line starts again
 	_qm.intro_done = true
+	_qm.mission_completed.connect(func(_id: StringName) -> void: _mission_signals += 1)
 	_check_pointer_placement()
 
 	_main = (load("res://scenes/main/Main.tscn") as PackedScene).instantiate()
@@ -198,6 +200,68 @@ func _run() -> void:
 	_check(_use(&"military_terminal"), "the powered terminal can be used")
 	await _frames(4)
 	_check(_world.has_flag(&"next_location_unlocked"), "it unlocks the next mission location")
+
+	_step("10 Act 4: the command guards and the Project Black Site file")
+	_check(_world.has_flag(&"patrol_d_guards_cleared") == false, "the command guards are still alive after entering the research wing")
+	var guards := 0
+	var heavy := load(HEAVY) as AttackData
+	for node in get_nodes_in_group("enemies").duplicate():
+		var guard := node as Enemy
+		if guard == null or guard.is_in_group("boss"):
+			continue
+		for i in 30:
+			if guard.is_dead():
+				break
+			guard.receive_hit(heavy, _player.global_position)
+			await physics_frame
+		if guard.is_dead():
+			guards += 1
+	await _frames(4)
+	_check(guards >= 2, "the bot defeats the command guards (%d)" % guards)
+	_check(_world.has_flag(&"patrol_d_guards_cleared"), "their wipe-out sets patrol_d_guards_cleared")
+	_check(_done(11), "'Defeat the command guards' is done")
+	_check(_done(10), "'Enter the command center' is done (Area D was entered earlier)")
+	await _move(Vector3(-8.0, 0.1, -72.0))
+	_check(_use(&"log_project_black_site"), "the Project Black Site file can be read")
+	await _frames(2)
+	_check(_done(12), "'Read the Project Black Site file' is done")
+	var terminal_d := _interactable(&"command_terminal_d") as Interactable
+	_check(terminal_d != null and not terminal_d.can_interact(), "the command terminal is locked while the Warden lives")
+	_check(not _qm.is_completed(FIRST), "the mission is not complete before the boss")
+
+	_step("11 Act 5: the Warden and his reward")
+	var boss := get_first_node_in_group("boss") as Enemy
+	_check(boss != null, "the Warden is alive in Area D")
+	if boss != null:
+		for i in 700:
+			if boss.is_dead():
+				break
+			boss.receive_hit(heavy, boss.global_position + Vector3(0.0, 0.0, 2.0))
+			await physics_frame
+		_check(boss.is_dead(), "the Warden is defeated through receive_hit (health %.0f)" % boss.get("_health").health)
+	await _frames(6)
+	_check(_world.has_flag(&"boss_warden_defeated"), "his death sets boss_warden_defeated")
+	_check(_done(13), "'Defeat the Warden' is done")
+	_check(not _done(14), "the reward is not counted before it is picked up")
+	var taken := 0
+	for node in root.find_children("*", "Pickup", true, false):
+		var pickup := node as Node3D
+		if pickup != null and is_instance_valid(pickup) and not pickup.is_queued_for_deletion() and _done(14) == false:
+			await _move(pickup.global_position)
+			await _frames(4)
+			taken += 1
+	_check(taken >= 1, "the Warden's drops can be picked up (%d visited)" % taken)
+	_check(_done(14), "'Take the Warden's signature reward' is done")
+
+	_step("12 Act 6: contact the outside")
+	await _move(Vector3(0.0, 0.1, -76.0))
+	_check(terminal_d != null and terminal_d.can_interact(), "the command terminal is usable after the Warden falls")
+	_check(not _qm.is_completed(FIRST), "the mission is still open before the terminal")
+	_check(_use(&"command_terminal_d"), "the command terminal can be used")
+	await _frames(4)
+	_check(_qm.is_completed(FIRST), "using it completes The First Signal")
+	_check(_mission_signals == 1, "mission_completed fired exactly once (%d)" % _mission_signals)
+	_check(_world.has_flag(&"mission_first_signal_complete"), "the mission completion flag is set")
 
 	_step("check the result")
 	await _frames(4)

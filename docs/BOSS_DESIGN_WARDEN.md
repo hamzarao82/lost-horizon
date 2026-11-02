@@ -10,7 +10,7 @@ Tags are explained in [MILESTONE_004.md](MILESTONE_004.md). Source of the baseli
 | Movement speed | 2.6 (phase 2: x1.35) | `[IMPLEMENTED]` |
 | Stagger resistance | 0.85; only attacks with at least 0.5 s stagger (the heavy finisher) interrupt him, for about 0.09 s | `[IMPLEMENTED]` |
 | Phase 1 attacks | **Slam** (36 startup / 8 active / 40 recovery frames, 22 damage, knockback 9); **Shockwave** every third attack (expanding ring to 5.5 m over 0.5 s, 14 damage, avoided by jumping or dodge i-frames) | `[IMPLEMENTED]` |
-| Phase 2 trigger | **50%** health | `[IMPLEMENTED]` (the brief asks for ~40%) |
+| Phase 2 trigger | **40%** health | `[IMPLEMENTED]` in Milestone 4 (was 50%) |
 | Phase 2 behaviour | 1.5 s roar (invulnerable, camera shake); speed x1.35; cooldowns x0.6; **Flurry** chained after each slam (14/5/20 frames, 12 damage); shockwave every second attack; summons two soldiers once | `[IMPLEMENTED]` |
 | Reward | `warden_loot` table: Warden's Cleaver (x2.30 damage, 0.95 speed), Warden Plate (140 armor points), medkits; verified by `boss_check` | `[IMPLEMENTED]` |
 | Encounters | wave 5 in the courtyard, and the Area D encounter (sealed door, 3 s introduction) | `[IMPLEMENTED]` (`milestone-003`) |
@@ -74,7 +74,25 @@ Do not solve difficulty by raising health or damage; adjust telegraph length, re
 ## 8. Tests to add (`[NEW-M4]`)
 Frame-data table test (every attack has telegraph and recovery within bounds); phase transition at the chosen threshold exactly once; invulnerable during the roar; new attacks deal their damage once; loot and quest completion on death; Area D encounter respects `boss_warden_defeated`; `boss_check` and `boss_intro_check` keep passing.
 
-## 9. Unverified
+## 9. Implementation status (Milestone 4 build)
+
+Implemented in `scripts/ai/warden.gd`, with frame data in `resources/attacks/warden_*.tres` and the fairness rules asserted by `tests/warden_design_check.gd`:
+
+| Attack | Phase | Telegraph | Damage | Recovery or punish window |
+|---|---|---|---|---|
+| Slam (+ shockwave every 3rd slam, every 2nd in phase 2) | 1, 2 | 36 frames (0.6 s) | 22 (shockwave 14) | 40 frames |
+| Flurry (chained after each slam) | 2 | 14 frames, but chained after a slam | 12 | 20 frames plus the cooldown (at least 0.96 s) |
+| Charge | 1, 2 | 48 frames (0.8 s), two ground arrows | 18, once | 1.5 s stun on a wall or container (0.8 s if the run ends in open floor) |
+| Leap slam | 2 | 60 frames (1.0 s), ground marker | 20 in 3.5 m, once | 60 frames (1.0 s) |
+| Fire lines (after the phase 2 shockwave) | 2 | the 36 frame slam before them | 6 per tick, one tick per 0.5 s per line | burn 1.5 s, sweep 0.5 s |
+
+- Attack choice weights: phase 1 slam 3 : charge 1; phase 2 slam 4 : leap 2 : charge 1. The charge needs 5 m of room, the leap 3.5 m. A special never repeats back to back, and a special is forced after three slams in a row.
+- Phase 2 starts at 40% (changed from 50%, approved), the roar lasts 2.5 s, invulnerable, with two harmless rings; caption "The Warden is enraged!". In phase 2 he strafes at about 5.5 m between attacks, and embers rise from him (count scales with the effects quality).
+- Defeat: slow motion through the existing hit-stop API (clamped by it to a very short time), living summons are removed, fire lines cleared, loot and quest flags unchanged.
+- Charge and leap animation clips do not exist; they reuse `heavy` and `shockwave_cast`. Sounds are requested as `boss_slam`, `boss_charge`, `boss_leap`, `boss_roar`, `boss_fire` and are ignored until the audio work adds them.
+- Not verified: how the fight feels, camera behaviour in Area D, kill-time targets (section 7), and the visuals of arrows, marker and fire lines (headless tests only).
+
+## 10. Unverified
 - Whether the new attacks fit the current arena and Area D dimensions without clipping the camera.
 - Whether 90–150 s is right; the tuning needs human playtests.
 - Whether the skinned Warden model (`milestone-002`) has clips for the leap and charge (it has `slam`, `flurry`, `shockwave_cast`, `roar`; leap and charge clips do not exist).

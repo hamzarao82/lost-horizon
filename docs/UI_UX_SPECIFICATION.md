@@ -13,15 +13,15 @@ Tags are explained in [MILESTONE_004.md](MILESTONE_004.md). Existing layout rule
 | Screen | Status | Notes |
 |---|---|---|
 | Boot/loading screen | `[IMPLEMENTED]` | progress bar and tips |
-| **Main menu** | `[NEW-M4]` | New Game, Continue (disabled without a save), Settings, Credits, Quit (hidden on web and mobile) |
+| **Main menu** | `[BUILT, headless-tested]` (`main_menu.gd`, shown by Boot; not yet playtested by a human) | New Game, Continue (disabled without a save), Settings, Credits, Quit (hidden on web and mobile) |
 | Story intro | `[IMPLEMENTED]` | skippable; shown on new game only |
 | Gameplay HUD | `[IMPLEMENTED]` | see section 3 |
 | Pause menu | `[IMPLEMENTED]` | Resume, Save, Load, Restart, Settings, Quit; add Inventory and Quests tabs `[NEW-M4]` |
 | Settings | `[IMPLEMENTED]` | master/music volume, mouse and touch sensitivity, quality, FPS toggle; add SFX/ambience/UI volume, control remapping `[PROPOSED]`, language not needed |
-| **Inventory / equipment** | `[NEW-M4]` | equipped weapon and armor with stats and comparison, medkits, quest items, documents found |
+| **Inventory / equipment** | `[BUILT, headless-tested]` (`equipment_screen.gd`, pause menu button or key I; no tabs, no quest journal) | equipped weapon and armor with stats and comparison, medkits, quest items, documents found |
 | **Quest journal** | `[NEW-M4]` (small) | current objective, completed objectives, optional objective, documents list |
-| **Mission results** | `[NEW-M4]` | see STORY_AND_MISSION_FLOW.md section 6 |
-| **Death / respawn screen** | `[NEW-M4]` (today: "YOU DIED" text and automatic reload) | cause, respawn location, hint, Continue |
+| **Mission results** | `[BUILT, headless-tested]` (`results_screen.gd`; opens on QuestManager.mission_completed when that signal exists) | see STORY_AND_MISSION_FLOW.md section 6 |
+| **Death / respawn screen** | `[BUILT, headless-tested]` (`death_screen.gd`; informational for the 2 s before the automatic reload, no Continue button) | cause, respawn location, hint, Continue |
 | Save/load feedback | partly `[IMPLEMENTED]` ("Progress saved" toast) | add "Checkpoint saved", "Load failed: save is damaged (backup restored)" messages |
 | Ending / credits | `[IMPLEMENTED]` (`Ending.tscn`) | reuse after the results screen |
 

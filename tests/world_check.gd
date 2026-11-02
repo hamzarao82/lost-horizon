@@ -120,10 +120,10 @@ func _run() -> void:
 	_state.emit_area_entered(&"area_b_compound")
 	await _frames(2)
 	_check(_squad().size() == 2, "entering the compound spawns the squad (2)")
-	_check(Enemy.active_patrollers == 2, "and wakes the two research-wing guards")
+	_check((main.find_child("PatrolC", true, false) as PatrolGroup).enemies.size() == 2, "and wakes the two research-wing guards")
 	_state.emit_area_entered(&"area_b_compound")
 	await _frames(2)
-	_check(_squad().size() == 2 and Enemy.active_patrollers == 2, "it spawns only once")
+	_check(_squad().size() == 2 and (main.find_child("PatrolC", true, false) as PatrolGroup).enemies.size() == 2, "it spawns only once")
 	var kill := load("res://resources/attacks/heavy_1.tres") as AttackData
 	for enemy in get_nodes_in_group("enemies"):
 		for i in 5:

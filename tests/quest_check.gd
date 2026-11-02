@@ -90,6 +90,7 @@ func _finish_first_signal(qm: Node) -> void:
 	qm.notify(OBJ.INTERACT, &"military_terminal")
 	qm.notify(OBJ.ENTER_AREA, &"area_c_research")
 	qm.notify(OBJ.FLAG, &"next_location_unlocked")
+	_acts_4_to_6(qm)
 
 
 ## Same chain through the real WorldState (kills still come through notify: they need live enemies).
@@ -103,6 +104,7 @@ func _finish_first_signal_via_world(qm: Node, world: Node) -> void:
 	world.set_flag(&"comms_power_on", true)
 	world.emit_interacted(&"military_terminal")  # the manager sets next_location_unlocked itself
 	world.emit_area_entered(&"area_c_research")
+	_acts_4_to_6(qm)
 
 
 func _complete_first_two(qm: Node) -> void:
@@ -216,9 +218,9 @@ func _test_flow() -> void:
 	_check(qm.is_active(&"first_signal"), "an unrelated interaction does nothing")
 	var knife_before: StringName = player.inventory.weapon.item_id
 	_finish_first_signal(qm)
-	_check(qm.is_completed(&"first_signal") and qm.is_active(&"restore_power"), "finishing the nine-objective chain completes quest 1 and starts quest 2")
+	_check(qm.is_completed(&"first_signal") and qm.is_active(&"restore_power"), "finishing the fifteen-objective chain completes quest 1 and starts quest 2")
 	_check(player.inventory.weapon.item_id == &"combat_knife" and knife_before == &"improvised_blade", "the quest 1 reward (combat knife) is granted")
-	_check(captions.size() >= 2 and captions.any(func(c: String) -> bool: return c.contains("Transmission traced")), "the closing lines are queued as captions (%d)" % captions.size())
+	_check(captions.size() >= 2 and captions.any(func(c: String) -> bool: return c.contains("Signal confirmed")), "the closing lines are queued as captions (%d)" % captions.size())
 	qm.notify(OBJ.INTERACT, &"radio")
 	_check(qm.completed.size() == 1 and events.count("done:first_signal") == 1, "repeating the event does not complete it again")
 
@@ -538,3 +540,13 @@ func _test_story_scenes() -> void:
 	await _frames(2)
 	_check(not paused, "closing the ending unpauses the game")
 	await _drop(player)
+
+
+## Acts 4-6 of The First Signal (command center, guards, file, Warden, reward, command terminal).
+func _acts_4_to_6(qm: Node) -> void:
+	qm.notify(OBJ.ENTER_AREA, &"area_d_command")
+	qm.notify(OBJ.FLAG, &"patrol_d_guards_cleared")
+	qm.notify(OBJ.INTERACT, &"log_project_black_site")
+	qm.notify(OBJ.FLAG, &"boss_warden_defeated")
+	qm.notify(OBJ.ITEM_COLLECTED, &"warden_blade")
+	qm.notify(OBJ.INTERACT, &"command_terminal_d")

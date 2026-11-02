@@ -123,17 +123,18 @@ func _run() -> void:
 	while not boss.phase2 and guard < 40:
 		boss.receive_hit(heavy, player.global_position)
 		guard += 1
-	_check(boss.phase2 and boss._roaring, "dropping below half health triggers the roar (hp %.0f)" % _hp(boss))
+	_check(boss.phase2 and boss._roaring, "dropping to 40% health (Milestone 4 threshold, was 50%) triggers the roar (hp %.0f)" % _hp(boss))
 	var hp_roar := _hp(boss)
 	_check(not boss.receive_hit(heavy, player.global_position) and _hp(boss) == hp_roar, "boss is invulnerable while roaring")
 	boss.set_physics_process(true)
 	await _frames(10)
 	_check(root.get_tree().get_nodes_in_group("enemies").size() == soldiers_before + 2, "two soldiers are summoned once")
-	await _frames(100)
-	_check(not boss._roaring, "the roar ends after 1.5s")
+	await _frames(170)
+	_check(not boss._roaring, "the roar ends after 2.5s")
 	_check(is_equal_approx(boss.move_speed, speed_before * 1.35), "phase 2 is 35% faster")
 	_check(boss.cooldown_max < 2.4, "phase 2 shortens cooldowns")
-	boss._attack_count = 1
+	boss.forced_attack = &"slam"
+	boss._slam_count = 1
 	boss._start_attack()
 	_check(boss._chain_flurry and boss._shock_pending, "phase 2: flurry follows the slam and shockwave every 2nd attack")
 
