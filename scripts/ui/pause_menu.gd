@@ -176,6 +176,7 @@ func _build_main_page() -> VBoxContainer:
 	_load_button = _button("Load", _on_load)
 	page.add_child(_load_button)
 	page.add_child(_button("Restart", _on_restart))
+	page.add_child(_button("Main menu", _on_main_menu))
 	page.add_child(_button("Settings", func() -> void: _show_page(_settings_page)))
 	if not OS.has_feature("web") and not TouchControls.is_mobile_platform():
 		page.add_child(_button("Quit", func() -> void: get_tree().quit()))
@@ -251,3 +252,16 @@ func _refresh_load_button() -> void:
 func show_equipment() -> void:
 	open()
 	_equipment.open()
+
+
+## Saves first so Continue on the menu resumes here, then returns to the title menu.
+func _on_main_menu() -> void:
+	var saves := get_node_or_null("/root/SaveManager")
+	if saves:
+		saves.autosave("menu")
+		saves.reset_runtime_state()
+	var stats := get_node_or_null("/root/RunStats")
+	if stats:
+		stats.reset()
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/boot/Boot.tscn")
