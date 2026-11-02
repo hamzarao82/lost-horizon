@@ -119,6 +119,7 @@ func _build_ui() -> void:
 	_root = Control.new()
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_STOP
+	_root.theme = HudTheme.theme()  # rounded dark panel and buttons, outlined labels (styling only)
 	_root.visible = false
 	add_child(_root)
 
@@ -152,6 +153,7 @@ func _build_ui() -> void:
 	_pause_button.custom_minimum_size = PAUSE_BUTTON_SIZE
 	_pause_button.add_theme_font_size_override("font_size", FONT_SIZE)
 	_pause_button.focus_mode = Control.FOCUS_NONE
+	_pause_button.theme = HudTheme.theme()
 	_pause_button.modulate.a = 0.6
 	_pause_button.visible = false
 	_pause_button.pressed.connect(open)  # mouse on a touch laptop; touch is handled in _input
@@ -212,6 +214,7 @@ func _title(text: String) -> Label:
 	label.text = text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 36)
+	label.add_theme_color_override("font_color", HudTheme.GOLD)
 	return label
 
 

@@ -27,13 +27,18 @@ const LABEL_NEAR: float = 10.0
 const LABEL_FAR: float = 16.0
 const MAX_ENEMY_LABELS: int = 1
 
-var _health_bar: ProgressBar
-var _stamina_bar: ProgressBar
-var _armor_bar: ProgressBar
+var _root: Control                      # themed parent of every widget (full rect, ignores the mouse)
+var _health_bar: HudBar
+var _stamina_bar: HudBar
+var _armor_bar: HudBar
 var _message: Label
 var _wave_label: Label
 var _banner: Label
-var _equipment: Label
+var _equipment: HudEquipment
+var _teleport: HudTeleport
+var _ability: Node                      # the player's TeleportAbility (read only)
+var _ability_poll: float = 0.0
+var _backdrops: Array[Dictionary] = []  # {panel, labels, centered}: translucent panels behind text
 var _toast: Label
 var _check_time: float = 0.0
 var _banner_time: float = 0.0
@@ -41,7 +46,7 @@ var _toast_time: float = 0.0
 var _player: Player
 var _waves: WaveManager
 var _boss: Enemy
-var _boss_bar: ProgressBar
+var _boss_bar: HudBar
 var _boss_name: Label
 var _quests: Node
 var _tracker_title: Label
@@ -71,7 +76,7 @@ static func plan_layout(viewport: Vector2, touch: bool) -> Dictionary:
 	var sub_y := viewport.y - SUBTITLE_BOTTOM_GAP - sub_height
 	var boss_width := minf(BOSS_BAR_MAX_WIDTH, viewport.x * 0.34)
 	var plan := {
-		"bars": Rect2(16, 90, 240, 44),
+		"bars": Rect2(16, 90, 240, 44),   # health 90-108, armor 110-124, stamina 126-134
 		"teleport": Rect2(84.0 if touch else 16.0, 146, TELEPORT_LABEL_SIZE.x, TELEPORT_LABEL_SIZE.y),
 		"wave": Rect2((viewport.x - WAVE_LABEL_SIZE.x) * 0.5, 12, WAVE_LABEL_SIZE.x, WAVE_LABEL_SIZE.y),
 		"boss_name": Rect2((viewport.x - 300.0) * 0.5, 40, 300, 22),
@@ -103,32 +108,44 @@ func _ready() -> void:
 		var pointer := ObjectivePointer.new()
 		pointer.name = "ObjectivePointer"
 		add_child(pointer)
-	_health_bar = _make_bar(Vector2(16, 90), Color(0.8, 0.15, 0.15))
-	# Armor sits between health and stamina; it is hidden (the gap stays) until armor is equipped.
-	_armor_bar = _make_bar(Vector2(16, 108), Color(0.3, 0.6, 1.0))
-	_armor_bar.custom_minimum_size.y = 12
-	_armor_bar.size.y = 12
+	_root = Control.new()
+	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.theme = HudTheme.theme()
+	add_child(_root)
+
+	# Bars: health (heart + numbers), armor (shield + numbers, hidden until armor is worn), stamina (thin).
+	_health_bar = _make_bar(Vector2(16, 90), Vector2(240, 18), HudTheme.HEALTH, &"heart", 14)
+	_armor_bar = _make_bar(Vector2(16, 110), Vector2(240, 14), HudTheme.ARMOR, &"shield", 11)
 	_armor_bar.visible = false
-	_stamina_bar = _make_bar(Vector2(16, 124), Color(0.2, 0.75, 0.3))
-	_stamina_bar.custom_minimum_size.y = 10
-	_stamina_bar.size.y = 10
+	_stamina_bar = _make_bar(Vector2(16, 126), Vector2(240, 8), HudTheme.STAMINA, &"", 8)
+	_stamina_bar.show_text = false
 
 	_message = _make_label(48, 8)
 	_message.visible = false
-	_banner = _make_label(30, 6)
+	_banner = _make_label(HudTheme.FONT_BANNER, 6)
 	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_banner.visible = false
+	var wave_backdrop := _make_backdrop(14)
 	_wave_label = _make_label(20, 4)
+	_wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_register_backdrop(wave_backdrop, [_wave_label], Vector2(14, 3))
+	var toast_backdrop := _make_backdrop(14)
 	_toast = _make_label(22, 4)
 	_toast.visible = false
-	_equipment = _make_label(18, 4)
-	_equipment.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_register_backdrop(toast_backdrop, [_toast], Vector2(14, 4))
+
+	_equipment = HudEquipment.new()
+	_equipment.size = EQUIPMENT_SIZE
+	_root.add_child(_equipment)
+	_teleport = HudTeleport.new()
+	_teleport.size = Vector2(HudTeleport.WIDTH, TELEPORT_LABEL_SIZE.y)
+	_root.add_child(_teleport)
 
 	_boss_name = _make_label(20, 4)
 	_boss_name.visible = false
-	_boss_bar = _make_bar(Vector2.ZERO, Color(0.7, 0.1, 0.12))
-	_boss_bar.custom_minimum_size = Vector2(520, 20)
-	_boss_bar.size = _boss_bar.custom_minimum_size
+	_boss_bar = _make_bar(Vector2.ZERO, Vector2(520, 20), HudTheme.BOSS, &"", 14)
+	_boss_bar.show_text = false
 	_boss_bar.visible = false
 
 	if not TouchControls.is_mobile_platform():
@@ -136,9 +153,8 @@ func _ready() -> void:
 		var hint := _hint
 		hint.text = "WASD move | Shift sprint | Space jump | Ctrl or C dodge | LMB light | RMB heavy | R medkit | F3 stats"
 		hint.position = Vector2(16, 690)  # re-positioned every frame from the viewport height
-		hint.add_theme_color_override("font_outline_color", Color.BLACK)
-		hint.add_theme_constant_override("outline_size", 4)
-		add_child(hint)
+		HudTheme.style_label(hint, HudTheme.FONT_SMALL, 4, HudTheme.TEXT_DIM)
+		_root.add_child(hint)
 
 	_player = get_tree().get_first_node_in_group("player") as Player
 	if _player:
@@ -173,7 +189,10 @@ func _process(delta: float) -> void:
 	var plan := plan_layout(viewport_size, TouchControls.touch_active)
 	var toast_rect: Rect2 = plan["toast"]
 	_wave_label.position = Vector2((viewport_size.x - _wave_label.size.x) * 0.5, 12)
-	_equipment.position = Vector2(viewport_size.x - _equipment.size.x - 16, 12)
+	var equipment_rect: Rect2 = plan["equipment"]
+	_equipment.position = equipment_rect.position
+	var teleport_rect: Rect2 = plan["teleport"]
+	_teleport.position = teleport_rect.position + Vector2(_teleport.shake_offset, 0.0)
 	_toast.position = Vector2(toast_rect.get_center().x - _toast.size.x * 0.5, toast_rect.position.y)
 	_banner.position = Vector2((viewport_size.x - _banner.size.x) * 0.5, BANNER_Y)
 	if _hint:
@@ -201,6 +220,8 @@ func _process(delta: float) -> void:
 
 	_update_boss_bar(viewport_size)
 	_update_story(viewport_size, delta)
+	_sync_backdrops()
+	_update_teleport(delta)
 
 	_check_time += delta
 	if _check_time < 0.25:
@@ -244,27 +265,104 @@ func _arena_cleared() -> bool:
 
 func _make_label(font_size: int, outline: int) -> Label:
 	var label := Label.new()
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_outline_color", Color.BLACK)
-	label.add_theme_constant_override("outline_size", outline)
-	add_child(label)
+	HudTheme.style_label(label, font_size, outline)
+	_root.add_child(label)
 	return label
 
 
-func _make_bar(pos: Vector2, color: Color) -> ProgressBar:
-	var bar := ProgressBar.new()
+func _make_bar(pos: Vector2, bar_size: Vector2, color: Color, icon: StringName, font: int) -> HudBar:
+	var bar := HudBar.new()
 	bar.position = pos
-	bar.custom_minimum_size = Vector2(240, 16)
-	bar.size = bar.custom_minimum_size
-	bar.show_percentage = false
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = color
-	var back := StyleBoxFlat.new()
-	back.bg_color = Color(0, 0, 0, 0.5)
-	bar.add_theme_stylebox_override("fill", fill)
-	bar.add_theme_stylebox_override("background", back)
-	add_child(bar)
+	bar.custom_minimum_size = bar_size
+	bar.size = bar_size
+	bar.fill_color = color
+	bar.icon = icon
+	bar.font_size = font
+	_root.add_child(bar)
 	return bar
+
+
+## A translucent rounded panel that sits behind some text; _sync_backdrops keeps it fitted to the labels.
+## Create it BEFORE the labels so it draws underneath them.
+func _make_backdrop(radius: int) -> Panel:
+	var panel := Panel.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_theme_stylebox_override("panel", HudTheme.panel_style(HudTheme.PANEL_BG, radius))
+	panel.visible = false
+	_root.add_child(panel)
+	return panel
+
+
+func _register_backdrop(panel: Panel, labels: Array, pad: Vector2, centered: bool = false) -> void:
+	_backdrops.append({"panel": panel, "labels": labels, "pad": pad, "centered": centered})
+
+
+func _sync_backdrops() -> void:
+	for entry in _backdrops:
+		var panel := entry["panel"] as Panel
+		var rect := Rect2()
+		var found := false
+		var alpha := 1.0
+		for node in entry["labels"]:
+			var label := node as Label
+			if label == null or not label.visible or label.text == "":
+				continue
+			var label_rect := _label_rect(label, bool(entry["centered"]))
+			rect = label_rect if not found else rect.merge(label_rect)
+			if not found:
+				alpha = label.modulate.a
+			found = true
+		panel.visible = found
+		if found:
+			var pad: Vector2 = entry["pad"]
+			panel.position = rect.position - pad
+			panel.size = rect.size + pad * 2.0
+			panel.modulate.a = alpha
+
+
+## The rectangle a label's text really covers. Centered, wrapped text (the subtitle) is measured so the
+## backdrop hugs short lines instead of always spanning the full wrap width.
+func _label_rect(label: Label, centered: bool) -> Rect2:
+	var minimum := label.get_combined_minimum_size()
+	var label_size := Vector2(maxf(label.size.x, minimum.x), maxf(label.size.y, minimum.y))
+	if centered and label.autowrap_mode != TextServer.AUTOWRAP_OFF:
+		var font := label.get_theme_font("font")
+		var font_size := label.get_theme_font_size("font_size")
+		var measured := font.get_multiline_string_size(label.text, HORIZONTAL_ALIGNMENT_CENTER, label_size.x,
+				font_size, label.max_lines_visible)
+		var width := clampf(measured.x, 40.0, label_size.x)
+		return Rect2(label.position.x + (label_size.x - width) * 0.5, label.position.y, width, label_size.y)
+	return Rect2(label.position, label_size)
+
+
+# --- teleport readout (reads the player's TeleportAbility; never changes it) -------
+
+func _find_ability() -> Node:
+	if _player == null or not is_instance_valid(_player):
+		return null
+	for child in _player.get_children():
+		if child is TeleportAbility:
+			return child
+	return null
+
+
+func _update_teleport(delta: float) -> void:
+	_ability_poll -= delta
+	if _ability_poll > 0.0:
+		return
+	_ability_poll = 0.25
+	if _ability == null or not is_instance_valid(_ability):
+		_ability = _find_ability()
+		if _ability != null:
+			# The ability draws its own text label; the pips below replace it (its toast still shows).
+			var own_label: Variant = _ability.get("_label")
+			if own_label is Label:
+				(own_label as Label).visible = false
+			_ability.connect("denied", func(_seconds: float) -> void: _teleport.deny())
+	_teleport.visible = _ability != null
+	if _ability != null:
+		_teleport.set_state(int(_ability.get("charges")), TeleportAbility.MAX_CHARGES,
+				float(_ability.call("seconds_until_next")))
 
 
 func _on_health_changed(current: float, maximum: float) -> void:
@@ -347,15 +445,27 @@ func _refresh_wave_label() -> void:
 
 
 func _refresh_equipment() -> void:
-	if _player == null or _player.inventory == null:
+	if _player == null or _player.inventory == null or _equipment == null:
 		return
 	var inv := _player.inventory
-	var weapon_text := inv.weapon.summary() if inv.weapon else "None"
-	var armor_text := inv.armor.summary() if inv.armor else "None"
-	_equipment.text = "Weapon: %s\nArmor: %s\nMedkits: %d  [R]" % [weapon_text, armor_text, inv.potions]
-	if inv.armor and _player.health.max_armor > 0.0:
-		_equipment.text = _equipment.text.replace("Armor: %s" % armor_text,
-				"Armor: %s  %d/%d" % [armor_text, roundi(_player.health.armor), roundi(_player.health.max_armor)])
+	var weapon := inv.weapon
+	var armor := inv.armor
+	var modifier := ""
+	if weapon:
+		modifier = "x%.2f dmg" % weapon.damage_multiplier
+		if not is_equal_approx(weapon.attack_speed, 1.0):
+			modifier += "  %.2fx spd" % weapon.attack_speed
+	var armor_points := ""
+	if armor and _player.health.max_armor > 0.0:
+		armor_points = "%d/%d" % [roundi(_player.health.armor), roundi(_player.health.max_armor)]
+	_equipment.set_data(
+			weapon.display_name if weapon else "None",
+			weapon.color() if weapon else HudTheme.TEXT_DIM,
+			modifier,
+			armor.display_name if armor else "None",
+			armor_points,
+			armor.color() if armor else HudTheme.TEXT_DIM,
+			inv.potions)
 
 
 func _on_item_collected(item: ItemData, kept: bool) -> void:
@@ -389,10 +499,11 @@ const CAPTION_MAX_SECONDS: float = 6.0
 
 
 func _setup_story() -> void:
-	_tracker_title = _make_label(18, 4)
-	_tracker_title.add_theme_color_override("font_color", Color(0.95, 0.85, 0.3))
+	var tracker_backdrop := _make_backdrop(10)
+	_tracker_title = _make_label(HudTheme.FONT_BODY, 4)
+	_tracker_title.add_theme_color_override("font_color", HudTheme.GOLD)
 	_tracker_title.visible = false
-	_tracker_objective = _make_label(16, 4)
+	_tracker_objective = _make_label(HudTheme.FONT_SMALL + 1, 4)
 	_tracker_objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tracker_objective.max_lines_visible = 2  # long objectives never grow the tracker past two lines
 	_tracker_objective.visible = false
@@ -404,11 +515,14 @@ func _setup_story() -> void:
 	_location_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_location_label.add_theme_color_override("font_color", Color(0.92, 0.92, 0.88))
 	_location_label.visible = false
+	_register_backdrop(tracker_backdrop, [_tracker_title, _tracker_objective], Vector2(10, 5))
+	var subtitle_backdrop := _make_backdrop(10)
 	_subtitle = _make_label(22, 6)
 	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_subtitle.max_lines_visible = SUBTITLE_LINES
 	_subtitle.visible = false
+	_register_backdrop(subtitle_backdrop, [_subtitle], Vector2(16, 6), true)
 	var world := get_node_or_null("/root/WorldState")
 	if world != null and world.has_signal("area_entered"):
 		world.area_entered.connect(_on_area_entered)

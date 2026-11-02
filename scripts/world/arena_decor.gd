@@ -74,6 +74,8 @@ signal build_finished
 static var build_synchronously: bool = false
 ## Tests only: build in stages even under the headless display (which otherwise forces sync mode).
 static var force_staged: bool = false
+## Benchmarks and tests: false forces the old code-built primitive decor instead of the modular kit.
+static var allow_kit: bool = true
 
 @export var quality_low: bool = false
 ## Milestone 3: the north outpost silhouette (huts, mast, truck) is replaced by the real Area C/D greybox.
@@ -81,6 +83,10 @@ static var force_staged: bool = false
 
 
 var quality_level: int = QUALITY_HIGH
+## True when the modular kit (assets/environments/kit) was used; false when a GLB was missing and the
+## code-built primitive decor was used instead.
+var kit_active: bool = false
+var _kit_batches: Dictionary = {}
 ## Milliseconds spent in each stage of the most recent build (for docs/LOADING.md and the boot report).
 var stage_ms: Array[float] = []
 
@@ -263,8 +269,11 @@ func _build() -> void:
 	_stage_mark = Time.get_ticks_usec()
 	for node in _generated:
 		if is_instance_valid(node):
+			if node.get_parent() == self:
+				remove_child(node)  # free the name now so the rebuilt nodes keep theirs
 			node.queue_free()
 	_generated.clear()
+	_kit_batches.clear()
 	_clouds = null
 	set_process(false)
 	_built_level = quality_level
@@ -361,8 +370,13 @@ func _metal_material(color: Color, half_extents: Vector3, ribs: Vector2) -> Shad
 
 func _style_obstacles() -> void:
 	var box_extents := Vector3(2.0, 1.0, 2.0)
-	_apply_material("../Box1/MeshInstance3D", _metal_material(Color(0.62, 0.17, 0.12), box_extents, Vector2(9.0, 9.0)))
-	_apply_material("../Box2/MeshInstance3D", _metal_material(Color(0.14, 0.38, 0.5), box_extents, Vector2(9.0, 9.0)))
+	if allow_kit and OutpostKit.has_piece("container_red") and OutpostKit.has_piece("container_blue"):
+		# The kit draws two real containers over each 4 x 2 x 4 m collider; the plain boxes are hidden.
+		_hide_node("../Box1/MeshInstance3D")
+		_hide_node("../Box2/MeshInstance3D")
+	else:
+		_apply_material("../Box1/MeshInstance3D", _metal_material(Color(0.62, 0.17, 0.12), box_extents, Vector2(9.0, 9.0)))
+		_apply_material("../Box2/MeshInstance3D", _metal_material(Color(0.14, 0.38, 0.5), box_extents, Vector2(9.0, 9.0)))
 	_apply_material("../WallN/MeshInstance3D", _metal_material(Color(0.5, 0.42, 0.32), Vector3(30.0, 2.0, 0.5), Vector2(7.0, 0.0)))
 	_apply_material("../WallN2/MeshInstance3D", _metal_material(Color(0.5, 0.42, 0.32), Vector3(8.0, 2.0, 0.5), Vector2(3.0, 0.0)))
 	var rock := StandardMaterial3D.new()
@@ -380,6 +394,12 @@ func _apply_material(path: String, material: Material) -> void:
 	var mesh := get_node_or_null(path) as MeshInstance3D
 	if mesh:
 		mesh.material_override = material
+
+
+func _hide_node(path: String) -> void:
+	var node := get_node_or_null(path) as Node3D
+	if node:
+		node.visible = false
 
 
 # --- terrain and water -------------------------------------------------------
@@ -461,18 +481,32 @@ func _add_water() -> void:
 ## Staged like _build(). Returns true if the build was superseded part-way.
 func _add_props(serial: int) -> bool:
 	var b := Builder.new()
-	_add_palms(b)
-	_add_rocks(b)
+	kit_active = allow_kit and OutpostKit.has_piece("palm_a") and OutpostKit.has_piece("container_red") \
+			and OutpostKit.has_piece("watchtower")
+	if kit_active:
+		_kit_jungle()
+	else:
+		_add_palms(b)
+		_add_rocks(b)
 	if await _next_stage(serial):
 		return true
 	_add_rope_fence(b)
-	_add_wreck(b)
-	_add_beach_clutter(b)
+	if kit_active:
+		_kit_beach(b)
+	else:
+		_add_wreck(b)
+		_add_beach_clutter(b)
 	if await _next_stage(serial):
 		return true
-	_add_outpost(b)
+	if kit_active:
+		_kit_courtyard()
+		_kit_outpost()
+	else:
+		_add_outpost(b)
 	if await _next_stage(serial):
 		return true
+	if kit_active:
+		_flush_kit_chunks()
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
 	material.roughness = 0.95
@@ -686,6 +720,159 @@ func _add_outpost(b: Builder) -> void:
 		var cx := _rng.randf_range(-26.0, 26.0)
 		var cz := _rng.randf_range(-58.0, -38.0)
 		b.box(Vector3(cx, 0.5, cz), Vector3(1.0, 1.0, 1.0), WOOD * _rng.randf_range(0.85, 1.1), Basis(Vector3.UP, _rng.randf() * TAU))
+
+
+# --- modular kit (assets/environments/kit) -------------------------------------
+# Placement only: no collision is created here (the arena colliders live in Main.tscn / WorldFlow).
+# Kit pieces face -Z; rotate by PI to face +Z (toward the arena from the north outpost).
+
+## Per-chunk visibility range (m). 0 = always drawn. The chunks are merged meshes: one draw call each.
+const KIT_CHUNK_RANGE: Dictionary = {"courtyard": 0.0, "beach": 170.0, "outpost": 190.0, "jungle": 210.0}
+
+
+func _xf(pos: Vector3, yaw: float = 0.0, s: float = 1.0) -> Transform3D:
+	return Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * s), pos)
+
+
+func _kit_batch(chunk: String) -> OutpostKit.Batch:
+	if not _kit_batches.has(chunk):
+		_kit_batches[chunk] = OutpostKit.Batch.new()
+	return _kit_batches[chunk]
+
+
+func _kit_add(chunk: String, piece: String, xform: Transform3D) -> void:
+	_kit_batch(chunk).add(piece, xform)
+
+
+func _flush_kit_chunks() -> void:
+	for chunk in _kit_batches.keys():
+		var mesh := (_kit_batches[chunk] as OutpostKit.Batch).finish()
+		if mesh == null:
+			continue
+		var node := MeshInstance3D.new()
+		node.name = "Kit_" + String(chunk)
+		node.mesh = mesh
+		node.material_override = OutpostKit.material()
+		# Only the courtyard (the two containers the player fights next to) is worth a shadow pass.
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if chunk == "courtyard" \
+				else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.visibility_range_end = float(KIT_CHUNK_RANGE.get(chunk, 0.0))
+		_track(node)
+	_kit_batches.clear()
+
+
+func _kit_jungle() -> void:
+	for i in _palm_count():
+		var pos := _palm_position()
+		var tilt := Basis(Vector3.BACK, _rng.randf_range(-0.1, 0.1)) * Basis(Vector3.RIGHT, _rng.randf_range(-0.1, 0.1))
+		var basis := Basis(Vector3.UP, _rng.randf() * TAU) * tilt
+		basis = basis.scaled(Vector3.ONE * _rng.randf_range(0.85, 1.25))
+		_kit_add("jungle", "palm_a" if i % 2 == 0 else "palm_b", Transform3D(basis, pos))
+	# Cliff skyline on top of the east and west walls (wall top is y = 4).
+	for side in [-1.0, 1.0]:
+		var z := -27.0
+		while z <= 27.0:
+			var piece: String = ["rocks_a", "rocks_b", "rocks_c"][_rng.randi() % 3]
+			_kit_add("jungle", piece, _xf(Vector3(30.0 * float(side) + _rng.randf_range(-0.4, 0.4), 3.7, z),
+					_rng.randf() * TAU, _rng.randf_range(1.4, 2.1)))
+			z += _rng.randf_range(4.5, 7.0)
+	for i in (16 if quality_level != QUALITY_LOW else 8):
+		var pos := _palm_position()
+		_kit_add("jungle", ["rocks_a", "rocks_b", "rocks_c"][_rng.randi() % 3], _xf(pos, _rng.randf() * TAU, _rng.randf_range(0.6, 1.2)))
+	if quality_level != QUALITY_LOW:
+		for i in (10 if quality_level == QUALITY_MEDIUM else 18):
+			var pos := _palm_position()
+			_kit_add("jungle", "bush", _xf(pos, _rng.randf() * TAU, _rng.randf_range(0.9, 1.5)))
+
+
+func _kit_beach(b: Builder) -> void:
+	# Shipwreck from the story: same spot and tilt as the old primitive wreck.
+	var origin := Vector3(-12.0, _height(-12.0, 38.0), 38.0)
+	var tilt := Basis(Vector3.UP, 0.5) * Basis(Vector3.BACK, 0.2) * Basis(Vector3.RIGHT, 0.06)
+	_kit_add("beach", "boat_wreck", Transform3D(tilt, origin))
+	for i in 7:  # scattered planks stay in the merged primitive mesh
+		var plank_pos := origin + Vector3(_rng.randf_range(-6.0, 6.0), 0.0, _rng.randf_range(-3.5, 3.5))
+		plank_pos.y = _height(plank_pos.x, plank_pos.z) + 0.05
+		b.box(plank_pos, Vector3(_rng.randf_range(1.2, 2.4), 0.08, 0.28), WOOD * _rng.randf_range(0.8, 1.1),
+				Basis(Vector3.UP, _rng.randf() * TAU))
+	var crate_spots: Array[Vector3] = [Vector3(5.0, 0.0, 38.0), Vector3(7.2, 0.0, 39.0), Vector3(-24.0, 0.0, 37.0)]
+	for spot in crate_spots:
+		_kit_add("beach", "crate", _xf(Vector3(spot.x, _height(spot.x, spot.z), spot.z), _rng.randf() * TAU))
+	_kit_add("beach", "crate", _xf(Vector3(5.6, _height(5.6, 38.2) + 1.0, 38.2), 0.5, 0.9))
+	for i in 4:
+		var bx := _rng.randf_range(-6.0, 12.0)
+		var bz := _rng.randf_range(35.0, 40.0)
+		_kit_add("beach", "barrel", _xf(Vector3(bx, _height(bx, bz), bz), _rng.randf() * TAU))
+
+
+func _kit_courtyard() -> void:
+	# Two containers side by side over each 4 x 2 x 4 m obstacle collider (the footprint matches exactly).
+	for entry in [["../Box1", "container_red", 0.0], ["../Box2", "container_blue", PI]]:
+		var box := get_node_or_null(entry[0]) as Node3D
+		if box == null:
+			continue
+		var c := box.global_position
+		for dz in [-1.0, 1.0]:
+			_kit_add("courtyard", entry[1], _xf(Vector3(c.x, c.y - 1.0, c.z + float(dz)), float(entry[2])))
+	if quality_level == QUALITY_LOW:
+		return
+	# Sandbag stacks hugging the inside of the north wall (decor only: the wall collider is the boundary).
+	for x in [-18.0, -6.0, 9.0, 21.0]:
+		_kit_add("courtyard", "sandbag_stack", _xf(Vector3(x, 0.0, -29.1), PI + _rng.randf_range(-0.08, 0.08)))
+
+
+func _kit_outpost() -> void:
+	# Everything here is behind the north wall (z < -33): scenery only, never reachable.
+	var low := quality_level == QUALITY_LOW
+	# Chain-link front fence 6 m behind the wall (replaces the old barbed boxes).
+	var x := -34.0
+	while x <= 34.0:
+		_kit_add("outpost", "fence_wire", _xf(Vector3(x + 2.0, 0.0, -36.0), PI))
+		x += 4.0
+	# Enclosure: corrugated fence on both sides and the back.
+	if not low:
+		for z in [-39.0, -45.0, -51.0, -57.0, -63.0, -69.0]:
+			_kit_add("outpost", "fence_section", _xf(Vector3(-34.0, 0.0, float(z)), PI * 0.5))
+			_kit_add("outpost", "fence_section", _xf(Vector3(34.0, 0.0, float(z)), PI * 0.5))
+		var fx := -33.0
+		while fx <= 33.0:
+			_kit_add("outpost", "fence_section", _xf(Vector3(fx, 0.0, -72.0), 0.0))
+			fx += 6.0
+	# Huts, as before, but with real roofs and doors facing the arena.
+	var huts: Array[Vector4] = [Vector4(-18.0, -44.0, 0.2, 0.0), Vector4(-5.0, -49.0, -0.1, 1.0),
+			Vector4(10.0, -45.0, 0.15, 0.0), Vector4(23.0, -52.0, -0.25, 1.0)]
+	for hut in huts:
+		_kit_add("outpost", "hut_small" if hut.w < 0.5 else "hut_olive", _xf(Vector3(hut.x, 0.0, hut.y), hut.z + PI))
+	_kit_add("outpost", "watchtower", _xf(Vector3(-28.0, 0.0, -40.0), PI))
+	_kit_add("outpost", "radio_mast", _xf(Vector3(16.0, 0.0, -40.0), PI * 0.5))
+	_kit_add("outpost", "truck_wreck", _xf(Vector3(2.0, 0.0, -41.0), 0.7))
+	_kit_add("outpost", "barracks", _xf(Vector3(-12.0, 0.0, -60.0), PI))
+	_kit_add("outpost", "warehouse", _xf(Vector3(21.0, 0.0, -66.0), PI))
+	_kit_add("outpost", "sign_outpost_17", _xf(Vector3(-14.0, 0.0, -37.4), PI))
+	if low:
+		return
+	# Containers (one stack), tents, generator, barricades, sandbags, barrels and crates.
+	_kit_add("outpost", "container_green", _xf(Vector3(-30.0, 0.0, -53.0), 0.1))
+	_kit_add("outpost", "container_red", _xf(Vector3(-30.2, 2.0, -53.0), -0.05))
+	_kit_add("outpost", "container_blue", _xf(Vector3(-29.0, 0.0, -58.5), 0.15))
+	_kit_add("outpost", "container_green", _xf(Vector3(30.0, 0.0, -45.0), PI * 0.5 + 0.1))
+	_kit_add("outpost", "tent", _xf(Vector3(28.0, 0.0, -58.0), 0.4))
+	_kit_add("outpost", "tent", _xf(Vector3(-24.0, 0.0, -66.0), -0.5))
+	_kit_add("outpost", "generator", _xf(Vector3(-2.0, 0.0, -38.6), PI))
+	_kit_add("outpost", "barricade_concrete", _xf(Vector3(8.0, 0.0, -38.4), 0.0))
+	_kit_add("outpost", "barricade_concrete", _xf(Vector3(12.5, 0.0, -38.4), 0.05))
+	_kit_add("outpost", "barricade_wire", _xf(Vector3(-8.0, 0.0, -38.2), 0.0))
+	_kit_add("outpost", "sandbag_corner", _xf(Vector3(-24.0, 0.0, -34.6), PI))
+	_kit_add("outpost", "sandbag_stack", _xf(Vector3(-27.0, 0.0, -37.4), PI))
+	_kit_add("outpost", "sandbag_stack", _xf(Vector3(24.5, 0.0, -34.8), PI))
+	for i in 7:
+		var bx := _rng.randf_range(-26.0, 26.0)
+		var bz := _rng.randf_range(-58.0, -38.5)
+		_kit_add("outpost", "barrel", _xf(Vector3(bx, 0.0, bz), _rng.randf() * TAU))
+	for i in 6:
+		var cx := _rng.randf_range(-26.0, 26.0)
+		var cz := _rng.randf_range(-58.0, -38.5)
+		_kit_add("outpost", "crate", _xf(Vector3(cx, 0.0, cz), _rng.randf() * TAU))
 
 
 # --- clouds ------------------------------------------------------------------

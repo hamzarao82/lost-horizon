@@ -44,3 +44,35 @@ which returns a rectangle per widget. `_process` positions the widgets from it, 
 - The text widths used in the plan are conservative constants, because headless text measurement is unreliable.
 - A real phone has not been tried. The `OUTPOST 17` location title (drawn by the world scripts, not the HUD) stays on screen for
   several seconds at about y 190, below the banner band.
+
+## Milestone 002: HUD theme, icons and bars (FX-HUD agent)
+
+Presentation only; every HUD item and the `Hud.plan_layout` contract are unchanged (bars block 240 x 44 at (16, 90)).
+
+- **`scripts/ui/hud_theme.gd` (`HudTheme`)**: colours (health red, armor blue, stamina green, quest gold, teleport cyan),
+  font sizes (15 / 18 / 22 / 30), `panel_style()` (rounded translucent panels), `style_label()` and a cached shared `Theme`
+  (outlined labels, rounded dark buttons with gold hover/focus, rounded panels). The HUD root, the pause menu and its
+  button use it.
+- **`scripts/ui/hud_icons.gd` (`HudIcons`)**: vector icons drawn with `_draw()` calls (heart, shield, bolt, medkit, swirl,
+  sword, heavy, armor, chevron, crosshair, spin, dodge, use). No textures, scale to any size.
+- **`scripts/ui/hud_bar.gd` (`HudBar`)**: rounded bar with an optional icon and `cur/max` text. Same `max_value` / `value`
+  names as `ProgressBar`. The fill eases toward the value, a lighter "ghost" segment shows recent loss before it drains, the
+  first value snaps, and it only redraws while something is moving.
+- **Bars:** health 18 px (heart + numbers), armor 14 px (shield + numbers, hidden until armor is worn), stamina 8 px.
+- **Equipment panel (`HudEquipment`)**: weapon with a rarity chip and damage modifier (and speed if not 1.0), armor with
+  points, medkits with the `[R]` hint.
+- **Teleport readout (`HudTeleport`)**: swirl icon, two charge pips, `READY [T]` or `mm:ss [T]`. Read-only from the player's
+  `TeleportAbility`; the ability's own text label is hidden (its toast still shows). A denied use nudges the readout.
+- **Backdrops:** translucent rounded panels behind the wave label, toast, quest tracker and subtitle, fitted to the labels
+  every frame (the subtitle is measured so short lines get a snug panel).
+- **Touch buttons:** dark translucent discs with a ring and an icon plus a small caption; positions unchanged.
+
+### Screenshots checked (windowed, Intel UHD 620)
+1280x720, 800x360 (touch, stretched to 1600x720) and 360x800 (portrait, touch): the bars, equipment panel, teleport readout,
+tracker, banner, caption and toast all fit with no overlap; at 360x800 nothing is off-screen (the game is landscape-first, so
+text is small there).
+
+### Tests
+`tests/ui_layout_check.gd` (56 checks): layout plan overlaps and touch-button clearance at three sizes, captions, banners,
+labels, and the new widgets (bar easing/snap/clamp, teleport text, equipment data, backdrops, icon drawing, theme caching, every
+touch button has an icon).

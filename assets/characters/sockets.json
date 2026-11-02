@@ -1,0 +1,187 @@
+{
+  "elite": {
+    "bone": "Hand_R",
+    "hand_r_rest_basis_godot_columns": [
+      [
+        0.9947015047073364,
+        0.04238608852028847,
+        0.09365814179182053
+      ],
+      [
+        0.09365835785865784,
+        -0.7492685317993164,
+        -0.6556097269058228
+      ],
+      [
+        0.04238639399409294,
+        0.6609081029891968,
+        -0.7492688894271851
+      ]
+    ],
+    "note": "Weapon scene: grip at origin, blade along -Z. Apply as BoneAttachment3D(bone_name=Hand_R) child transform = Transform3D(Basis(Quaternion(x,y,z,w)), offset_position).",
+    "offset_euler_deg_xyz": [
+      59.43957098787423,
+      10.458472742035442,
+      -6.117786779202081
+    ],
+    "offset_position": [
+      0.0,
+      0.03033333333333333,
+      0.0
+    ],
+    "offset_quaternion_xyzw": [
+      0.49721559882164,
+      0.05269457399845123,
+      -0.09126967191696167,
+      0.8612025380134583
+    ]
+  },
+  "heavy": {
+    "bone": "Hand_R",
+    "hand_r_rest_basis_godot_columns": [
+      [
+        0.994701623916626,
+        0.04238639399409294,
+        0.09365848451852798
+      ],
+      [
+        0.09365851432085037,
+        -0.749268651008606,
+        -0.6556100845336914
+      ],
+      [
+        0.04238642379641533,
+        0.6609084606170654,
+        -0.749268651008606
+      ]
+    ],
+    "note": "Weapon scene: grip at origin, blade along -Z. Apply as BoneAttachment3D(bone_name=Hand_R) child transform = Transform3D(Basis(Quaternion(x,y,z,w)), offset_position).",
+    "offset_euler_deg_xyz": [
+      59.43957098787423,
+      10.45846164297804,
+      -6.117781229673381
+    ],
+    "offset_position": [
+      0.0,
+      0.032499999999999994,
+      0.0
+    ],
+    "offset_quaternion_xyzw": [
+      0.49721559882164,
+      0.052694521844387054,
+      -0.0912695899605751,
+      0.8612025380134583
+    ]
+  },
+  "player": {
+    "bone": "Hand_R",
+    "hand_r_rest_basis_godot_columns": [
+      [
+        0.9947004914283752,
+        0.042384810745716095,
+        0.09365732222795486
+      ],
+      [
+        0.09365842491388321,
+        -0.7492678165435791,
+        -0.6556096076965332
+      ],
+      [
+        0.04238644242286682,
+        0.6609079837799072,
+        -0.7492687702178955
+      ]
+    ],
+    "note": "Weapon scene: grip at origin, blade along -Z. Apply as BoneAttachment3D(bone_name=Hand_R) child transform = Transform3D(Basis(Quaternion(x,y,z,w)), offset_position).",
+    "offset_euler_deg_xyz": [
+      59.43955732749588,
+      10.458487256187428,
+      -6.117798305146305
+    ],
+    "offset_position": [
+      0.0,
+      0.03,
+      0.0
+    ],
+    "offset_quaternion_xyzw": [
+      0.49721550941467285,
+      0.0526946559548378,
+      -0.0912698283791542,
+      0.8612025380134583
+    ]
+  },
+  "soldier": {
+    "bone": "Hand_R",
+    "hand_r_rest_basis_godot_columns": [
+      [
+        0.9947011470794678,
+        0.042385660111904144,
+        0.09365801513195038
+      ],
+      [
+        0.09365858882665634,
+        -0.7492681741714478,
+        -0.6556100845336914
+      ],
+      [
+        0.04238647222518921,
+        0.6609084606170654,
+        -0.7492685914039612
+      ]
+    ],
+    "note": "Weapon scene: grip at origin, blade along -Z. Apply as BoneAttachment3D(bone_name=Hand_R) child transform = Transform3D(Basis(Quaternion(x,y,z,w)), offset_position).",
+    "offset_euler_deg_xyz": [
+      59.43955732749588,
+      10.458467619393565,
+      -6.117785925428435
+    ],
+    "offset_position": [
+      0.0,
+      0.029666666666666668,
+      0.0
+    ],
+    "offset_quaternion_xyzw": [
+      0.49721547961235046,
+      0.05269455537199974,
+      -0.09126964211463928,
+      0.861202597618103
+    ]
+  },
+  "warden": {
+    "bone": "Hand_R",
+    "hand_r_rest_basis_godot_columns": [
+      [
+        0.9947012662887573,
+        0.042385902255773544,
+        0.09365813434123993
+      ],
+      [
+        0.09365849196910858,
+        -0.7492684721946716,
+        -0.6556100249290466
+      ],
+      [
+        0.04238643869757652,
+        0.6609084010124207,
+        -0.7492687106132507
+      ]
+    ],
+    "note": "Weapon scene: grip at origin, blade along -Z. Apply as BoneAttachment3D(bone_name=Hand_R) child transform = Transform3D(Basis(Quaternion(x,y,z,w)), offset_position).",
+    "offset_euler_deg_xyz": [
+      59.43955732749588,
+      10.458462496751688,
+      -6.117783364107496
+    ],
+    "offset_position": [
+      0.0,
+      0.035,
+      0.0
+    ],
+    "offset_quaternion_xyzw": [
+      0.49721547961235046,
+      0.05269452929496765,
+      -0.0912696048617363,
+      0.861202597618103
+    ]
+  }
+}

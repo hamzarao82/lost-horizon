@@ -5,6 +5,7 @@ extends SceneTree
 
 const SOLDIER: String = "res://scenes/enemies/PatrolSoldier.tscn"
 const HUNTER: String = "res://scenes/enemies/HunterElite.tscn"
+const WARDEN: String = "res://scenes/enemies/Warden.tscn"
 const ITEMS: String = "res://resources/items/"
 
 var _failures: int = 0
@@ -82,6 +83,10 @@ func _run() -> void:
 	await _test_quality()
 	await _test_dodge_dust_and_pickup()
 	await _test_reload()
+	await _test_weapon_trails()
+	await _test_hit_reaction()
+	await _test_teleport_fx()
+	await _test_boss_decal()
 	print("\n%d checks, %d failed" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
 
@@ -247,3 +252,164 @@ func _test_reload() -> void:
 			"pools survive repeated scene teardown with no growth")
 	await _settle()
 	_check(_fx.active_count() == 0, "no effect is stuck after reloads")
+
+
+func _test_weapon_trails() -> void:
+	print("Weapon trails")
+	var main := await _spawn_main()
+	var player := main.get_node("Player") as Player
+	await _frames(3)
+	var trail := _fx.trail_for(player) as WeaponTrail
+	_check(trail != null, "the player gets a weapon trail from Fx")
+	_check(_fx.trail_count() >= 1 and _fx.trail_count() <= 8, "trail count stays within the cap (%d)" % _fx.trail_count())
+	Input.action_press("attack_light")
+	await _frames(2)
+	Input.action_release("attack_light")
+	var peak := 0
+	var drawn := false
+	for i in 20:
+		await physics_frame
+		peak = maxi(peak, trail.samples())
+		drawn = drawn or trail.is_drawn()
+	_check(peak >= 3 and peak <= WeaponTrail.MAX_SEGMENTS, "an active swing records ribbon samples (peak %d)" % peak)
+	_check(drawn, "the ribbon is drawn while it has samples")
+	_check(trail._color == player.inventory.weapon.color(), "the ribbon takes the weapon's rarity colour")
+	await create_timer(0.5).timeout
+	_check(trail.samples() == 0 and not trail.is_drawn(), "the ribbon fades out and is cleared after the swing")
+	await _frames(40)
+
+	_fx.quality_scale = 0.0
+	Input.action_press("attack_light")
+	await _frames(2)
+	Input.action_release("attack_light")
+	var any := 0
+	for i in 20:
+		await physics_frame
+		any = maxi(any, trail.samples())
+	_check(any == 0, "quality 0 records no trail")
+	_fx.quality_scale = 1.0
+
+	for i in 12:
+		_spawn_enemy(main, SOLDIER, Vector3(-25 + i, 0.1, -25))
+	await _frames(3)
+	_check(_fx.trail_count() <= 8, "twelve enemies never push the trail count past the cap (%d)" % _fx.trail_count())
+	main.queue_free()
+	await _frames(4)
+	_check(_fx.trail_count() == 0, "trails are freed with their characters")
+
+
+func _test_hit_reaction() -> void:
+	print("Enemy hit reaction")
+	var main := await _spawn_main()
+	var player := main.get_node("Player") as Player
+	var enemy := _spawn_enemy(main, SOLDIER, Vector3(-20, 0.1, -20))
+	await _frames(2)
+	var visual := enemy.get_node("VisualRoot") as Node3D
+	var light := load("res://resources/attacks/light_1.tres") as AttackData
+	var heavy := load("res://resources/attacks/heavy_1.tres") as AttackData
+	enemy.receive_hit(light, player.global_position)
+	var light_push := Vector2(visual.position.x, visual.position.z).length()
+	_check(light_push > 0.05 and visual.position.y < 0.0, "a light hit pushes the visual root back and down (%.2f)" % light_push)
+	await create_timer(0.4).timeout
+	_check(visual.position.is_equal_approx(Vector3.ZERO), "the visual root eases back to rest")
+	enemy.receive_hit(heavy, player.global_position)
+	var heavy_push := Vector2(visual.position.x, visual.position.z).length()
+	_check(heavy_push > light_push, "a heavy hit recoils further than a light one")
+	await create_timer(0.4).timeout
+	for i in 4:
+		enemy.receive_hit(heavy, player.global_position)
+	_check(enemy.is_dead() and visual.position.is_equal_approx(Vector3.ZERO) and not enemy.has_meta(&"fx_react"),
+			"a killing blow clears the reaction so the death tween is not fought")
+	main.queue_free()
+	await _frames(3)
+
+
+func _test_teleport_fx() -> void:
+	print("Teleport effects")
+	var main := await _spawn_main()
+	var player := main.get_node("Player") as Player
+	await _frames(3)
+	var ability: Node = null
+	for child in player.get_children():
+		if child is TeleportAbility:
+			ability = child
+	_check(ability != null, "the player has a teleport ability")
+	if ability == null:
+		main.queue_free()
+		return
+	var tfx := ability.get("_fx") as TeleportFx
+	var children_before := tfx.get_child_count()
+	for case in [[1.0, 3], [0.7, 3], [0.4, 2], [0.0, 0]]:
+		tfx.quality_scale = case[0]
+		_check(tfx.afterimage_count() == case[1], "quality %.1f shows %d afterimages" % [case[0], case[1]])
+	tfx.quality_scale = 1.0
+	tfx.play_at(0, Vector3(0, 0, 0))
+	tfx.play_at(1, Vector3(6, 0, 3))
+	var ghosts := 0
+	for image in tfx._afterimages:
+		if (image as MeshInstance3D).visible:
+			ghosts += 1
+	_check(ghosts == 3, "three afterimages appear at the departure point (%d)" % ghosts)
+	_check(tfx._columns[0].visible and tfx._columns[1].visible, "departure and arrival columns show")
+	_check(tfx._streak.visible, "a streak joins departure and arrival")
+	await create_timer(0.7).timeout
+	var left := 0
+	for node in tfx._afterimages + tfx._columns + [tfx._streak]:
+		if (node as MeshInstance3D).visible:
+			left += 1
+	_check(left == 0, "every teleport ghost has faded out and hidden itself (%d left)" % left)
+	tfx.quality_scale = 0.0
+	tfx.play_at(0, Vector3.ZERO)
+	tfx.play_at(1, Vector3(4, 0, 4))
+	var shown := 0
+	for node in tfx._afterimages + tfx._columns + [tfx._streak]:
+		if (node as MeshInstance3D).visible:
+			shown += 1
+	_check(shown == 0, "quality 0 skips afterimages, columns and the streak")
+	tfx.quality_scale = 1.0
+	for i in 50:
+		tfx.play_at(i % 2, Vector3(i, 0, 0))
+	_check(tfx.get_child_count() == children_before, "50 plays add no nodes")
+	main.queue_free()
+	await _frames(3)
+
+
+func _test_boss_decal() -> void:
+	print("Boss telegraph decal")
+	var main := await _spawn_main()
+	var warden := _spawn_enemy(main, WARDEN, Vector3(0, 0.1, -8), false)
+	await _frames(5)
+	_check(not _fx.decal_active(), "no decal while the boss is not attacking")
+	warden.call("_start_attack")
+	await _frames(2)
+	await process_frame
+	_check(_fx.decal_active(), "a Warden swing shows the floor telegraph")
+	var data := warden.get("_swing") as AttackData
+	var fill := _fx.get("_decal_fill") as Sprite3D
+	var outline := _fx.get("_decal_outline") as Sprite3D
+	var guard := 0
+	while float(warden.get("_attack_frames")) < data.startup_frames - 4 and guard < 200:
+		await physics_frame
+		guard += 1
+	await process_frame
+	_check(fill.scale.x < outline.scale.x * 0.98, "the fill is still growing before the active frame")
+	guard = 0
+	while float(warden.get("_attack_frames")) < data.startup_frames + 1 and guard < 200:
+		await physics_frame
+		guard += 1
+	await process_frame
+	_check(fill.scale.x >= outline.scale.x * 0.97, "the fill reaches the rim as the slam becomes active")
+	guard = 0
+	while warden.state == Enemy.State.ATTACK and guard < 400:
+		await physics_frame
+		guard += 1
+	await process_frame
+	_check(not _fx.decal_active(), "the decal disappears when the swing ends")
+	_fx.quality_scale = 0.0
+	warden.call("_start_attack")
+	await _frames(2)
+	await process_frame
+	_check(not _fx.decal_active(), "quality 0 shows no decal")
+	_fx.quality_scale = 1.0
+	main.queue_free()
+	await _frames(3)

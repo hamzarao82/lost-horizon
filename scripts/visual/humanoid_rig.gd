@@ -72,6 +72,18 @@ func _ready() -> void:
 	_build()
 
 
+## Used by the visual adapter: shows or hides the whole code-built body, including the torso mesh node
+## this rig drives. The torso node stays in the tree either way, because gameplay scripts tint its
+## material for hit flashes.
+func set_active(active: bool) -> void:
+	visible = active
+	var torso := _torso
+	if torso == null and get_parent():
+		torso = get_parent().get_node_or_null("MeshInstance3D") as MeshInstance3D
+	if torso:
+		torso.visible = active
+
+
 static func _box(size: Vector3) -> BoxMesh:
 	if not _mesh_cache.has(size):
 		var mesh := BoxMesh.new()

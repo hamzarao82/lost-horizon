@@ -13,3 +13,7 @@ build/
 release-assets/
 .env
 tools/webqa/.logs/
+
+# python caches from Blender scripts
+__pycache__/
+*.pyc

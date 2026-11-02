@@ -38,8 +38,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const R = { label: LABEL, url: URL_, profile: PROFILE, mode: MODE, steps: {}, notes: [], shots: [] }
 const log = (m) => console.log(`[${LABEL}] ${m}`)
 
-const args = ['--no-sandbox', '--disable-dev-shm-usage', '--autoplay-policy=no-user-gesture-required']
+const args = ['--no-sandbox', '--disable-dev-shm-usage']
+if (argv.autoplay !== 'strict') args.push('--autoplay-policy=no-user-gesture-required')
 if (MODE === 'gpu') args.push('--use-gl=angle', '--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu-rasterization')
+else if (MODE === 'soft') args.push('--disable-gpu', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader')
 else args.push('--enable-unsafe-swiftshader')
 const browser = await chromium.launch({ headless: true, channel: 'chromium', args })
 const ctx = await browser.newContext({
@@ -59,6 +61,8 @@ await page.addInitScript(() => {
   requestAnimationFrame(loop)
   window.__long = []
   try { new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__long.push([Math.round(e.startTime), Math.round(e.duration)]) }).observe({ type: 'longtask', buffered: true }) } catch {}
+  window.__acs = []
+  for (const k of ['AudioContext', 'webkitAudioContext']) { const O = window[k]; if (O) window[k] = class extends O { constructor(...a) { super(...a); window.__acs.push(this) } } }
   window.__lock = { change: 0, error: 0 }
   document.addEventListener('pointerlockchange', () => window.__lock.change++)
   document.addEventListener('pointerlockerror', () => window.__lock.error++)
@@ -163,7 +167,9 @@ if (!MOBILE) {
   await sleep(900)
   R.steps.pointerLockAfterFirstClick = await ev(() => document.pointerLockElement ? document.pointerLockElement.tagName + '#' + document.pointerLockElement.id : null)
   log(`pointer lock: ${R.steps.pointerLockAfterFirstClick}`)
+  R.steps.audioStateBeforeAnyGesture = await ev(() => window.__acs.map((a) => a.state))
   await page.keyboard.press('Enter'); await sleep(1500) // in case the intro is still showing
+  R.steps.audioStateAfterFirstGesture = await ev(() => window.__acs.map((a) => a.state))
   R.steps.lockEventsAfterFirstClick = await ev(() => window.__lock)
   await page.mouse.click(box[0], box[1]); await sleep(1000)   // second click: should capture now
   R.steps.pointerLockAfterSecondClick = await ev(() => document.pointerLockElement ? document.pointerLockElement.tagName + '#' + document.pointerLockElement.id : null)
@@ -254,6 +260,7 @@ await sleep(500)
 const long = await ev(() => window.__long)
 R.longTasks = { count: long.length, totalMs: long.reduce((a, t) => a + t[1], 0), maxMs: Math.max(0, ...long.map((t) => t[1])), over1s: long.filter((t) => t[1] > 1000), first10: long.slice(0, 10) }
 R.steps.chromeBaselineBlankMB = baselineMB
+R.resources = await ev(() => performance.getEntriesByType('resource').filter((e) => /.(wasm|pck|js|html)$/.test(e.name.split('?')[0]) || e.name.endsWith('/')).map((e) => [e.name.split('/').slice(-1)[0] || 'index.html', Math.round(e.transferSize / 1024), Math.round(e.encodedBodySize / 1024), Math.round(e.decodedBodySize / 1024), Math.round(e.duration)]))
 R.transferredMBTotal = +(bytes / 1048576).toFixed(2)
 R.headers = headers
 R.consoleMessages = consoleMsgs.slice(0, 40)

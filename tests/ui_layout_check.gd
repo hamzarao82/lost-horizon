@@ -38,6 +38,8 @@ func _run() -> void:
 	_test_captions()
 	await _test_banners_and_cuts()
 	await _test_labels()
+	await _test_widgets()
+	_test_icons_and_theme()
 	print("\n%d checks, %d failed" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
 
@@ -226,3 +228,91 @@ func _test_labels() -> void:
 	_check(scale_ok, "pickup label scale stays within %.1f-%.1f" % [Pickup.LABEL_SCALE_MIN, Pickup.LABEL_SCALE_MAX])
 	main.queue_free()
 	await _frames(3)
+
+
+## Draws every icon kind inside a real _draw() call, so a bad draw call shows up as an engine error here.
+class IconProbe extends Control:
+	var drawn: bool = false
+
+	func _draw() -> void:
+		var x := 0.0
+		for kind in HudIcons.KINDS:
+			HudIcons.draw(self, StringName(kind), Rect2(x, 0.0, 32.0, 32.0), Color.WHITE)
+			x += 36.0
+		drawn = true
+
+
+func _test_widgets() -> void:
+	print("HUD bars, equipment and teleport widgets")
+	var main := await _spawn_main()
+	var hud := main.get_node("Hud") as Hud
+
+	var bar := HudBar.new()
+	bar.size = Vector2(240, 18)
+	hud.add_child(bar)
+	bar.max_value = 60.0
+	bar.value = 60.0
+	_check(is_equal_approx(bar.displayed_value(), 60.0), "the first value snaps (a bar never animates up from zero at startup)")
+	bar.value = 20.0
+	_check(is_equal_approx(bar.displayed_value(), 60.0), "a later change does not jump: the fill eases toward it")
+	await create_timer(1.2).timeout
+	_check(is_equal_approx(bar.displayed_value(), 20.0), "the fill settles on the new value")
+	bar.value = 500.0
+	_check(is_equal_approx(bar.value, 60.0), "a value above the maximum is clamped")
+	bar.queue_free()
+
+	var teleport := HudTeleport.new()
+	teleport.size = Vector2(HudTeleport.WIDTH, 28)
+	hud.add_child(teleport)
+	teleport.set_state(2, 2, 0.0)
+	_check(teleport.time_text() == "READY", "two charges read READY")
+	teleport.set_state(1, 2, 61.2)
+	_check(teleport.time_text() == "01:02", "recharge time is mm:ss rounded up (%s)" % teleport.time_text())
+	teleport.set_state(0, 2, 600.0)
+	_check(teleport.time_text() == "10:00", "a full ten-minute wait reads 10:00")
+	teleport.queue_free()
+
+	var equipment := hud._equipment
+	equipment.set_data("Claymore", Color.PURPLE, "x2.10 dmg  0.85x spd", "Warden Plate", "140/140", Color.ORANGE, 3)
+	await _frames(2)
+	_check(equipment.weapon_name == "Claymore" and equipment.potions == 3 and equipment.armor_points == "140/140",
+			"the equipment panel keeps weapon, modifier, armor points and medkits")
+
+	# Text backdrops follow their labels and hide when the label is empty.
+	hud._show_toast("Picked up Medkit", Color.WHITE)
+	hud._sync_backdrops()
+	var toast_panel: Panel = hud._backdrops[1]["panel"]
+	_check(toast_panel.visible and toast_panel.size.x > 20.0, "a visible toast gets a backdrop panel")
+	hud._toast.visible = false
+	hud._sync_backdrops()
+	_check(not toast_panel.visible, "the backdrop hides with its label")
+	main.queue_free()
+	await _frames(3)
+
+
+func _test_icons_and_theme() -> void:
+	print("Icons and theme")
+	var probe := IconProbe.new()
+	probe.size = Vector2(600, 40)
+	root.add_child(probe)
+	probe.queue_redraw()
+	var frames_waited := 0
+	while not probe.drawn and frames_waited < 10:
+		await process_frame
+		frames_waited += 1
+	_check(probe.drawn, "all %d icon kinds draw without errors" % HudIcons.KINDS.size())
+	probe.queue_free()
+	var missing: Array[String] = []
+	for button in TouchControls.BUTTONS:
+		var kind: StringName = TouchControls.BUTTON_ICONS.get(button["action"], &"")
+		if kind == &"" or not HudIcons.KINDS.has(String(kind)):
+			missing.append(String(button["action"]))
+	_check(missing.is_empty(), "every touch button has a known icon %s" % ("" if missing.is_empty() else str(missing)))
+	var theme := HudTheme.theme()
+	_check(theme == HudTheme.theme(), "the shared theme is built once and cached")
+	_check(theme.has_stylebox("normal", "Button") and theme.has_stylebox("panel", "PanelContainer"),
+			"the theme styles buttons and panels")
+	_check(HudTheme.panel_style().corner_radius_top_left == HudTheme.CORNER, "panels are rounded")
+	var plan: Dictionary = Hud.plan_layout(Vector2(1280, 720), false)
+	var bars: Rect2 = plan["bars"]
+	_check(bars.end.y <= 134.0 and bars.size.x == 240.0, "the bars block still fits the layout contract (y %d-%d)" % [bars.position.y, bars.end.y])
