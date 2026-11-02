@@ -58,3 +58,13 @@ Add the field in `build_save()`, read it in `_sanitize()` with a default, bump `
 
 ## Tests
 `tests/save_check.gd` (62 checks): round trip, no `.tmp` left, ids only, corrupt/newer/non-numeric handling, v0 migration, clamping, hostile item ids, restore into a fresh scene, wave resume, death checkpoint, autosave on wave clear, boss recorded on completion.
+
+## Version 2 and checkpoints (Milestone 3)
+- Saves are **version 2**. A version 1 file loads and is upgraded in memory by `_migrate_1_to_2` (it gains an empty `world` section); the file on disk is rewritten at the next save.
+- New `world` section: `{"checkpoint_id": "<id>", "position": [x, y, z]}`. Malformed values become "no checkpoint": ids are cut to 64 characters, positions are clamped to +-1000, and a missing or non-numeric position drops the whole checkpoint.
+- Door states, collected documents/crates, killed patrol groups, puzzle progress and quest items are WorldState flags and quest data, which were already saved with the quest section.
+- `SaveManager.activate_checkpoint(id)` (called by the `Checkpoint` interactable) remembers the position, inventory and health and writes the whole game atomically.
+- **Death outside the arena waves** reloads the scene and respawns the player at the last checkpoint with the inventory and health they had there. Quest, puzzle and world state are the state at death (completed objectives never reset). **Death during the arena waves** keeps the existing wave-checkpoint behaviour.
+- **Load** from the pause menu resumes at the checkpoint position when the save has one.
+- A deliberate restart (`reset_runtime_state`) forgets the checkpoint.
+- Tests: `tests/save_v2_check.gd` (31 checks, including a real death and scene reload).

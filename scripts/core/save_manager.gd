@@ -5,8 +5,10 @@ extends Node
 
 signal saved(reason: String)
 
-const CURRENT_VERSION: int = 1
+const CURRENT_VERSION: int = 2
 const MAX_POTIONS: int = 99
+const MAX_WORLD_IDS: int = 256
+const POSITION_LIMIT: float = 1000.0
 
 ## 1-based wave to start on, and whether a Load is queued for the next scene start.
 var pending_load: bool = false
@@ -15,6 +17,14 @@ var pending_data: Dictionary = {}
 var checkpoint: Dictionary = {}
 var defeated_bosses: Array[String] = []
 var slot: int = 1
+
+## Last activated world checkpoint (kept in memory across scene reloads): where a death outside the
+## arena waves respawns. {id, position [x,y,z], inventory, player{health,max_health}}.
+var world_checkpoint: Dictionary = {}
+var checkpoint_id: String = ""
+
+var _respawn_pending: bool = false  # the player died outside the arena: next scene starts at the checkpoint
+var _spawn_position: Variant = null  # Vector3 queued for the next Player (null = default spawn)
 ## Headless runs (tests) use a separate file so they never touch the real save.
 var test_mode: bool = DisplayServer.get_name() == "headless"
 var last_error: String = ""
@@ -23,6 +33,67 @@ var _notice: String = ""
 
 
 # --- paths -----------------------------------------------------------------
+
+func _ready() -> void:
+	get_tree().node_added.connect(_on_node_added)
+
+
+## A Player's HealthComponent is created per scene, so hook each new Player once it is ready.
+func _on_node_added(node: Node) -> void:
+	var player := node as Player
+	if player != null:
+		player.ready.connect(_on_player_ready.bind(player), CONNECT_ONE_SHOT)
+
+
+func _on_player_ready(player: Player) -> void:
+	if player.health != null:
+		player.health.died.connect(_on_player_died)
+	_place_player_after_setup(player)
+
+
+## Death outside the arena waves respawns at the last checkpoint; inside the waves the existing
+## wave checkpoint keeps its behaviour (WaveManager.consume_start_wave).
+func _on_player_died() -> void:
+	var waves := get_tree().get_first_node_in_group("wave_manager") as WaveManager
+	var in_arena := waves != null and waves.has_started() and not waves.is_finished()
+	_respawn_pending = not in_arena and not world_checkpoint.is_empty()
+	if _respawn_pending:
+		_spawn_position = _position_from(world_checkpoint.get("position", null))
+
+
+## Moves the new Player to a queued spawn position after every _ready (WorldFlow places the
+## player at the beach start in its own _ready, which would otherwise win).
+func _place_player_after_setup(player: Player) -> void:
+	_respawn_pending = false  # Player._ready has already taken what it needed from the checkpoint
+	if _spawn_position == null:
+		return
+	await get_tree().process_frame
+	var target: Variant = consume_spawn_position()
+	if target != null and is_instance_valid(player):
+		player.global_position = target
+		player.velocity = Vector3.ZERO
+
+
+## One-shot: the position a fresh Player should start at (a loaded checkpoint or a respawn).
+func consume_spawn_position() -> Variant:
+	var pos: Variant = _spawn_position
+	_spawn_position = null
+	return pos
+
+
+static func _position_from(raw: Variant) -> Variant:
+	if raw is Vector3:
+		return raw
+	if raw is Array and (raw as Array).size() == 3:
+		var a: Array = raw
+		for v in a:
+			if typeof(v) != TYPE_FLOAT and typeof(v) != TYPE_INT:
+				return null
+		return Vector3(clampf(float(a[0]), -POSITION_LIMIT, POSITION_LIMIT),
+				clampf(float(a[1]), -POSITION_LIMIT, POSITION_LIMIT),
+				clampf(float(a[2]), -POSITION_LIMIT, POSITION_LIMIT))
+	return null
+
 
 func save_path() -> String:
 	if test_mode:  # one file per test process: parallel test runs must not share a save
@@ -65,7 +136,29 @@ func build_save() -> Dictionary:
 	var quest_manager := get_node_or_null("/root/QuestManager")
 	if quest_manager:
 		data["quests"] = quest_manager.to_dict()  # optional field: older saves simply do not have it
+	var world := {"checkpoint_id": "", "position": null}
+	if not world_checkpoint.is_empty():
+		var p: Variant = _position_from(world_checkpoint.get("position", null))
+		if p != null:
+			var v: Vector3 = p
+			world = {"checkpoint_id": checkpoint_id, "position": [v.x, v.y, v.z]}
+	data["world"] = world
 	return data
+
+
+## Activating a checkpoint: remember where the player stands and what they carry, then write the whole
+## game to disk. Death outside the arena waves respawns here. Returns true if the file was written.
+func activate_checkpoint(id: String) -> bool:
+	var player := get_tree().get_first_node_in_group("player") as Player
+	if player == null or player.is_dead():
+		return false
+	checkpoint_id = id
+	world_checkpoint = {
+		"position": [player.global_position.x, player.global_position.y, player.global_position.z],
+		"inventory": player.inventory.to_dict(),
+		"player": {"health": player.health.health, "max_health": player.health.max_health},
+	}
+	return save_game("checkpoint")
 
 
 func save_game(reason: String = "manual") -> bool:
@@ -126,6 +219,13 @@ func load_game() -> bool:
 		return _reject_corrupt(path, "invalid save contents")
 	pending_data = data
 	pending_load = true
+	# A save made at a checkpoint resumes there, and later deaths outside the arena respawn there too.
+	var world: Dictionary = data.get("world", {})
+	var spawn: Variant = _position_from(world.get("position", null))
+	if spawn != null:
+		_spawn_position = spawn
+		checkpoint_id = str(world.get("checkpoint_id", ""))
+		world_checkpoint = {"position": world["position"], "inventory": data["inventory"], "player": data["player"]}
 	defeated_bosses.clear()
 	for boss in data["defeated_bosses"]:
 		defeated_bosses.append(boss)
@@ -149,6 +249,8 @@ func _migrate(data: Dictionary) -> Dictionary:
 		match version:
 			0:
 				data = _migrate_0_to_1(data)
+			1:
+				data = _migrate_1_to_2(data)
 		version += 1
 		data["version"] = version
 	return data
@@ -169,6 +271,14 @@ func _migrate_0_to_1(old: Dictionary) -> Dictionary:
 		"player": {"health": float(old.get("hp", 0.0)), "max_health": float(old.get("max_hp", 0.0))},
 		"defeated_bosses": old.get("defeated_bosses", []),
 	}
+
+
+## v1 had no world section: it simply gains an empty one (no checkpoint, default spawn).
+func _migrate_1_to_2(old: Dictionary) -> Dictionary:
+	var upgraded := old.duplicate(true)
+	if not upgraded.has("world"):
+		upgraded["world"] = {"checkpoint_id": "", "position": null}
+	return upgraded
 
 
 ## Normalises types and ranges. Unknown keys are dropped. Returns {} if the shape is unusable.
@@ -210,7 +320,22 @@ func _sanitize(data: Dictionary) -> Dictionary:
 	var quests := QuestState.sanitize(data.get("quests", {}))
 	if not quests.is_empty():
 		result["quests"] = quests
+	result["world"] = _sanitize_world(data.get("world", {}))
 	return result
+
+
+## World section: the last checkpoint id and where it was. Anything malformed becomes "no checkpoint".
+func _sanitize_world(raw: Variant) -> Dictionary:
+	var clean := {"checkpoint_id": "", "position": null}
+	if not raw is Dictionary:
+		return clean
+	var world: Dictionary = raw
+	var id := str(world.get("checkpoint_id", "")).substr(0, 64)
+	var pos: Variant = _position_from(world.get("position", null))
+	if id != "" and pos != null:
+		var v: Vector3 = pos
+		clean = {"checkpoint_id": id, "position": [v.x, v.y, v.z]}
+	return clean
 
 
 # --- resuming into a fresh scene -------------------------------------------
@@ -219,6 +344,8 @@ func _sanitize(data: Dictionary) -> Dictionary:
 func peek_restore() -> Dictionary:
 	if pending_load and not pending_data.is_empty():
 		return pending_data
+	if _respawn_pending and not world_checkpoint.is_empty():
+		return world_checkpoint  # died outside the arena: carry what the player had at the checkpoint
 	return checkpoint
 
 
@@ -254,6 +381,10 @@ func reset_runtime_state() -> void:
 	pending_load = false
 	pending_data = {}
 	checkpoint = {}
+	world_checkpoint = {}
+	checkpoint_id = ""
+	_respawn_pending = false
+	_spawn_position = null
 	_notice = ""
 	var quest_manager := get_node_or_null("/root/QuestManager")
 	if quest_manager:

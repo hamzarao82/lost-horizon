@@ -97,7 +97,7 @@ func _test_round_trip_and_restore() -> void:
 	_check(not FileAccess.file_exists(_sm.save_path() + ".tmp"), "still no .tmp after overwrite")
 
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(_sm.save_path()))
-	_check(parsed is Dictionary and int(parsed["version"]) == 1, "file is JSON with version 1")
+	_check(parsed is Dictionary and int(parsed["version"]) == SaveManager.CURRENT_VERSION, "file is JSON with the current version (2)")
 	_check(parsed["inventory"]["weapon"] == "military_machete" and parsed["inventory"]["potions"] == 2,
 			"inventory is stored as ids and counts")
 	_check(int(parsed["next_wave"]) == 3, "next_wave is the wave to resume on")
@@ -157,7 +157,7 @@ func _test_failure_modes() -> void:
 	_write_raw('{"wave": 4, "weapon": "combat_knife", "armor": "reinforced_armor", "potions": 3, "hp": 40.0, "max_hp": 100.0}')
 	_check(_sm.load_game(), "version 0 save loads")
 	var data: Dictionary = _sm.pending_data
-	_check(int(data["version"]) == 1, "version 0 is migrated to the current version")
+	_check(int(data["version"]) == SaveManager.CURRENT_VERSION, "version 0 is migrated to the current version")
 	_check(int(data["next_wave"]) == 4 and data["inventory"]["weapon"] == "combat_knife" and data["inventory"]["potions"] == 3,
 			"migrated fields are mapped")
 	_check(is_equal_approx(data["player"]["health"], 40.0), "migrated health is mapped")

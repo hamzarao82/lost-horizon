@@ -20,6 +20,9 @@ func _on_interact(_player: Node3D) -> void:
 	if state:
 		state.set_flag(flag_id(), true)
 	var saves := get_node_or_null("/root/SaveManager")
-	if saves and saves.has_method("autosave"):
-		saves.autosave("checkpoint")
-	Outpost17.say(self, "Checkpoint saved.", 2.5)
+	var written := false
+	if saves and saves.has_method("activate_checkpoint"):
+		written = saves.activate_checkpoint(String(interaction_id))
+	elif saves and saves.has_method("autosave"):
+		written = saves.autosave("checkpoint")
+	Outpost17.say(self, "Checkpoint saved." if written else "Checkpoint reached.", 2.5)

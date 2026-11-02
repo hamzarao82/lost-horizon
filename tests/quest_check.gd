@@ -418,7 +418,7 @@ func _test_save_manager() -> void:
 	am.notify(OBJ.INTERACT, &"switch_2")
 	_check(_sm.save_game("test"), "the game saves with quest data present")
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(_sm.save_path()))
-	_check(parsed is Dictionary and parsed.has("quests") and int(parsed["version"]) == 1, "the save has a quests field and is still version 1")
+	_check(parsed is Dictionary and parsed.has("quests") and int(parsed["version"]) == SaveManager.CURRENT_VERSION, "the save has a quests field and the current version")
 	_check(not str(parsed).contains("res://"), "the save still contains no paths")
 
 	am.reset()
