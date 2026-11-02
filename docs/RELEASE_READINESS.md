@@ -18,10 +18,10 @@ Tags are explained in [MILESTONE_004.md](MILESTONE_004.md). Statuses are as of 2
 ## 2. Product readiness (Milestone 004 goals)
 | Item | Status |
 |---|---|
-| Milestones 002 and 003 merged into one release branch | not done |
-| Mission acts 4–6, results screen, main menu, inventory screen, death screen | not done (`[NEW-M4]`) |
-| Warden complete design | not done |
-| Audio for all categories | not done |
+| Milestones 002 and 003 merged into one release branch | done (`milestone-004`, not pushed) |
+| Mission acts 4–6, results screen, main menu, equipment screen, death screen | implemented and headless-tested (28 suites pass); never played by a human |
+| Warden complete design | implemented (phase 2 at 40%, charge, leap, fire lines); visuals and feel unverified |
+| Audio for all categories | not done (boss sounds requested but absent) |
 | All QA cases in QA_AND_ACCEPTANCE_TESTS.md run with recorded results | not done |
 | Performance budgets measured on Windows, Android and web | Windows and desktop web partly; Android none |
 | Gamepad bindings complete | not done (known gap) |

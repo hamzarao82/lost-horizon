@@ -17,6 +17,7 @@ Tags are explained in [MILESTONE_004.md](MILESTONE_004.md). Targets are **test t
 | `master` (v0.1.0 code) | 93–99 (earlier quiet run: 142) | 47–49 | 177–181 | box characters |
 | `milestone-002` | 91 | 39–40 | 111 | skinned characters, kit environment, effects |
 | `milestone-003` | 96–97.5 | 38–41 | 150–156 | areas C and D, dressing, patrols |
+| `milestone-004` (M2+M3 merged + M4 screens/Warden), 2 runs | 85.6–96.6 | 29.7–44.8 | 140–179 | max frame 93–124 ms in the first heavy fight; below the 40 ms spike budget `[BUDGET MISSED, not investigated]` |
 
 Other recorded numbers: web export wasm 37.7 MB (about 10 MB gzipped), pack 0.57 MB, Windows exe 104 MB plus a 0.57 MB pack, Android debug APK 27.5 MB; web time to playable about 27–30 s on the same laptop with the real GPU (was about 80 s before the shading fix), Chromium memory about 1.0 GB, first load transfer about 12 MB; Windows frame spikes in the first heavy fight 26–44 ms after warm-up. Machine load changes these numbers by up to 10–15%: only quiet-machine runs are compared.
 
