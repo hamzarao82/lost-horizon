@@ -86,12 +86,15 @@ func _on_flag_changed(id: StringName, value: bool) -> void:
 
 
 func _on_interact(_player: Node3D) -> void:
-	var puzzle := get_tree().get_first_node_in_group("sequence_puzzle")
-	if puzzle != null and puzzle.has_method("try_press"):
-		var accepted: Variant = puzzle.call("try_press", interaction_id)
-		if accepted is bool and not accepted:
-			_reject()
-			return
+	# The puzzle node normally exists from the start (Outpost17 builds it); creating it here is a safety net
+	# so the switches can never fall back to "any order works".
+	var puzzle: Node = get_tree().get_first_node_in_group("sequence_puzzle")
+	if puzzle == null or not puzzle.has_method("try_press"):
+		puzzle = SequencePuzzle.ensure(self)
+	var accepted: Variant = puzzle.call("try_press", interaction_id)
+	if accepted is bool and not accepted:
+		_reject()
+		return
 	set_on(true)
 
 

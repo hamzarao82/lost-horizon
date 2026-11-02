@@ -99,6 +99,10 @@ static func prompt_position(viewport: Vector2, touch: bool, prompt_size: Vector2
 
 func _ready() -> void:
 	layer = 50
+	if get_node_or_null("ObjectivePointer") == null:  # compass arrow toward the current objective (own layer, own file)
+		var pointer := ObjectivePointer.new()
+		pointer.name = "ObjectivePointer"
+		add_child(pointer)
 	_health_bar = _make_bar(Vector2(16, 90), Color(0.8, 0.15, 0.15))
 	# Armor sits between health and stamina; it is hidden (the gap stays) until armor is equipped.
 	_armor_bar = _make_bar(Vector2(16, 108), Color(0.3, 0.6, 1.0))

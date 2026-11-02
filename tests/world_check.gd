@@ -160,7 +160,10 @@ func _run() -> void:
 	var sw_b := _find(&"power_switch_b") as PowerSwitch
 	sw_a.set_on(false)
 	sw_b.set_on(false)
-	_check(sw_a.interact(player) and sw_a.is_on, "without a puzzle node a switch just turns on")
+	sw_a.interact(player)
+	_check(not sw_a.is_on, "the real puzzle (always present now) rejects switch A pressed first: the order is B, A, C")
+	for real in get_nodes_in_group("sequence_puzzle"):
+		real.remove_from_group("sequence_puzzle")  # the next checks isolate the switch visuals with a fake puzzle
 	var fake := _FakePuzzle.new()
 	fake.add_to_group("sequence_puzzle")
 	root.add_child(fake)

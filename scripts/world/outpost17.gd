@@ -49,6 +49,7 @@ func _ready() -> void:
 	_build_doors()
 	_build_triggers()
 	_build_interactables()
+	SequencePuzzle.ensure(self)  # the ordered power puzzle (switches B, A, C) must exist from the start
 	_build_encounter()
 	_build_patrols()
 	_build_boss_encounter()
