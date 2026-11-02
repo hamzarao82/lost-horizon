@@ -500,7 +500,8 @@ func _add_props(serial: int) -> bool:
 		return true
 	if kit_active:
 		_kit_courtyard()
-		_kit_outpost()
+		if not skip_north_outpost:  # Areas C and D now occupy that space (Milestone 3)
+			_kit_outpost()
 	else:
 		_add_outpost(b)
 	if await _next_stage(serial):

@@ -160,7 +160,8 @@ func _test_decor_build() -> void:
 			var mi := child as MeshInstance3D
 			chunks[String(child.name)] = mi
 			total_tris += _triangles(mi.mesh)
-	_check(chunks.size() == 4, "four merged kit chunks (4 draw calls): %s" % ", ".join(chunks.keys()))
+	var expected_chunks := 3 if decor.skip_north_outpost else 4  # Milestone 3: Areas C and D replace the north outpost kit
+	_check(chunks.size() == expected_chunks, "merged kit chunks (%d draw calls): %s" % [expected_chunks, ", ".join(chunks.keys())])
 	_check(total_tris > 8000 and total_tris < 120000, "kit adds a sensible triangle count (%d)" % total_tris)
 	var ranges_ok := true
 	for chunk in chunks:
