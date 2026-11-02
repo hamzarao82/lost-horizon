@@ -105,4 +105,4 @@ func _refresh_prompt() -> void:
 	_label.visible = true
 	var size := get_viewport().get_visible_rect().size
 	_label.reset_size()
-	_label.position = Vector2((size.x - _label.size.x) * 0.5, size.y - 170.0)
+	_label.position = Hud.prompt_position(size, TouchControls.touch_active, _label.size)  # above the subtitle band

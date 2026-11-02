@@ -52,6 +52,7 @@ var _rings: Pool = Pool.new()
 var _numbers: Pool = Pool.new()
 var _number_origin: PackedVector3Array = PackedVector3Array()
 var _number_scale: PackedFloat32Array = PackedFloat32Array()
+var _number_drift: PackedFloat32Array = PackedFloat32Array()  # sideways drift (m) over the lifetime
 var _ring_radius: PackedFloat32Array = PackedFloat32Array()
 var _ring_color: PackedColorArray = PackedColorArray()
 
@@ -172,13 +173,14 @@ func ring(position: Vector3, radius: float, color: Color, life: float = RING_LIF
 func number(position: Vector3, text: String, color: Color, scale_factor: float = 1.0) -> void:
 	var i := _numbers.take(_clock)
 	var label := _numbers.nodes[i] as Label3D
-	var spread := Vector3(randf_range(-0.55, 0.55), 0.0, randf_range(-0.3, 0.3))
+	var spread := Vector3(randf_range(-0.7, 0.7), randf_range(-0.15, 0.15), randf_range(-0.3, 0.3))
 	_number_origin[i] = position + spread
 	_number_scale[i] = scale_factor
+	_number_drift[i] = (1.0 if spread.x >= 0.0 else -1.0) * randf_range(0.5, 0.9)  # clears the enemy label above the head
 	label.text = text
 	label.modulate = color
 	label.global_position = _number_origin[i]
-	label.scale = Vector3.ONE * scale_factor * 1.4
+	label.scale = Vector3.ONE * scale_factor * 1.4 * _distance_scale(_number_origin[i])
 	label.visible = true
 	_numbers.start[i] = _clock
 	_numbers.life[i] = NUMBER_LIFETIME
@@ -263,6 +265,7 @@ func _build_pools() -> void:
 		_numbers.add(label)
 		_number_origin.append(Vector3.ZERO)
 		_number_scale.append(1.0)
+		_number_drift.append(0.0)
 
 
 func _make_ring_sprite() -> Sprite3D:
@@ -471,9 +474,9 @@ func _animate_number(i: int) -> void:
 	var t := (_clock - _numbers.start[i]) / NUMBER_LIFETIME
 	var label := _numbers.nodes[i] as Label3D
 	var rise := 1.0 - pow(1.0 - t, 2.0)  # ease out
-	label.global_position = _number_origin[i] + Vector3(0, rise * 1.1, 0)
+	label.global_position = _number_origin[i] + Vector3(_number_drift[i] * rise, rise * 0.9, 0)
 	var pop := lerpf(1.4, 1.0, clampf(t * 8.0, 0.0, 1.0))  # quick pop in
-	label.scale = Vector3.ONE * _number_scale[i] * pop
+	label.scale = Vector3.ONE * _number_scale[i] * pop * _distance_scale(label.global_position)
 	var color := label.modulate
 	color.a = 1.0 - smoothstep(0.55, 1.0, t)
 	label.modulate = color
@@ -503,3 +506,11 @@ func _poll_player() -> void:
 		dust(_player.global_position + Vector3(0, 0.1, 0))
 		_fall_speed = 0.0
 	_was_on_floor = on_floor
+
+
+## Keeps floating numbers readable but never huge: size follows the camera distance, clamped.
+func _distance_scale(world_position: Vector3) -> float:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return 1.0
+	return clampf(camera.global_position.distance_to(world_position) / 7.0, 0.6, 1.5)

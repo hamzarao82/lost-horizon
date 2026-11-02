@@ -198,6 +198,11 @@ func _build_settings_page() -> VBoxContainer:
 		_quality_buttons.append(b)
 	page.add_child(row)
 
+	# F3 does not exist on touch devices, so the FPS/draw-call readout gets a menu button too.
+	page.add_child(_button("Show / hide FPS", func() -> void:
+		for overlay in get_tree().get_nodes_in_group("perf_overlay"):
+			overlay.call("toggle")))
+
 	page.add_child(_button("Back", func() -> void: _show_page(_main_page)))
 	return page
 

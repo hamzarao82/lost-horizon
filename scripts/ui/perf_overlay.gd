@@ -10,6 +10,7 @@ var _elapsed: float = 0.0
 
 func _ready() -> void:
 	layer = 100
+	add_to_group("perf_overlay")
 	_label = Label.new()
 	_label.position = Vector2(8, 8)
 	_label.add_theme_color_override("font_color", Color.WHITE)
@@ -37,3 +38,8 @@ func _process(delta: float) -> void:
 	var tris := Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
 	_label.text = "%d FPS  %.1f ms\nDraw calls: %d  Tris: %d\nMem: %.0f MB" % [
 		Engine.get_frames_per_second(), delta * 1000.0, draws, tris, mem_mb]
+
+
+## Used by the pause menu so touch devices (no F3 key) can show or hide the readout.
+func toggle() -> void:
+	visible = not visible

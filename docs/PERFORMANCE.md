@@ -20,3 +20,5 @@ Details in docs/STUTTER.md. Benchmark: `godot --path . -s tests/stutter_bench.gd
 - Hit-stop was the main "lag": 5% game speed for 0.05-0.10 s, chained across enemies (up to 149 ms). Now 30% speed, <= 0.07 s, no chaining.
 - First-use costs (shader compile, glyph rasterizing, disk loads) caused the 60-435 ms spikes; `Warmup.steps()` moves them behind the loading screen. Worst frame in the first heavy fight: 169 ms -> 26-44 ms.
 - Fx calls, Label3D text assignment, and steady-state spawns were measured and are cheap (< 0.2 ms, 0.05 ms, 1-3 ms).
+| 2026-11-02 | Milestone 1 | Android debug APK (arm64) | static analysis only | not measured | n/a | not measured | 29.4 MiB (libgodot 72 MiB unpacked) | NOT RUN: no phone attached; emulator refused to boot (needs 7.4 GB free, C: has 3.1 GB). See docs/ANDROID_QA.md. Export also packs about 9 MB of website/test files (node_modules) |
+| 2026-11-02 | Milestone 1 | Android (Redmi K80) | n/a | pending | pending | pending | n/a | awaiting the owner's device test; run tools/androidqa/device_test.ps1 |

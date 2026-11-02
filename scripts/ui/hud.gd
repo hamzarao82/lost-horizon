@@ -2,8 +2,30 @@ class_name Hud
 extends CanvasLayer
 ## Player bars, wave status, equipment panel, pickup toasts, and end-of-arena messages.
 
-const BANNER_SECONDS: float = 2.0
+const BANNER_SECONDS: float = 1.6
 const TOAST_SECONDS: float = 2.5
+const MAX_QUEUED_BANNERS: int = 3
+
+# --- layout plan (single source of truth, see plan_layout) -------------------
+# Vertical bands, top to bottom: wave label 12-40 | boss name 40-62 | boss bar 66-86 | banner 98-140
+# (centre) | bars 90-134 and quest tracker 205+ (left) | ... | interaction prompt | subtitle | toast.
+const BANNER_Y: float = 98.0
+const BANNER_SIZE: Vector2 = Vector2(380.0, 44.0)
+const WAVE_LABEL_SIZE: Vector2 = Vector2(320.0, 28.0)
+const BOSS_BAR_MAX_WIDTH: float = 440.0
+const EQUIPMENT_SIZE: Vector2 = Vector2(400.0, 82.0)
+const TOAST_SIZE: Vector2 = Vector2(560.0, 32.0)
+const SUBTITLE_LINES: int = 2
+const SUBTITLE_LINE_HEIGHT: float = 30.0
+const PROMPT_SIZE: Vector2 = Vector2(420.0, 34.0)
+const PROMPT_GAP_ABOVE_SUBTITLE: float = 10.0
+const HINT_SIZE: Vector2 = Vector2(840.0, 24.0)
+const TELEPORT_LABEL_SIZE: Vector2 = Vector2(300.0, 28.0)  # drawn by teleport.gd at y~146
+const PAUSE_BUTTON_RECT: Rect2 = Rect2(16.0, 140.0, 56.0, 56.0)
+const TOUCH_RESERVE: float = 460.0  # width of the touch button column at the right edge
+const LABEL_NEAR: float = 10.0
+const LABEL_FAR: float = 16.0
+const MAX_ENEMY_LABELS: int = 1
 
 var _health_bar: ProgressBar
 var _stamina_bar: ProgressBar
@@ -27,6 +49,48 @@ var _tracker_objective: Label
 var _subtitle: Label
 var _caption_queue: Array[Dictionary] = []
 var _subtitle_time: float = 0.0
+var _banner_queue: Array[Dictionary] = []
+var _hint: Label
+var _boss_seen: bool = false
+var _label_time: float = 0.0
+
+
+## Pure layout plan: where every HUD widget sits for a viewport size, as rectangles. `touch` is true
+## when the on-screen buttons are showing. _process positions the widgets from this, and the layout
+## test checks that the rectangles never overlap each other or the touch buttons.
+static func plan_layout(viewport: Vector2, touch: bool) -> Dictionary:
+	var right_limit := viewport.x - (TOUCH_RESERVE if touch else 16.0)
+	var avail_width := right_limit - 16.0
+	var center_x := 16.0 + avail_width * 0.5 if touch else viewport.x * 0.5
+	var sub_width := minf(minf(SUBTITLE_MAX_WIDTH, viewport.x * 0.6), avail_width)
+	var sub_height := SUBTITLE_LINES * SUBTITLE_LINE_HEIGHT + 8.0
+	var sub_y := viewport.y - SUBTITLE_BOTTOM_GAP - sub_height
+	var boss_width := minf(BOSS_BAR_MAX_WIDTH, viewport.x * 0.34)
+	var plan := {
+		"bars": Rect2(16, 90, 240, 44),
+		"teleport": Rect2(84.0 if touch else 16.0, 146, TELEPORT_LABEL_SIZE.x, TELEPORT_LABEL_SIZE.y),
+		"wave": Rect2((viewport.x - WAVE_LABEL_SIZE.x) * 0.5, 12, WAVE_LABEL_SIZE.x, WAVE_LABEL_SIZE.y),
+		"boss_name": Rect2((viewport.x - 300.0) * 0.5, 40, 300, 22),
+		"boss_bar": Rect2((viewport.x - boss_width) * 0.5, 66, boss_width, 20),
+		"banner": Rect2((viewport.x - BANNER_SIZE.x) * 0.5, BANNER_Y, BANNER_SIZE.x, BANNER_SIZE.y),
+		"equipment": Rect2(viewport.x - EQUIPMENT_SIZE.x - 16.0, 12, EQUIPMENT_SIZE.x, EQUIPMENT_SIZE.y),
+		"tracker": Rect2(16, TRACKER_TALL_Y, TRACKER_MAX_WIDTH, 72),
+		"subtitle": Rect2(center_x - sub_width * 0.5, sub_y, sub_width, sub_height),
+		"toast": Rect2(center_x - TOAST_SIZE.x * 0.5, viewport.y - 110.0, TOAST_SIZE.x, TOAST_SIZE.y),
+		"prompt": Rect2(center_x - PROMPT_SIZE.x * 0.5, sub_y - PROMPT_GAP_ABOVE_SUBTITLE - PROMPT_SIZE.y,
+				PROMPT_SIZE.x, PROMPT_SIZE.y),
+	}
+	if touch:
+		plan["pause"] = PAUSE_BUTTON_RECT
+	else:
+		plan["hint"] = Rect2(16, viewport.y - 30.0, HINT_SIZE.x, HINT_SIZE.y)
+	return plan
+
+
+## Prompt rectangle for scripts that draw their own prompt (the Interactor), so it clears the subtitle.
+static func prompt_position(viewport: Vector2, touch: bool, prompt_size: Vector2) -> Vector2:
+	var rect: Rect2 = plan_layout(viewport, touch)["prompt"]
+	return Vector2(rect.get_center().x - prompt_size.x * 0.5, rect.end.y - prompt_size.y)
 
 
 func _ready() -> void:
@@ -43,7 +107,8 @@ func _ready() -> void:
 
 	_message = _make_label(48, 8)
 	_message.visible = false
-	_banner = _make_label(40, 8)
+	_banner = _make_label(30, 6)
+	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_banner.visible = false
 	_wave_label = _make_label(20, 4)
 	_toast = _make_label(22, 4)
@@ -59,9 +124,10 @@ func _ready() -> void:
 	_boss_bar.visible = false
 
 	if not TouchControls.is_mobile_platform():
-		var hint := Label.new()
+		_hint = Label.new()
+		var hint := _hint
 		hint.text = "WASD move | Shift sprint | Space jump | Ctrl or C dodge | LMB light | RMB heavy | R medkit | F3 stats"
-		hint.position = Vector2(16, 690)
+		hint.position = Vector2(16, 690)  # re-positioned every frame from the viewport height
 		hint.add_theme_color_override("font_outline_color", Color.BLACK)
 		hint.add_theme_constant_override("outline_size", 4)
 		add_child(hint)
@@ -96,15 +162,30 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
+	var plan := plan_layout(viewport_size, TouchControls.touch_active)
+	var toast_rect: Rect2 = plan["toast"]
 	_wave_label.position = Vector2((viewport_size.x - _wave_label.size.x) * 0.5, 12)
 	_equipment.position = Vector2(viewport_size.x - _equipment.size.x - 16, 12)
-	_toast.position = Vector2((viewport_size.x - _toast.size.x) * 0.5, viewport_size.y - 110)
-	_banner.position = Vector2((viewport_size.x - _banner.size.x) * 0.5, viewport_size.y * 0.25)
+	_toast.position = Vector2(toast_rect.get_center().x - _toast.size.x * 0.5, toast_rect.position.y)
+	_banner.position = Vector2((viewport_size.x - _banner.size.x) * 0.5, BANNER_Y)
+	if _hint:
+		_hint.position = Vector2(16, viewport_size.y - 30.0)
 
 	if _banner_time > 0.0:
 		_banner_time -= delta
-		_banner.modulate.a = clampf(_banner_time / 0.5, 0.0, 1.0)
+		_banner.modulate.a = clampf(_banner_time / 0.4, 0.0, 1.0)
 		_banner.visible = _banner_time > 0.0
+	if _banner_time <= 0.0 and not _banner_queue.is_empty():
+		var next: Dictionary = _banner_queue.pop_front()  # banners show one at a time
+		_banner.text = String(next["text"])
+		_banner.add_theme_color_override("font_color", next["color"] as Color)
+		_banner.modulate.a = 1.0
+		_banner.visible = true
+		_banner_time = BANNER_SECONDS
+	_label_time += delta
+	if _label_time >= 0.1:
+		_label_time = 0.0
+		_update_enemy_labels()
 	if _toast_time > 0.0:
 		_toast_time -= delta
 		_toast.modulate.a = clampf(_toast_time / 0.5, 0.0, 1.0)
@@ -120,6 +201,10 @@ func _process(delta: float) -> void:
 	_refresh_wave_label()
 	if _boss == null or not is_instance_valid(_boss) or _boss.is_dead():
 		_boss = get_tree().get_first_node_in_group("boss") as Enemy
+	var boss_alive := _boss != null and is_instance_valid(_boss) and not _boss.is_dead()
+	if boss_alive and not _boss_seen:
+		_cut_captions()  # the boss is the news now: old radio chatter must not run over him
+	_boss_seen = boss_alive
 	if _player and _player.is_dead():
 		_show_message("YOU DIED", Color(0.9, 0.15, 0.15))
 	elif _arena_cleared():
@@ -136,7 +221,10 @@ func _update_boss_bar(viewport_size: Vector2) -> void:
 	_boss_bar.max_value = health.max_health
 	_boss_bar.value = health.health
 	_boss_name.text = _boss.display_name
-	_boss_bar.position = Vector2((viewport_size.x - _boss_bar.size.x) * 0.5, 66)
+	var rect: Rect2 = plan_layout(viewport_size, TouchControls.touch_active)["boss_bar"]
+	_boss_bar.custom_minimum_size.x = rect.size.x  # narrower on small screens: clears the equipment panel
+	_boss_bar.size.x = rect.size.x
+	_boss_bar.position = rect.position
 	_boss_name.position = Vector2((viewport_size.x - _boss_name.size.x) * 0.5, 40)
 
 
@@ -189,12 +277,55 @@ func _on_stamina_changed(current: float, maximum: float) -> void:
 
 
 func _on_wave_started(index: int, _total: int) -> void:
-	_banner.text = "WAVE %d" % index
-	_banner.add_theme_color_override("font_color", Color(0.95, 0.85, 0.3))
-	_banner.modulate.a = 1.0
-	_banner.visible = true
-	_banner_time = BANNER_SECONDS
+	_queue_banner("WAVE %d" % index, Color(0.95, 0.85, 0.3))
+	_cut_captions()  # a wave starting beats any radio chatter still queued
 	_refresh_wave_label()
+
+
+## Banners show one at a time in their own band (top third), never stacked on each other.
+func _queue_banner(text: String, color: Color) -> void:
+	if _banner_queue.size() >= MAX_QUEUED_BANNERS:
+		_banner_queue.pop_front()
+	_banner_queue.append({"text": text, "color": color})
+
+
+## Enemy name/health labels are cluttering unless limited: only the nearest enemy and the locked target
+## show one, and they fade out with distance. The boss is read from the boss bar instead.
+func _update_enemy_labels() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var ranked: Array[Dictionary] = []
+	var locked: Node3D = _player.lock_target() if _player.has_method("lock_target") else null
+	for node in enemies:
+		var enemy := node as Enemy
+		if enemy == null or enemy.is_dead():
+			continue
+		var distance := _player.global_position.distance_to(enemy.global_position)
+		ranked.append({"enemy": enemy, "distance": distance, "locked": enemy == locked})
+	ranked.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if a["locked"] != b["locked"]:
+			return a["locked"]
+		return float(a["distance"]) < float(b["distance"]))
+	var shown := 0
+	for entry in ranked:
+		var enemy := entry["enemy"] as Enemy
+		var label := enemy.get_node_or_null("HealthLabel") as Label3D
+		if label == null:
+			continue
+		var distance := float(entry["distance"])
+		var visible_now := shown < MAX_ENEMY_LABELS and distance <= LABEL_FAR and not enemy.is_in_group("boss")
+		if visible_now:
+			shown += 1
+			label.modulate.a = 1.0 - smoothstep(LABEL_NEAR, LABEL_FAR, distance)
+		label.visible = visible_now
+
+
+## Drops queued captions and fades the one on screen, for events that matter more.
+func _cut_captions() -> void:
+	_caption_queue.clear()
+	if _subtitle_time > 0.9:
+		_subtitle_time = 0.9
 
 
 func _refresh_wave_label() -> void:
@@ -233,7 +364,10 @@ const TRACKER_SHORT_Y: float = 46.0   # fallback for very short screens: top cen
 const TRACKER_SHORT_MIN_X: float = 290.0  # right of the bars and the teleport label
 const SUBTITLE_MAX_WIDTH: float = 720.0
 const SUBTITLE_BOTTOM_GAP: float = 120.0  # subtitle bottom edge sits this far above the screen bottom (toast is at 110)
-const MAX_QUEUED_CAPTIONS: int = 8
+const MAX_QUEUED_CAPTIONS: int = 3
+const CAPTION_MAX_CHARS: int = 110  # two lines at the subtitle width
+const CAPTION_MIN_SECONDS: float = 3.0
+const CAPTION_MAX_SECONDS: float = 6.0
 
 
 func _setup_story() -> void:
@@ -247,7 +381,7 @@ func _setup_story() -> void:
 	_subtitle = _make_label(22, 6)
 	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_subtitle.max_lines_visible = 3
+	_subtitle.max_lines_visible = SUBTITLE_LINES
 	_subtitle.visible = false
 	_quests = get_node_or_null("/root/QuestManager")
 	if _quests == null:
@@ -259,13 +393,44 @@ func _setup_story() -> void:
 	_refresh_tracker()
 
 
-## Queue a subtitle line (radio and story captions). Lines show one after another.
+## Queue a subtitle line (radio and story captions). Lines show one after another, at most
+## MAX_QUEUED_CAPTIONS waiting (the oldest is dropped), long text is split to fit two lines, and the
+## time on screen follows the text length (3-6 s). A caller that asks for less than the 3 s minimum
+## (a deliberate quick flash) gets exactly that; every normal request uses the reading time.
 func show_caption(text: String, seconds: float = 4.0) -> void:
 	if _subtitle == null or text.is_empty():
 		return
-	if _caption_queue.size() >= MAX_QUEUED_CAPTIONS:
-		_caption_queue.pop_front()
-	_caption_queue.append({"text": text, "seconds": maxf(seconds, 1.0)})
+	for chunk in split_caption(text):
+		if _caption_queue.size() >= MAX_QUEUED_CAPTIONS:
+			_caption_queue.pop_front()
+		var shown_for := seconds if seconds < CAPTION_MIN_SECONDS else caption_seconds_for(chunk)
+		_caption_queue.append({"text": chunk, "seconds": maxf(shown_for, 0.5)})
+
+
+static func caption_seconds_for(text: String) -> float:
+	return clampf(1.8 + text.length() * 0.045, CAPTION_MIN_SECONDS, CAPTION_MAX_SECONDS)
+
+
+## Splits long text at sentence ends (or spaces) into pieces that fit two subtitle lines.
+static func split_caption(text: String) -> Array[String]:
+	var pieces: Array[String] = []
+	var remaining := text.strip_edges()
+	while remaining.length() > CAPTION_MAX_CHARS:
+		var cut := -1
+		for stop in [". ", "! ", "? ", "; ", ", "]:
+			var at := remaining.rfind(stop, CAPTION_MAX_CHARS - 1)
+			if at > 20:
+				cut = at + 1
+				break
+		if cut < 0:
+			cut = remaining.rfind(" ", CAPTION_MAX_CHARS)
+		if cut <= 0:
+			cut = CAPTION_MAX_CHARS
+		pieces.append(remaining.substr(0, cut).strip_edges())
+		remaining = remaining.substr(cut).strip_edges()
+	if not remaining.is_empty():
+		pieces.append(remaining)
+	return pieces
 
 
 func _refresh_tracker() -> void:
@@ -285,11 +450,7 @@ func _on_quest_completed(quest_id: StringName) -> void:
 	var quest: QuestData = _quests.get_quest(quest_id)
 	if quest == null:
 		return
-	_banner.text = "QUEST COMPLETE"
-	_banner.add_theme_color_override("font_color", Color(0.95, 0.85, 0.3))
-	_banner.modulate.a = 1.0
-	_banner.visible = true
-	_banner_time = BANNER_SECONDS
+	_queue_banner("QUEST COMPLETE", Color(0.95, 0.85, 0.3))
 	var reward := "" if quest.reward_text.is_empty() else "  Reward: %s" % quest.reward_text
 	_show_toast("%s%s" % [quest.title, reward], Color(0.95, 0.85, 0.3))
 
@@ -315,13 +476,15 @@ func layout_story(viewport_size: Vector2) -> Dictionary:
 	_tracker_objective.size.y = objective_height
 	var tracker_rect := Rect2(tracker_x, tracker_y, tracker_width, title_height + objective_height)
 
-	var subtitle_width := minf(SUBTITLE_MAX_WIDTH, viewport_size.x * 0.9)
+	# Width, centre and the clear-of-touch-buttons rule come from plan_layout (wrap at ~60% of the screen).
+	var sub_plan: Rect2 = plan_layout(viewport_size, TouchControls.touch_active)["subtitle"]
+	var subtitle_width := sub_plan.size.x
 	_subtitle.custom_minimum_size.x = subtitle_width
 	_subtitle.size.x = subtitle_width
 	_subtitle.size.y = 0.0
-	var subtitle_height := _subtitle.get_combined_minimum_size().y
+	var subtitle_height := minf(_subtitle.get_combined_minimum_size().y, sub_plan.size.y)  # two lines at most
 	_subtitle.size.y = subtitle_height
-	var subtitle_x := (viewport_size.x - subtitle_width) * 0.5
+	var subtitle_x := sub_plan.position.x
 	var subtitle_y := viewport_size.y - SUBTITLE_BOTTOM_GAP - subtitle_height
 	if short:
 		subtitle_y = tracker_rect.end.y + 8.0
