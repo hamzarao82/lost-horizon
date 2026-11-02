@@ -48,6 +48,7 @@ func _ready() -> void:
 	_build_triggers()
 	_build_interactables()
 	_build_encounter()
+	_build_patrols()
 	# The HUD shows the area-name banner now (Hud.show_location); a second label here doubled the text.
 	# _build_banner() is kept for headless use but not called.
 	var state := get_node_or_null("/root/WorldState")
@@ -270,6 +271,24 @@ func _build_interactables() -> void:
 	cmd.terminal_title = "Command terminal"
 	cmd.pages = PackedStringArray(["Command net: all patrols recalled to the lower levels.", "The Warden is holding the courtyard."])
 	_place(cmd, &"command_terminal_d", Vector3(0.0, 0.2, -78.4))
+
+
+# --- patrols -----------------------------------------------------------------
+
+## Two guards walk the central corridor of the research wing (x = -1, between the storage room walls,
+## the crates and the control room, so nothing blocks the route). They start walking when the player
+## enters the courtyard, so they are already on their beat when the player reaches the door.
+func _build_patrols() -> void:
+	var guards := PatrolGroup.new()
+	guards.name = "PatrolC"
+	guards.group_id = &"c_guards"
+	guards.area_id = &"area_b_compound"
+	guards.scene_paths = PackedStringArray([
+		"res://scenes/enemies/PatrolSoldier.tscn", "res://scenes/enemies/HunterElite.tscn"])
+	guards.route_points = PackedVector3Array([
+		Vector3(-1.0, 0.1, -36.0), Vector3(-1.0, 0.1, -47.0), Vector3(-1.0, 0.1, -58.0)])
+	guards.loop = false  # ping-pong along the corridor
+	add_child(guards)
 
 
 # --- encounter ---------------------------------------------------------------

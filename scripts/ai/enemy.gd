@@ -12,7 +12,9 @@ signal defeated
 ## whether it killed. Effects (sparks, damage numbers) listen to this.
 signal damaged(amount: float, position: Vector3, was_kill: bool)
 
-enum State { IDLE, CHASE, ATTACK, STAGGER, DEAD }
+# PATROL..RETURN (Milestone 3) are appended so the existing values never change; they are only entered
+# by enemies that were given a PatrolRoute. Wave enemies and the Warden never are.
+enum State { IDLE, CHASE, ATTACK, STAGGER, DEAD, PATROL, SUSPICIOUS, SEARCH, RETURN }
 
 const FPS: float = 60.0
 const WINDUP_COLOR: Color = Color(1.0, 0.15, 0.1)
@@ -23,6 +25,36 @@ const DODGE_DURATION: float = 0.25
 
 static var _token_holders: Array[int] = []
 static var _alive: int = 0
+## Enemies currently on patrol duty (any patrol state or chasing after leaving their route).
+static var active_patrollers: int = 0
+
+const PATROL_SPEED_FACTOR: float = 0.55
+const SIGHT_RANGE: float = 13.0
+const SIGHT_FOV_DEG: float = 130.0
+const NOTICE_RANGE: float = 6.0       # a visible player this close is noticed at once
+const SUSPICION_RATE: float = 1.6     # per second while a farther player stays visible
+const HEAR_RADIUS: float = 12.0       # combat noise reaches patrols this far
+const SUSPICIOUS_TIMEOUT: float = 8.0
+const RETURN_TIMEOUT: float = 14.0
+const STUCK_SECONDS: float = 2.0
+const ARRIVE_DISTANCE: float = 0.9
+
+## Set by a PatrolGroup before the enemy enters the tree. null = ordinary enemy.
+var patrol_route: PatrolRoute
+var patrol_index: int = 0
+@export var search_seconds: float = 5.0
+
+var _patrol_step: int = 1
+var _arrived: bool = false
+var _wait_left: float = 0.0
+var _suspicion: float = 0.0
+var _last_known: Vector3 = Vector3.ZERO
+var _state_time: float = 0.0
+var _search_left: float = 0.0
+var _stuck_time: float = 0.0
+var _stuck_clock: float = 0.0
+var _stuck_ref: Vector3 = Vector3.ZERO
+var _patrol_counted: bool = false
 
 @export var display_name: String = "Soldier"
 @export var hit_points: float = 60.0
@@ -82,6 +114,8 @@ func _ready() -> void:
 	_health.died.connect(_die)
 	_health.changed.connect(_on_health_changed)
 	_on_health_changed(_health.health, _health.max_health)
+	if patrol_route != null:
+		_begin_patrol()
 
 
 func _uncount() -> void:
@@ -92,6 +126,7 @@ func _uncount() -> void:
 
 func _exit_tree() -> void:
 	_uncount()
+	_patrol_uncount()
 	_release_token()
 
 
@@ -123,6 +158,14 @@ func _physics_process(delta: float) -> void:
 			_state_attack(delta)
 		State.STAGGER:
 			_state_stagger(delta)
+		State.PATROL:
+			_state_patrol(delta)
+		State.SUSPICIOUS:
+			_state_suspicious(delta)
+		State.SEARCH:
+			_state_search(delta)
+		State.RETURN:
+			_state_return(delta)
 	_update_color(delta)
 	move_and_slide()
 
@@ -191,7 +234,15 @@ func _state_chase(delta: float) -> void:
 	var player := _target()
 	if player == null or _flat_to(player).length() > lose_range:
 		_release_token()
-		state = State.IDLE
+		if _has_route():
+			# A patrolling enemy that loses the player investigates, then goes back to its route.
+			if player != null:
+				_last_known = player.global_position
+				_enter_suspicious()
+			else:
+				_begin_return()
+		else:
+			state = State.IDLE
 		return
 	var to := _flat_to(player)
 	var dist := to.length()
@@ -311,6 +362,7 @@ func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float
 	_health.take_damage(dealt)
 	damaged.emit(dealt, global_position + Vector3(0.0, 1.1 * body_scale, 0.0), state == State.DEAD)
 	was_hit.emit(false)
+	_make_noise(global_position)  # the fight is where the victim stands
 	if state != State.DEAD:
 		_on_damaged()
 		if interrupts and state != State.DEAD:
@@ -366,6 +418,7 @@ func _drop_loot() -> void:
 func _die() -> void:
 	state = State.DEAD
 	defeated.emit()
+	_patrol_uncount()
 	_release_token()
 	_hitbox.deactivate()
 	remove_from_group("enemies")
@@ -379,3 +432,203 @@ func _die() -> void:
 	tween.tween_property(_visual_root, "rotation_degrees:x", -90.0, 0.35)
 	tween.tween_interval(1.5)
 	tween.tween_callback(queue_free)
+
+
+# --- patrol (Milestone 3) --------------------------------------------------
+# Only used when a PatrolRoute was assigned. PATROL -> SUSPICIOUS -> SEARCH -> RETURN -> PATROL,
+# and any of them -> CHASE (alert) when the player is noticed or the enemy is hit.
+
+func _has_route() -> bool:
+	return patrol_route != null and is_instance_valid(patrol_route)
+
+
+## The route was freed (its group left the scene): fall back to an ordinary idle enemy.
+func _drop_route() -> void:
+	patrol_route = null
+	_patrol_uncount()
+	state = State.IDLE
+
+
+func _begin_patrol() -> void:
+	state = State.PATROL
+	_arrived = false
+	_suspicion = 0.0
+	_stuck_time = 0.0
+	if not _patrol_counted:
+		_patrol_counted = true
+		active_patrollers += 1
+
+
+func _patrol_uncount() -> void:
+	if _patrol_counted:
+		_patrol_counted = false
+		active_patrollers -= 1
+
+
+func _sees_player() -> bool:
+	var player := _target()
+	if player == null:
+		return false
+	var facing := -_visual_root.global_transform.basis.z
+	return DetectionComponent.can_see(self, player, facing, SIGHT_RANGE, SIGHT_FOV_DEG)
+
+
+## Builds suspicion while the player is visible. Returns true once the player is noticed.
+func _update_suspicion(delta: float) -> bool:
+	var player := _target()
+	if player != null and _sees_player():
+		_last_known = player.global_position
+		if _flat_to(player).length() <= NOTICE_RANGE:
+			_suspicion = 1.0
+		else:
+			_suspicion += SUSPICION_RATE * delta
+		return _suspicion >= 1.0
+	_suspicion = maxf(_suspicion - 0.5 * delta, 0.0)
+	return false
+
+
+func _alert() -> void:
+	_suspicion = 1.0
+	_cooldown = minf(_cooldown, 0.4)
+	state = State.CHASE
+
+
+## Called by other enemies' hits: investigate where the fight was.
+func hear(source: Vector3) -> void:
+	if not _has_route():
+		return
+	if state == State.PATROL or state == State.RETURN or state == State.SEARCH:
+		_last_known = source
+		_enter_suspicious()
+
+
+func _make_noise(source: Vector3) -> void:
+	for node in get_tree().get_nodes_in_group("enemies"):
+		var other := node as Enemy
+		if other != null and other != self and other._has_route() \
+				and other.global_position.distance_to(source) <= HEAR_RADIUS:
+			other.hear(source)
+
+
+func _enter_suspicious() -> void:
+	state = State.SUSPICIOUS
+	_state_time = 0.0
+	_stuck_time = 0.0
+	_stuck_clock = 0.0
+	_stuck_ref = global_position
+
+
+func _begin_return() -> void:
+	state = State.RETURN
+	_state_time = 0.0
+	_stuck_time = 0.0
+	_stuck_clock = 0.0
+	_stuck_ref = global_position
+	patrol_index = patrol_route.nearest_index(global_position)
+
+
+## Walks toward a world point at `speed` and reports "no progress" through _stuck_time.
+func _walk_to(target: Vector3, speed: float, delta: float) -> float:
+	var to := target - global_position
+	to.y = 0.0
+	var dist := to.length()
+	if dist > 0.01:
+		var dir := to / dist
+		_face(dir, delta)
+		_move_horizontal(dir, speed)
+	_check_stuck(delta)
+	return dist
+
+
+func _check_stuck(delta: float) -> void:
+	_stuck_clock += delta
+	if _stuck_clock < 0.5:
+		return
+	var moved := Vector2(global_position.x - _stuck_ref.x, global_position.z - _stuck_ref.z).length()
+	_stuck_time = _stuck_time + _stuck_clock if moved < 0.12 else 0.0
+	_stuck_clock = 0.0
+	_stuck_ref = global_position
+
+
+func _state_patrol(delta: float) -> void:
+	if not _has_route():
+		_drop_route()
+		return
+	var seen := _sees_player()
+	if _update_suspicion(delta):
+		_alert()
+		return
+	if _suspicion >= 0.5 and not seen:
+		_enter_suspicious()  # saw something, lost it: go and look
+		return
+	var target := patrol_route.global_point(patrol_index)
+	var flat := target - global_position
+	flat.y = 0.0
+	if flat.length() <= ARRIVE_DISTANCE or _arrived:
+		velocity.x = 0.0
+		velocity.z = 0.0
+		if not _arrived:
+			_arrived = true
+			_wait_left = patrol_route.wait_seconds
+		_wait_left -= delta
+		if _wait_left <= 0.0:
+			_arrived = false
+			_stuck_time = 0.0
+			var next := patrol_route.advance(patrol_index, _patrol_step)
+			patrol_index = next[0]
+			_patrol_step = next[1]
+		return
+	_walk_to(target, move_speed * PATROL_SPEED_FACTOR, delta)
+	if _stuck_time >= STUCK_SECONDS:
+		# Blocked on the way: skip this waypoint instead of pushing against the obstacle forever.
+		_stuck_time = 0.0
+		var skip := patrol_route.advance(patrol_index, _patrol_step)
+		patrol_index = skip[0]
+		_patrol_step = skip[1]
+
+
+func _state_suspicious(delta: float) -> void:
+	if not _has_route():
+		_drop_route()
+		return
+	_state_time += delta
+	if _update_suspicion(delta):
+		_alert()
+		return
+	var dist := _walk_to(_last_known, move_speed * PATROL_SPEED_FACTOR * 1.3, delta)
+	if dist <= ARRIVE_DISTANCE + 0.4 or _state_time >= SUSPICIOUS_TIMEOUT or _stuck_time >= STUCK_SECONDS:
+		state = State.SEARCH
+		_search_left = search_seconds
+		velocity.x = 0.0
+		velocity.z = 0.0
+
+
+func _state_search(delta: float) -> void:
+	if not _has_route():
+		_drop_route()
+		return
+	velocity.x = 0.0
+	velocity.z = 0.0
+	if _update_suspicion(delta):
+		_alert()
+		return
+	_visual_root.rotation.y += delta * 1.4 * (1.0 if int(_search_left * 0.5) % 2 == 0 else -1.0)  # look around
+	_search_left -= delta
+	if _search_left <= 0.0:
+		_begin_return()
+
+
+func _state_return(delta: float) -> void:
+	if not _has_route():
+		_drop_route()
+		return
+	_state_time += delta
+	if _update_suspicion(delta):
+		_alert()
+		return
+	var target := patrol_route.global_point(patrol_index)
+	var dist := _walk_to(target, move_speed * PATROL_SPEED_FACTOR, delta)
+	if dist <= ARRIVE_DISTANCE or _state_time >= RETURN_TIMEOUT or _stuck_time >= STUCK_SECONDS:
+		_begin_patrol()
+		_arrived = true  # at the marker: wait there as usual, then move on
+		_wait_left = 0.2
