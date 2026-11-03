@@ -266,6 +266,11 @@ func _build_interactables() -> void:
 	comms.pages = PackedStringArray(["Outpost 17 comms online.", "Coordinates uploaded: Research Complex."])
 	_place(comms, &"military_terminal", Vector3(17.5, 0.2, -58.7))
 
+	# Optional lore, Area C west side: a service record that explains what the Warden was (no objective).
+	var record := LoreDocument.new()
+	record.title = "Military record: Warden"
+	record.body_text = "Service record, Sgt. Aldous Venn, decorated, declared killed in action. Re-enrolled into Project Black Site as a Warden-class patient. Pain response suppressed. Loyalty transferred to the Director."
+	_place(record, &"log_military_record", Vector3(-17.0, 0.7, -52.0))
 	# Area D: the optional missing log, flavour terminal.
 	var missing := LoreDocument.new()
 	missing.title = "Missing security log"

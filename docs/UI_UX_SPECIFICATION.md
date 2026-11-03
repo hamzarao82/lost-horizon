@@ -112,3 +112,20 @@ Subtitles are always on; adjustable subtitle size; colour-independent rarity lab
 
 ## 8. Unverified
 Touch menus on a physical phone; gamepad play (no controller has been tried); portrait handling.
+
+## Controller bindings (status: implemented in `scripts/core/gamepad_bindings.gd`, applied by the Settings autoload; tested by `tests/gamepad_check.gd`; never felt on a real controller)
+Keyboard and mouse bindings are unchanged. Standard Xbox-style layout:
+
+| Action | Controller |
+|---|---|
+| Move / look | Left stick / right stick (look is ignored while locked on) |
+| Light attack / heavy attack | Right trigger / left trigger |
+| Jump / dodge | A / B |
+| Sprint | Left stick click (L3) |
+| Interact / special | X / Y |
+| Lock-on / next / previous target | R3 / R1 / L1 |
+| Medkit | D-pad left |
+| Equipment screen | D-pad up |
+| Teleport | Back |
+| Pause | Start |
+| Menus | D-pad or left stick to move, A accept, B cancel |

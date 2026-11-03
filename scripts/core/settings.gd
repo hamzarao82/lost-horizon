@@ -43,6 +43,7 @@ static func default_quality() -> Quality:
 
 
 func _ready() -> void:
+	GamepadBindings.apply()
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	quality = default_quality()
 	load_settings()

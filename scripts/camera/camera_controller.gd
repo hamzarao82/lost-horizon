@@ -63,6 +63,9 @@ func has_lock_target() -> bool:
 
 
 func _process(delta: float) -> void:
+	var stick := Input.get_vector("look_left", "look_right", "look_up", "look_down")  # right stick, see GamepadBindings
+	if stick != Vector2.ZERO and not has_lock_target():
+		apply_look(stick * GamepadBindings.LOOK_SPEED * delta, mouse_sensitivity)
 	_follow_lock_target(delta)
 	_update_fov_and_lag(delta)
 	_trauma = maxf(_trauma - shake_decay * delta, 0.0)
