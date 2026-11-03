@@ -18,6 +18,7 @@ Tags are explained in [MILESTONE_004.md](MILESTONE_004.md). Targets are **test t
 | `milestone-002` | 91 | 39–40 | 111 | skinned characters, kit environment, effects |
 | `milestone-003` | 96–97.5 | 38–41 | 150–156 | areas C and D, dressing, patrols |
 | `milestone-004` (M2+M3 merged + M4 screens/Warden), 2 runs | 85.6–96.6 | 29.7–44.8 | 140–179 | max frame 93–124 ms in the first heavy fight; below the 40 ms spike budget `[BUDGET MISSED, not investigated]` |
+| `milestone-005-perf` (same content + model warm-up stage), 2 runs | 105.3–108.5 | 52.8–55.8 | 140 | max frame 53–60 ms (was 93–124). Warm-up now draws every character and key weapon model once; first-fight worst frame in `stutter_bench` 152 ms to 81–88 ms. **Still over the 40 ms budget:** the Warden spawn (46–53 ms, not fixed: pre-instantiating a Warden in the tree would trigger boss intro, quest and HUD hooks), wave spawn (30–38 ms), shockwave. Run-to-run noise on this laptop is about 10%. |
 
 Other recorded numbers: web export wasm 37.7 MB (about 10 MB gzipped), pack 0.57 MB, Windows exe 104 MB plus a 0.57 MB pack, Android debug APK 27.5 MB; web time to playable about 27–30 s on the same laptop with the real GPU (was about 80 s before the shading fix), Chromium memory about 1.0 GB, first load transfer about 12 MB; Windows frame spikes in the first heavy fight 26–44 ms after warm-up. Machine load changes these numbers by up to 10–15%: only quiet-machine runs are compared.
 

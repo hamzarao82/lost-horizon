@@ -46,6 +46,7 @@ static func steps() -> Array[Callable]:
 		Warmup._stage_labels,
 		Warmup._stage_fx,
 		Warmup._stage_boss_ring,
+		Warmup._stage_models,
 	])
 	var audio := _autoload("AudioManager")
 	if audio and audio.has_method("warm_up_names"):
@@ -150,6 +151,31 @@ static func _stage_fx() -> void:
 		_stage.add_child(node)
 		if node is CPUParticles3D:
 			(node as CPUParticles3D).emitting = true
+		index += 1
+
+
+## The skinned character and weapon models drawn once in the lit, shadowed stage, so the skinning shader
+## variants and mesh/skeleton uploads are paid here and not by the first enemy that appears in a fight.
+## Models only (no scripts), so nothing in the stage can think, move or collide.
+const MODEL_PATHS: PackedStringArray = [
+	"res://assets/characters/player.glb", "res://assets/characters/soldier.glb",
+	"res://assets/characters/heavy.glb", "res://assets/characters/elite.glb",
+	"res://assets/characters/warden.glb", "res://assets/weapons/warden_blade.glb",
+	"res://assets/weapons/katana.glb", "res://assets/weapons/claymore.glb",
+]
+
+
+static func _stage_models() -> void:
+	var index := 0
+	for path in MODEL_PATHS:
+		var scene := load(path) as PackedScene
+		if scene == null:
+			continue
+		var model := scene.instantiate() as Node3D
+		if model == null:
+			continue
+		model.position = Vector3(-3.0 + index * 0.85, -1.2, -4.0)
+		_stage.add_child(model)
 		index += 1
 
 
