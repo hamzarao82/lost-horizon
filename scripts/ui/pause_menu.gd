@@ -75,7 +75,7 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_I:
+	if event.is_action_pressed("equipment") and not event.is_echo():
 		if not _equipment.is_open():
 			show_equipment()
 			get_viewport().set_input_as_handled()
