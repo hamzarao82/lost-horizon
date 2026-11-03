@@ -65,3 +65,8 @@ Captured windowed at 1280x720 by a script that teleported the player; therefore 
 | Results | not reached by the script, so NOT verified visually |
 
 **Visual defects, most noticeable first:** interiors and Areas C/D are bare grey boxes; ground is flat orange with sparse vegetation; the interiors look unfinished next to the Warden; a text overlap on the boss caption; a dark blob at the top edge of one frame (cause unknown). The brief's visual target is therefore **not met** for the interiors.
+
+## 7. Changes made during this milestone
+- **Performance:** the warm-up now renders the skinned character and weapon models before play. Benchmark (two runs each, Intel UHD 620, 1280x720): average 85.6–96.6 to 103.6–106.9 FPS, 1% low 29.7–44.8 to 51–56, worst frame 93–124 ms to 43–60 ms. Still over the 40 ms budget: Warden spawn (46–53 ms), wave spawn (30–38 ms), first boss shockwave. The web build keeps its light warm-up, so web is unaffected.
+- **Interiors:** power room, generator shed, command building and Areas C/D got floor variation, wall trim, cables, hazard markings, shelves, desks with glowing screens, a wall map and papers (about +2 draw calls, unmeasured exactly). Screenshots show a clear improvement but the rooms still look like low-poly greyboxes. Courtyard ground, foliage density and wall materials are unchanged. This remains the largest visual gap.
+- **Tests:** all 30 suites pass with zero script errors (dressing_check now 47 checks).
