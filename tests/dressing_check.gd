@@ -63,6 +63,7 @@ func _run() -> void:
 	_sphere.radius = 0.5
 
 	_test_manifest_rules()
+	_test_interiors()
 	_test_reachability()
 	await _test_flood_detects_blocking()
 	await _test_caches()
@@ -100,7 +101,7 @@ func _test_manifest_rules() -> void:
 			bad_tall.append(String(p["name"]))
 	_check(bad_solid.is_empty(), "no solid prop blocks the patrol corridor, the doors or the boss zone %s" % [str(bad_solid)])
 	_check(bad_tall.is_empty(), "no raised prop stands in the patrol corridor or the boss zone %s" % [str(bad_tall)])
-	_check(solid_count <= 20, "few physics bodies were added (%d)" % solid_count)
+	_check(solid_count <= 32, "few physics bodies were added (%d; limit raised from 20 for the Milestone 5 interiors)" % solid_count)
 
 	# The same rules against the real colliders in the scene (not just the manifest).
 	var blocked: Array[String] = []
@@ -264,3 +265,42 @@ func _test_flood_detects_blocking() -> void:
 	await _frames(3)
 	_free_cache.clear()
 	_check(_reachable(_flood(&"D"), cache_pos), "and reachable again once the fence is removed")
+
+
+# --- Milestone 5 interiors ----------------------------------------------------
+
+func _test_interiors() -> void:
+	print("Interior dressing")
+	var by_name := {}
+	for p in AreaDressing.props:
+		by_name[p["name"]] = p
+	for needed: String in ["CabinetC1", "DeskC", "ShelfC", "HazardPanelC", "FuelDrumS1", "ShedPipeH", "WallMapD",
+			"ZoneStripeD0".trim_suffix("0"), "CommandRugD", "MonitorScreenC", "AccentStripD"]:
+		_check(by_name.has(needed) or by_name.has(needed + "_2"), "interior prop exists: " + needed)
+	_check(AreaDressing.floor_tiles >= 70, "floors use varied tiles (%d)" % AreaDressing.floor_tiles)
+	_check(AreaDressing.glow_count >= 8, "emissive accents exist (%d)" % AreaDressing.glow_count)
+	var greybox := root.find_child("OutpostGreybox", true, false)
+	_check(greybox != null, "the merged outpost mesh exists")
+	if greybox:
+		var outpost := greybox.get_parent()
+		var meshes := 0
+		for c in outpost.get_children():
+			if c is MeshInstance3D:
+				meshes += 1
+		# the merged mesh plus two emissive meshes plus the Area A sign label parents: budget +3 draw calls
+		_check(meshes <= 3, "interiors add at most 2 draw calls beyond the merged mesh (%d mesh nodes)" % meshes)
+		_check(outpost.get_node_or_null("OutpostGlowTeal") != null and outpost.get_node_or_null("OutpostGlowAmber") != null,
+				"both emissive meshes are attached")
+	# Interaction ranges: no solid interior prop within 1.4 m of a switch, terminal, panel or document.
+	var spots: Array[Vector3] = [Vector3(6.5, 0, -59.5), Vector3(-16.5, 0, -59.5), Vector3(18.5, 0, -39.0),
+			Vector3(12.0, 0, -58.6), Vector3(17.5, 0, -58.7), Vector3(0.0, 0, -78.4), Vector3(-8.0, 0, -72.4),
+			Vector3(8.0, 0, -36.4), Vector3(-17.0, 0, -52.0)]
+	var crowded: Array[String] = []
+	for p in AreaDressing.props:
+		if not p["collide"]:
+			continue
+		var fp := AreaDressing.footprint(p)
+		for s in spots:
+			if fp.grow(1.4).has_point(Vector2(s.x, s.z)):
+				crowded.append("%s near (%.1f,%.1f)" % [p["name"], s.x, s.z])
+	_check(crowded.is_empty(), "no solid prop crowds an interactable %s" % [str(crowded)])

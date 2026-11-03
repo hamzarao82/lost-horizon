@@ -27,14 +27,33 @@ const SIGN_GREEN: Color = Color(0.16, 0.22, 0.18)
 static var props: Array[Dictionary] = []
 static var _used_names: Dictionary = {}
 
+# Interior dressing (Milestone 5): floor variation, trim, power room, generator shed, command building.
+const FLOOR_TONES: Array[Color] = [Color(0.2, 0.21, 0.21), Color(0.15, 0.16, 0.17), Color(0.25, 0.25, 0.23)]
+const TRIM: Color = Color(0.17, 0.18, 0.17)
+const PAPER: Color = Color(0.5, 0.48, 0.4)
+const CABLE: Color = Color(0.04, 0.04, 0.05)
+const CABINET: Color = Color(0.2, 0.24, 0.23)
+const GLOW_TEAL: Color = Color(0.25, 0.95, 0.85)
+const GLOW_AMBER: Color = Color(1.0, 0.68, 0.22)
+
+static var floor_tiles: int = 0
+static var glow_count: int = 0
+static var _glow_teal: ArenaDecor.Builder
+static var _glow_amber: ArenaDecor.Builder
+
 
 static func build(outpost: Node3D, b: ArenaDecor.Builder) -> void:
 	props = []
 	_used_names = {}
+	floor_tiles = 0
+	glow_count = 0
+	_glow_teal = ArenaDecor.Builder.new()
+	_glow_amber = ArenaDecor.Builder.new()
 	_area_a(outpost, b)
 	_area_b(outpost, b)
 	_area_c(outpost, b)
 	_area_d(outpost, b)
+	_interiors(outpost, b)
 
 
 ## Footprint (world XZ rectangle) of a prop, rotated by its yaw.
@@ -200,3 +219,150 @@ static func _unique(requested: String) -> String:
 	var count: int = int(_used_names.get(requested, 0)) + 1
 	_used_names[requested] = count
 	return requested if count == 1 else "%s_%d" % [requested, count]
+
+
+# --- Interiors (Milestone 5): floors, trim, power room, generator shed, command building -------------
+
+## A flat, non-solid decal lying on the floor (top about 0.05 m, above the floor plate and the tile layer).
+static func _flat(o: Node3D, b: ArenaDecor.Builder, prop_name: String, area: StringName, x: float, z: float,
+		sx: float, sz: float, color: Color, yaw_deg: float = 0.0, y: float = 0.04) -> void:
+	_prop(o, b, prop_name, area, Vector3(x, y, z), Vector3(sx, 0.02, sz), color, false, yaw_deg)
+
+
+## Emissive accent (screens, lamps). Goes into one of two small meshes added by _attach_glow.
+static func _lit(prop_name: String, area: StringName, center: Vector3, size: Vector3, amber: bool = false,
+		record: bool = true) -> void:
+	var gb := _glow_amber if amber else _glow_teal
+	gb.box(center, size, GLOW_AMBER if amber else GLOW_TEAL)
+	glow_count += 1
+	if record:
+		props.append({"name": _unique(prop_name), "area": area, "center": center, "size": size, "collide": false, "yaw": 0.0})
+
+
+static func _attach_glow(o: Node3D) -> void:
+	for pair: Array in [[_glow_teal, GLOW_TEAL, "OutpostGlowTeal"], [_glow_amber, GLOW_AMBER, "OutpostGlowAmber"]]:
+		var gb: ArenaDecor.Builder = pair[0]
+		if gb.tris == 0:
+			continue
+		var material := StandardMaterial3D.new()
+		material.vertex_color_use_as_albedo = true
+		material.emission_enabled = true
+		material.emission = pair[1]
+		material.emission_energy_multiplier = 1.5
+		material.roughness = 1.0
+		var node := MeshInstance3D.new()
+		node.name = pair[2]
+		node.mesh = gb.finish()
+		node.material_override = material
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		o.add_child(node)
+
+
+static func _interiors(o: Node3D, b: ArenaDecor.Builder) -> void:
+	_floors_and_trim(b)
+	_power_room(o, b)
+	_generator_shed(o, b)
+	_command_building(o, b)
+	_attach_glow(o)
+
+
+## Tiles of three concrete tones with seams (the plate below shows through) instead of one flat grey,
+## and a dark baseboard along the outer walls. Visual only: no colliders, no manifest entries.
+static func _floors_and_trim(b: ArenaDecor.Builder) -> void:
+	for area: Array in [[-46.0, 32.0], [-77.0, 30.0]]:
+		var z_mid: float = area[0]
+		var depth: float = area[1]
+		var cols := 8
+		var rows := 5
+		var cw := 45.0 / float(cols)
+		var rh := depth / float(rows)
+		for i in cols:
+			for j in rows:
+				var tone: Color = FLOOR_TONES[(i * 7 + j * 3 + int(absf(z_mid))) % FLOOR_TONES.size()]
+				b.box(Vector3(-22.5 + cw * (float(i) + 0.5), 0.026, z_mid - depth * 0.5 + rh * (float(j) + 0.5)),
+						Vector3(cw - 0.14, 0.012, rh - 0.14), tone)
+				floor_tiles += 1
+	for t: Array in [[-21.9, -46.0, 32.0], [21.9, -46.0, 32.0], [-21.9, -77.0, 30.0], [21.9, -77.0, 30.0],
+			[-13.6, -73.0, 14.6], [13.6, -73.0, 14.6]]:
+		b.box(Vector3(t[0], 0.6, t[1]), Vector3(0.2, 1.2, t[2]), TRIM)  
+
+
+static func _power_room(o: Node3D, b: ArenaDecor.Builder) -> void:
+	var a := &"area_c_research"
+	# Cable runs from the damaged panel to switch A and to the terminal, and one out toward the door.
+	_flat(o, b, "CableToSwitchA", a, 9.2, -59.2, 5.4, 0.09, CABLE, 3.0, 0.047)
+	_flat(o, b, "CableToTerminal", a, 14.8, -59.2, 5.4, 0.09, CABLE, -3.0, 0.047)
+	_flat(o, b, "CableToDoor", a, 12.0, -55.0, 0.09, 8.0, CABLE, 0.0, 0.047)
+	# Hazard-striped panel on the back wall above the console.
+	for i in 8:
+		_prop(o, b, "HazardPanelC", a, Vector3(7.6 + 0.45 * float(i), 2.55, -60.12), Vector3(0.45, 0.7, 0.07),
+				WARN_YELLOW if i % 2 == 0 else WARN_BLACK)
+	# Side cabinets and a work desk with a lit monitor (east wall).
+	_prop(o, b, "CabinetC1", a, Vector3(19.55, 1.0, -54.4), Vector3(0.8, 2.0, 1.4), CABINET, true)
+	_prop(o, b, "CabinetC2", a, Vector3(19.55, 1.0, -52.4), Vector3(0.8, 2.0, 1.4), CABINET.darkened(0.15), true)
+	_prop(o, b, "DeskC", a, Vector3(17.0, 0.4, -51.8), Vector3(2.2, 0.8, 0.9), ArenaDecor.WOOD_DARK, true)
+	_prop(o, b, "MonitorStandC", a, Vector3(17.0, 0.88, -51.6), Vector3(0.2, 0.16, 0.2), MONITOR)
+	_lit("MonitorScreenC", a, Vector3(17.0, 1.2, -51.85), Vector3(0.9, 0.5, 0.05))
+	# Shelving with crates against the west wall, barrels by the entrance.
+	_prop(o, b, "ShelfC", a, Vector3(4.4, 1.1, -54.5), Vector3(0.5, 2.2, 2.2), Outpost17.STEEL, true)
+	for k in 3:
+		_prop(o, b, "ShelfBoxC", a, Vector3(4.55, 0.55 + 0.7 * float(k), -54.5 + 0.55 * float(k - 1)), Vector3(0.35, 0.35, 0.5),
+				ArenaDecor.WOOD if k % 2 == 0 else ArenaDecor.KHAKI)
+	_prop(o, b, "BarrelC1", a, Vector3(4.9, 0.45, -51.2), Vector3(0.6, 0.9, 0.6), Color(0.28, 0.3, 0.22), true)
+	_prop(o, b, "BarrelC2", a, Vector3(5.6, 0.45, -51.0), Vector3(0.6, 0.9, 0.6), Color(0.5, 0.14, 0.1))
+	# Loose papers, a tipped stool, wall lamps and a status strip over the console.
+	for pp: Array in [[8.4, -56.0, 20.0], [9.1, -55.6, -35.0], [15.5, -57.0, 70.0], [13.2, -53.0, 5.0], [16.2, -55.0, -50.0]]:
+		_flat(o, b, "PaperC", a, pp[0], pp[1], 0.42, 0.3, PAPER, pp[2], 0.047)
+	_prop(o, b, "StoolC", a, Vector3(14.6, 0.2, -56.4), Vector3(0.4, 0.4, 0.4), Outpost17.STEEL, false, 15.0, Vector3(0, 0, 80))
+	_lit("StatusStripC", a, Vector3(12.0, 2.15, -60.13), Vector3(2.4, 0.08, 0.05))
+	_lit("WallLampC1", a, Vector3(4.05, 3.3, -57.0), Vector3(0.08, 0.3, 0.3), true)
+	_lit("WallLampC2", a, Vector3(19.95, 3.3, -57.0), Vector3(0.08, 0.3, 0.3), true)
+	_lit("WallLampC3", a, Vector3(12.0, 3.5, -60.13), Vector3(0.3, 0.3, 0.08), true)
+
+
+static func _generator_shed(o: Node3D, b: ArenaDecor.Builder) -> void:
+	var a := &"area_c_research"
+	# Pipes along the back wall and down to the generator, cables to switch B.
+	_prop(o, b, "ShedPipeH", a, Vector3(-16.5, 3.0, -60.1), Vector3(9.0, 0.25, 0.25), Outpost17.STEEL)
+	_prop(o, b, "ShedPipeV", a, Vector3(-13.0, 1.8, -60.1), Vector3(0.25, 3.6, 0.25), Outpost17.STEEL)
+	_flat(o, b, "CableGenToSwitchB", a, -15.5, -58.7, 2.4, 0.09, CABLE, 18.0, 0.047)
+	# Hazard stripes in front of the generator.
+	for i in 8:
+		_flat(o, b, "ShedStripe", a, -16.0 + 0.45 * float(i), -56.1, 0.45, 0.8,
+				WARN_YELLOW if i % 2 == 0 else WARN_BLACK, 0.0, 0.047)
+	# Fuel drums and a battery rack on the west wall.
+	_prop(o, b, "FuelDrumS1", a, Vector3(-20.4, 0.45, -54.0), Vector3(0.62, 0.9, 0.62), Color(0.3, 0.32, 0.2), true)
+	_prop(o, b, "FuelDrumS2", a, Vector3(-20.5, 0.45, -52.9), Vector3(0.62, 0.9, 0.62), Color(0.5, 0.14, 0.1))
+	_prop(o, b, "FuelDrumS3", a, Vector3(-19.6, 0.45, -53.6), Vector3(0.62, 0.9, 0.62), ArenaDecor.KHAKI.darkened(0.1))
+	_prop(o, b, "BatteryRackS", a, Vector3(-20.6, 0.6, -57.8), Vector3(0.7, 1.2, 1.8), CABINET)
+	_lit("GeneratorLampS", a, Vector3(-13.0, 2.1, -56.72), Vector3(0.18, 0.18, 0.06), true)
+	_lit("ShedLampS", a, Vector3(-18.0, 3.5, -60.13), Vector3(0.3, 0.3, 0.08), true)
+
+
+static func _command_building(o: Node3D, b: ArenaDecor.Builder) -> void:
+	var a := &"area_d_command"
+	# Wall shelving flush with the side walls (x +-13.1, outside the boss zone), file cabinets in the back corners.
+	for sx: float in [13.1, -13.1]:
+		_prop(o, b, "ShelfD", a, Vector3(sx, 1.0, -78.2), Vector3(0.6, 2.0, 1.6), Outpost17.STEEL, true)
+		_prop(o, b, "ShelfBoxD", a, Vector3(sx * 0.994, 1.25, -78.2), Vector3(0.4, 0.4, 1.2), ArenaDecor.WOOD)
+	_prop(o, b, "FileCabinetD1", a, Vector3(-13.2, 0.7, -75.6), Vector3(0.7, 1.4, 0.8), CABINET, true)
+	_prop(o, b, "FileCabinetD2", a, Vector3(13.2, 0.7, -75.4), Vector3(0.7, 1.4, 0.8), CABINET.darkened(0.12), true)
+	# Wall map with pins (west wall) and a cool accent strip along the back wall.
+	_prop(o, b, "WallMapD", a, Vector3(-13.62, 2.1, -73.4), Vector3(0.06, 1.5, 2.4), ArenaDecor.CANVAS)
+	for pin: Array in [[-13.57, 2.4, -73.9], [-13.57, 1.9, -72.9], [-13.57, 2.2, -73.2]]:
+		_prop(o, b, "MapPinD", a, Vector3(pin[0], pin[1], pin[2]), Vector3(0.05, 0.14, 0.14), BANNER_RED)
+	_lit("AccentStripD", a, Vector3(0.0, 3.6, -79.65), Vector3(6.0, 0.12, 0.05))
+	_lit("WallLampD1", a, Vector3(-13.65, 3.4, -79.0), Vector3(0.08, 0.3, 0.3), true)
+	_lit("WallLampD2", a, Vector3(13.65, 3.4, -79.0), Vector3(0.08, 0.3, 0.3), true)
+	# Flat decals only inside the arena zone: a hazard line marking where the fight starts, a command rug, papers.
+	for i in 20:
+		_flat(o, b, "ZoneStripeD", a, -9.5 + 1.0 * float(i), -71.7, 1.0, 0.45, WARN_YELLOW if i % 2 == 0 else WARN_BLACK, 0.0, 0.047)
+	_flat(o, b, "CommandRugD", a, 0.0, -75.5, 7.0, 3.2, Color(0.1, 0.13, 0.14), 0.0, 0.04)
+	for pp: Array in [[-4.0, -76.4, 25.0], [3.6, -74.2, -40.0], [-2.2, -73.0, 80.0], [5.5, -77.5, 10.0], [-6.5, -78.0, -15.0]]:
+		_flat(o, b, "PaperD", a, pp[0], pp[1], 0.42, 0.3, PAPER, pp[2], 0.055)
+	# Items on the existing desks (Outpost17's DeskL / DeskR): not manifest props, they add no new obstruction.
+	for dx: float in [-8.0, 8.0]:
+		b.box(Vector3(dx - 0.8, 1.35, -74.3), Vector3(0.7, 0.45, 0.05), MONITOR)
+		b.box(Vector3(dx + 0.9, 1.04, -73.8), Vector3(0.5, 0.06, 0.38), PAPER)
+	_lit("DeskScreenDL", a, Vector3(-8.8, 1.35, -74.26), Vector3(0.6, 0.36, 0.04), false, false)
+	_lit("DeskScreenDR", a, Vector3(7.2, 1.35, -74.26), Vector3(0.6, 0.36, 0.04), false, false)
