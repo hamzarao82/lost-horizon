@@ -77,3 +77,16 @@ Audio buses: **Master → SFX, Ambience, Music, UI, Radio**. Each has its own vo
 
 ## 8. Unverified
 Quality of the procedural sounds in a real mix; Android audio latency and focus handling; the effect of 16 voices on web performance.
+
+## Implementation status (Milestone 4, procedural sounds)
+All sounds are synthesized by `tools/gen_sfx.gd`; no external audio. Total audio is about 1.3 MB. **Nothing here has been listened to by a person**; the tests prove that files load and hooks fire, not how they sound.
+
+| Sound | Status |
+|---|---|
+| `footstep` | `[IMPLEMENTED]` played by `AudioManager` from a physics tick while the player is on the floor, in the FREE state, moving faster than 2 m/s (every 0.44 s walking, 0.30 s at 6.5 m/s or more); no steps in the air, while dodging, attacking, dead or paused |
+| `ambience_loop` | `[IMPLEMENTED]` 5 s wind/surf bed at -24 dB on the master bus (mute and master volume apply); loaded lazily on web |
+| `radio_static`, `radio_beep` | `[IMPLEMENTED]` played with every `QuestManager.caption_requested` subtitle, so story, radio and boss captions all get the blip |
+| `boss_slam`, `boss_charge`, `boss_leap`, `boss_roar`, `boss_fire`, `mission_complete`, `ui_click` | `[IMPLEMENTED]` earlier in Milestone 4 |
+| Per-surface footsteps, positional audio, music layers, real mix and ducking | `[NOT DONE]` |
+
+Covered by `tests/audio_check.gd`.

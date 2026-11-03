@@ -7,16 +7,25 @@ const SFX_NAMES: Array[StringName] = [
 	&"swing_light", &"swing_heavy", &"hit_light", &"hit_heavy", &"hurt", &"dodge",
 	&"pickup", &"equip", &"heal", &"enemy_swing_windup", &"enemy_death", &"wave_start",
 	&"teleport", &"boss_slam", &"boss_charge", &"boss_leap", &"boss_roar", &"boss_fire", &"mission_complete", &"ui_click",
+	&"footstep", &"radio_static", &"radio_beep",
 ]
 const POOL_SIZE: int = 8
 const MUSIC_DB: float = -14.0
 const MUSIC_NAME: StringName = &"music_loop"
 const LAZY_START_FRAMES: int = 90
+const AMBIENCE_NAME: StringName = &"ambience_loop"
+const AMBIENCE_DB: float = -24.0
+const STEP_MIN_SPEED: float = 2.0
+const STEP_SPRINT_SPEED: float = 6.5  ## walk is 5 and sprint 8.5 (player.gd)
+const STEP_INTERVAL_WALK: float = 0.44
+const STEP_INTERVAL_SPRINT: float = 0.30
 
 var _streams: Dictionary = {}
 var _pool: Array[AudioStreamPlayer] = []
 var _next: int = 0
 var _music: AudioStreamPlayer
+var _ambience: AudioStreamPlayer
+var _step_timer: float = 0.0
 var _lazy_queue: Array[StringName] = []
 var _lazy_wait_frames: int = 0
 
@@ -30,6 +39,9 @@ func _ready() -> void:
 	_music = AudioStreamPlayer.new()
 	_music.volume_db = MUSIC_DB
 	add_child(_music)
+	_ambience = AudioStreamPlayer.new()
+	_ambience.volume_db = AMBIENCE_DB
+	add_child(_ambience)
 	get_tree().node_added.connect(_on_node_added)
 
 	if OS.has_feature("web"):
@@ -37,6 +49,7 @@ func _ready() -> void:
 		# the boot screen. Load one per frame once the game is up (Boot has usually cached them already).
 		_lazy_queue.assign(SFX_NAMES)
 		_lazy_queue.append(MUSIC_NAME)
+		_lazy_queue.append(AMBIENCE_NAME)
 		_lazy_wait_frames = LAZY_START_FRAMES
 		set_process(true)
 	else:
@@ -44,9 +57,10 @@ func _ready() -> void:
 		for sfx_name in SFX_NAMES:
 			_load_sfx(sfx_name)
 		_install_music()
-
+		_install_ambience()
 
 	_connect_mission.call_deferred()
+	_connect_captions.call_deferred()
 	get_tree().node_added.connect(_wire_button)
 
 func _process(_delta: float) -> void:
@@ -57,7 +71,9 @@ func _process(_delta: float) -> void:
 		set_process(false)
 		return
 	var next: StringName = _lazy_queue.pop_front()
-	if next == MUSIC_NAME:
+	if next == AMBIENCE_NAME:
+		_install_ambience()
+	elif next == MUSIC_NAME:
 		_install_music()
 	else:
 		_load_sfx(next)
@@ -158,6 +174,9 @@ func _exit_tree() -> void:
 	for player in _pool:
 		player.stop()
 		player.stream = null
+	if _ambience:
+		_ambience.stop()
+		_ambience.stream = null
 	if _music:
 		_music.stop()
 		_music.stream = null
@@ -179,3 +198,59 @@ func _on_mission_completed(_quest_id: StringName) -> void:
 func _wire_button(node: Node) -> void:
 	if node is BaseButton:
 		(node as BaseButton).pressed.connect(play.bind(&"ui_click", -6.0))
+
+
+func _install_ambience() -> void:
+	var stream := _load_stream(AMBIENCE_NAME)
+	if stream is AudioStreamWAV:
+		var wav := stream as AudioStreamWAV
+		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		wav.loop_begin = 0
+		wav.loop_end = wav.data.size() / 2  # 16-bit mono
+	if stream:
+		_ambience.stream = stream
+		if DisplayServer.get_name() != "headless":  # the dummy driver leaks looping playback at exit
+			_ambience.play()
+
+
+## Seconds between steps for a horizontal speed; 0 means "no steps at this speed".
+func step_interval(horizontal_speed: float) -> float:
+	if horizontal_speed < STEP_MIN_SPEED:
+		return 0.0
+	return STEP_INTERVAL_SPRINT if horizontal_speed >= STEP_SPRINT_SPEED else STEP_INTERVAL_WALK
+
+
+## One footstep tick for `player` (any body with is_on_floor() and velocity; `state` != 0 means not FREE).
+## Returns true when a step sound was played.
+func tick_footsteps(delta: float, player: Node) -> bool:
+	if player == null or get_tree().paused or not player.has_method("is_on_floor") or not player.is_on_floor() \
+			or int(player.get("state")) != 0:
+		_step_timer = 0.0
+		return false
+	var velocity: Vector3 = player.get("velocity")
+	var interval := step_interval(Vector2(velocity.x, velocity.z).length())
+	if interval <= 0.0:
+		_step_timer = 0.0
+		return false
+	_step_timer -= delta
+	if _step_timer > 0.0:
+		return false
+	_step_timer = interval
+	play(&"footstep", -10.0, 0.15)
+	return true
+
+
+func _physics_process(delta: float) -> void:
+	tick_footsteps(delta, get_tree().get_first_node_in_group("player"))
+
+
+## Subtitles double as radio chatter: a short static burst and beep before each caption appears.
+func _connect_captions() -> void:
+	var quests := get_node_or_null("/root/QuestManager")
+	if quests and quests.has_signal("caption_requested"):
+		quests.caption_requested.connect(_on_caption)
+
+
+func _on_caption(_text: String, _seconds: float) -> void:
+	play(&"radio_static", -12.0, 0.05)
+	play(&"radio_beep", -14.0, 0.0)

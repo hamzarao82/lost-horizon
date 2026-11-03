@@ -34,6 +34,10 @@ func _initialize() -> void:
 	_write("boss_fire", _boss_fire())
 	_write("mission_complete", _blips([392.0, 494.0, 587.3, 784.0, 988.0], 0.14, 1.0))
 	_write("ui_click", _blips([880.0, 1320.0], 0.035, 0.09))
+	_write("footstep", _footstep())
+	_write("ambience_loop", _ambience())
+	_write("radio_static", _radio_static())
+	_write("radio_beep", _blips([1500.0], 0.09, 0.1))
 	quit()
 
 
@@ -302,3 +306,37 @@ func _boss_roar() -> PackedFloat32Array:
 func _boss_fire() -> PackedFloat32Array:
 	var hiss := _bell(_lowpass(_highpass(_noise(0.9), 800.0), 4500.0, 7000.0))
 	return _normalize(hiss, 0.55)
+
+
+## Dull boot-on-ground tap: low thump plus a short scuff of filtered noise.
+func _footstep() -> PackedFloat32Array:
+	var thump := _env(_sweep(0.12, 130.0, 60.0, 6.0, 0.01), 0.002, 14.0)
+	var scuff := _env(_lowpass(_noise(0.1), 1800.0, 600.0), 0.002, 22.0)
+	return _normalize(_mix(thump, scuff, 0.6, 0.0), 0.5)
+
+
+## Short band-limited hiss burst, like a radio opening its channel.
+func _radio_static() -> PackedFloat32Array:
+	var hiss := _lowpass(_highpass(_noise(0.22), 1200.0), 4200.0, 3000.0)
+	return _normalize(_env(hiss, 0.005, 6.0), 0.5)
+
+
+## 5 s wind and surf bed. The head is cross-faded with extra noise past the end so the loop point is seamless;
+## the tonal hum frequencies complete whole cycles in 5 s.
+func _ambience() -> PackedFloat32Array:
+	var seconds := 5.0
+	var n := _samples(seconds)
+	var fade := _samples(0.5)
+	var bed := _lowpass(_noise(seconds + 0.5), 700.0, 500.0)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	for i in n:
+		out[i] = bed[i]
+	for i in fade:
+		var w := float(i) / fade
+		out[i] = bed[i] * w + bed[n + i] * (1.0 - w)
+	for i in n:
+		var t := float(i) / RATE
+		var swell := 0.6 + 0.4 * sin(TAU * t / seconds * 2.0)
+		out[i] = out[i] * swell + sin(TAU * 44.0 * t) * 0.04 + sin(TAU * 73.0 * t) * 0.03
+	return _normalize(out, 0.5)
