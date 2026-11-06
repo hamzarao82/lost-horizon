@@ -196,7 +196,9 @@ func _equipment_stats() -> Dictionary:
 	if is_instance_valid(_player):
 		var inventory: Object = _player.get("inventory")
 		if inventory != null and inventory.has_method("stat_totals"):
-			return StatsResolver.equipment(inventory.stat_totals())
+			var gear := StatsResolver.equipment(inventory.stat_totals())
+			gear[&"damage_mult"] = 1.0  # Inventory.damage_multiplier() already carries weapon, worn gear and buffs at the call site
+			return gear
 	return StatsResolver.DEFAULT_EQUIPMENT
 
 
