@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="RegionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/regions/region_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"research_complex"
+display_name = "Research Complex"
+scene_path = "res://scenes/regions/StubRegion.tscn"
+entry_points = {
+&"from_blackwood": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 30)
+}
+exit_points = {
+&"to_blackwood": {
+"position": Vector3(0, 1, 36),
+"size": Vector3(10, 3, 2),
+"target_entry": &"from_complex",
+"target_region": &"blackwood"
+}
+}
+unlock_flag = &"blackwood.region_complete"
+environment_preset = &"research_complex"
+ambience = &"research_complex"
+map_extents = Rect2(-45, -45, 90, 90)

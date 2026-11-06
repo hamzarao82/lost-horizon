@@ -140,15 +140,17 @@ func _load_stream(stream_name: StringName) -> AudioStream:
 
 
 func _on_node_added(node: Node) -> void:
+	# A node can re-enter the tree (a region returning from being detached): connect each signal only once.
 	if node is Enemy:
-		if node.has_signal(&"swing_started"):
+		if node.has_signal(&"swing_started") and not node.is_connected(&"swing_started", _on_enemy_swing):
 			node.connect(&"swing_started", _on_enemy_swing)
-		if node.has_signal(&"was_hit"):
+		if node.has_signal(&"was_hit") and not node.is_connected(&"was_hit", _on_enemy_hit):
 			node.connect(&"was_hit", _on_enemy_hit)
-		if node.has_signal(&"defeated"):
+		if node.has_signal(&"defeated") and not node.is_connected(&"defeated", _on_enemy_defeated):
 			node.connect(&"defeated", _on_enemy_defeated)
 	elif node is WaveManager:
-		node.wave_started.connect(_on_wave_started)
+		if not node.wave_started.is_connected(_on_wave_started):
+			node.wave_started.connect(_on_wave_started)
 
 
 func _on_enemy_swing() -> void:

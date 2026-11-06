@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="RegionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/regions/region_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"outpost_17"
+display_name = "Outpost 17"
+scene_path = ""
+entry_points = {
+&"start": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0),
+&"from_south": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 74)
+}
+exit_points = {
+&"to_dead_coast": {
+"position": Vector3(0, 1, 78),
+"size": Vector3(10, 3, 2),
+"target_entry": &"from_outpost",
+"target_region": &"dead_coast"
+}
+}
+unlock_flag = &""
+environment_preset = &"outpost"
+ambience = &"outpost"
+map_extents = Rect2(-45, -95, 90, 180)

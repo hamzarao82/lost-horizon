@@ -88,7 +88,7 @@ func _test_milestone5_save_loads() -> void:
 	_write_raw(M5_SAVE)
 	_check(_sm.load_game(), "a real version 2 save still loads")
 	var data: Dictionary = _sm.pending_data
-	_check(int(data["version"]) == 3, "it is upgraded to version 3")
+	_check(int(data["version"]) == _sm.CURRENT_VERSION, "it is upgraded to the current version (%d)" % _sm.CURRENT_VERSION)
 	_check(data["inventory"]["weapon"] == "iron_sword" and data["inventory"]["armor"] == "light_tactical_armor"
 			and int(data["inventory"]["potions"]) == 2, "weapon, armor and medkits are intact")
 	_check(int(data["inventory"]["currency"]) == 0 and (data["inventory"]["bag"] as Array).is_empty()
@@ -134,7 +134,7 @@ func _test_round_trip() -> void:
 	var attr_points: int = _prog.progress.attribute_value(attr_id, _prog.attribute_def(attr_id))
 	_check(_sm.save_game("test"), "the game saves")
 	var file_data := _read_save()
-	_check(int(file_data.get("version", 0)) == 3 and file_data.has("progression"), "the file is version 3 with progression")
+	_check(int(file_data.get("version", 0)) == _sm.CURRENT_VERSION and file_data.has("progression"), "the file is the current version with progression")
 	_check(int(file_data["inventory"]["currency"]) == 250, "currency is in the file")
 	_check(not file_data.has("inventory_full"), "no stray extra sections")
 
