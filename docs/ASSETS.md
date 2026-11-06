@@ -25,3 +25,15 @@ Total: about 740 KB.
 
 ## Code and visuals
 Placeholder capsules and boxes built in Godot; no imported art. `icon.svg` is hand-written.
+
+## PBR textures (Milestone 005 materials pass)
+All from ambientCG (https://ambientcg.com), licence **CC0 1.0** (public domain; each asset page states CC0). Downloaded as 1K JPG; only Color and NormalGL are kept. Stored in `assets/textures/pbr/<id>/`.
+
+| Asset id | Source page | Use |
+|---|---|---|
+| Ground111 | https://ambientcg.com/view?id=Ground111 | island ground (dirt) |
+| Gravel043 | https://ambientcg.com/view?id=Gravel043 | island ground (gravel) |
+| Concrete034 | https://ambientcg.com/view?id=Concrete034 | walls, floors, merged props (triplanar) |
+| Metal041B | https://ambientcg.com/view?id=Metal041B | merged kit meshes (triplanar) |
+
+Considered and removed again (downloaded but not used): CorrugatedSteel005, Fabric084.

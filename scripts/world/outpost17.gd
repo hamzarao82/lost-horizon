@@ -156,13 +156,10 @@ func _build_geometry() -> void:
 
 
 func _finish_mesh() -> void:
-	var material := StandardMaterial3D.new()
-	material.vertex_color_use_as_albedo = true
-	material.roughness = 0.95
 	var node := MeshInstance3D.new()
 	node.name = "OutpostGreybox"
 	node.mesh = _b.finish()
-	node.material_override = material
+	node.material_override = PbrMaterials.concrete()
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(node)
 	_b = null

@@ -446,14 +446,10 @@ func _add_terrain() -> void:
 			n = n.normalized()
 			b.tri(p00, p10, p11, Vector3.UP, c00, c10, c11)
 			b.tri(p00, p11, p01, Vector3.UP, c00, c11, c01)
-	var material := StandardMaterial3D.new()
-	material.vertex_color_use_as_albedo = true
-	material.albedo_texture = _sand_tex
-	material.roughness = 1.0
 	var node := MeshInstance3D.new()
 	node.name = "Terrain"
 	node.mesh = b.finish()
-	node.material_override = material
+	node.material_override = PbrMaterials.ground()
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_track(node)
 
@@ -508,13 +504,10 @@ func _add_props(serial: int) -> bool:
 		return true
 	if kit_active:
 		_flush_kit_chunks()
-	var material := StandardMaterial3D.new()
-	material.vertex_color_use_as_albedo = true
-	material.roughness = 0.95
 	var node := MeshInstance3D.new()
 	node.name = "Props"
 	node.mesh = b.finish()
-	node.material_override = material
+	node.material_override = PbrMaterials.concrete()
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_track(node)
 	var sign_label := Label3D.new()

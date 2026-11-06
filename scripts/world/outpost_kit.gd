@@ -19,9 +19,7 @@ static var _material: StandardMaterial3D
 ## Shared material for merged kit meshes: vertex colours are the albedo.
 static func material() -> StandardMaterial3D:
 	if _material == null:
-		_material = StandardMaterial3D.new()
-		_material.vertex_color_use_as_albedo = true
-		_material.roughness = 0.92
+		_material = PbrMaterials.metal()
 		_material.metallic = 0.0
 	return _material
 
