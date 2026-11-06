@@ -3,6 +3,8 @@ extends CharacterBody3D
 ## Camera-relative movement, dodge with i-frames, light/heavy combo attacks.
 
 signal stamina_changed(current: float, maximum: float)
+## Fired when an armed counterattack swing starts; `bonus` is the extra damage fraction (for FX).
+signal counter_triggered(bonus: float)
 
 enum State { FREE, DODGE, ATTACK, HIT, DEAD }
 
@@ -27,6 +29,11 @@ const IDX_SPIN: int = 6
 const AIM_ASSIST_RANGE: float = 4.0
 const HEAL_BUFFER: float = 0.8  # long enough to outlast a heavy attack
 const QUEUE_SIZE: int = 3
+## Skill hooks: a dodge that avoids a hit arms a bonus on the next fresh light attack.
+const COUNTER_WINDOW: float = 0.8
+const COUNTER_COOLDOWN: float = 1.5
+const COUNTER_BONUS_BY_RANK: Array[float] = [0.0, 0.25, 0.40, 0.55]
+const COMBO_EXTRA_MAX: int = 3
 const AIR_DIVE_SPEED: float = 14.0
 const LAND_AOE_SCALE: float = 0.8
 ## Every action the player reacts to as a discrete press. The order matters only for touch/polled
@@ -85,6 +92,12 @@ var _landed: bool = false
 var _pulsed: bool = false
 var _dodge_time: float = 0.0
 var _dodge_dir: Vector3 = Vector3.ZERO
+var _counter_left: float = 0.0
+var _counter_cd: float = 0.0
+var _counter_scale: float = 1.0
+var _combo_extra_used: int = 0
+var _in_extension: bool = false
+var _extension_requested: bool = false
 var _attack_idx: int = -1
 var _attack_frames: float = 0.0
 var _hit_time: float = 0.0
@@ -178,6 +191,8 @@ func _input(event: InputEvent) -> void:
 func _poll_input(delta: float) -> void:
 	_invuln_time = maxf(_invuln_time - delta, 0.0)
 	special_cooldown_left = maxf(special_cooldown_left - delta, 0.0)
+	_counter_left = maxf(_counter_left - delta, 0.0)
+	_counter_cd = maxf(_counter_cd - delta, 0.0)
 	_tick_queue(delta)
 	# A polled press is "fresh" when the action went from up to down, or Input says it was just
 	# pressed (a release + re-press with no tick in between). is_action_just_pressed() alone can
@@ -502,9 +517,12 @@ func _try_dodge() -> bool:
 func _next_attack(heavy: bool) -> int:
 	if heavy:
 		return HEAVY_INDEX if _attack_idx != HEAVY_INDEX and _attack_idx != IDX_SPIN else -1
+	_extension_requested = false
 	match _attack_idx:
 		IDX_LIGHT_1, IDX_LIGHT_2:
-			return _attack_idx + 1
+			return _extension_next() if _in_extension else _attack_idx + 1
+		IDX_LIGHT_3:
+			return _extension_next()
 		IDX_SPRINT, IDX_AIR:
 			return IDX_LIGHT_1
 	return -1
@@ -517,6 +535,8 @@ func _start_attack(idx: int) -> bool:
 	_spend_stamina(data.stamina_cost)
 	_face_attack_direction()
 	_hitbox.deactivate()
+	_track_combo_extension(idx)
+	_arm_counter_swing(idx)
 	_attack_idx = idx
 	_attack_frames = 0.0
 	_swing_hits.clear()
@@ -686,8 +706,12 @@ func _add_camera_trauma(amount: float) -> void:
 # --- taking damage ---------------------------------------------------------
 
 func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float = 1.0) -> bool:
-	if state == State.DEAD or is_invulnerable():
+	if state == State.DEAD:
 		return false
+	if is_invulnerable():
+		_on_hit_avoided()
+		return false
+	_counter_scale = 1.0
 	var away := global_position - from_position
 	away.y = 0.0
 	away = away.normalized() if away.length_squared() > 0.001 else Vector3.BACK
@@ -724,7 +748,60 @@ func _die() -> void:
 ## Attribute, skill and gear bonus on top of the weapon multiplier. 1.0 at level 1.
 func _progression_scale(data: AttackData) -> float:
 	var progression := get_node_or_null("/root/Progression")
-	return progression.attack_multiplier(data) if progression else 1.0
+	var scale: float = progression.attack_multiplier(data) if progression else 1.0
+	if StatsResolver.kind_of(data.id) == &"light":
+		scale *= _counter_scale  # 1.0 unless the Counterattack skill armed this swing
+	return scale
+
+
+func _skill_effect(key: StringName) -> float:
+	var progression := get_node_or_null("/root/Progression")
+	return progression.effect(key) if progression else 0.0
+
+
+## Combo Extension: extra light hits after the third, one per rank, replaying the light attack data.
+func _extension_next() -> int:
+	var steps := clampi(roundi(_skill_effect(&"combo_extra")), 0, COMBO_EXTRA_MAX)
+	if _combo_extra_used >= steps:
+		return -1
+	_extension_requested = true
+	return IDX_LIGHT_1 + _combo_extra_used
+
+
+func _track_combo_extension(idx: int) -> void:
+	if _attack_idx < 0:
+		_combo_extra_used = 0  # a fresh combo, not a chained step
+		_in_extension = false
+	elif _extension_requested:
+		_combo_extra_used += 1
+		_in_extension = true
+	_extension_requested = false
+
+
+## A dodge that actually avoids a hit (inside the dodge i-frames) arms the counter once per cooldown.
+func _on_hit_avoided() -> void:
+	if state != State.DODGE or _dodge_time >= dodge_iframes:
+		return
+	if _counter_left > 0.0 or _counter_cd > 0.0:
+		return
+	if clampi(roundi(_skill_effect(&"counter_rank")), 0, 3) <= 0:
+		return
+	_counter_left = COUNTER_WINDOW
+	_counter_cd = COUNTER_COOLDOWN
+
+
+## The first light attack after an armed dodge hits harder; consumed here, never stacks.
+func _arm_counter_swing(idx: int) -> void:
+	_counter_scale = 1.0
+	if _counter_left <= 0.0 or idx != IDX_LIGHT_1:
+		return
+	var rank := clampi(roundi(_skill_effect(&"counter_rank")), 0, 3)
+	_counter_left = 0.0
+	if rank <= 0:
+		return
+	var bonus := COUNTER_BONUS_BY_RANK[rank]
+	_counter_scale = 1.0 + bonus
+	counter_triggered.emit(bonus)
 
 
 ## Damage-taken multiplier from resistances. 1.0 at level 1.

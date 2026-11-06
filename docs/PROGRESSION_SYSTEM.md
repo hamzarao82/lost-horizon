@@ -65,3 +65,17 @@ Wired in the game: max health, max stamina, stamina regeneration, walk and sprin
 
 - **Not done:** attribute and skill screens, level-up and XP notifications, the equipment stat contract on the Inventory side, save integration (`Progression.to_dict()` exists but is not yet written into the save file, so progress does not persist across game restarts until save v3), Field Medic's healing multiplier (exposed as `Progression.heal_multiplier()`, but the medkit code does not read it yet), combo extension and counterattack skills, enemy scaling (config values exist, default 0, nothing applies them).
 - **Not verified:** how the numbers feel in play, the balance across a full campaign (only one region exists), and performance on Android and web. A mission playthrough with levelling was not done by a human.
+
+## Combat skills, enemy scaling, buffs (Milestone 6 completion)
+
+Statuses below are **verified** by `tests/skills_combat_check.gd` (93 checks) and `tests/death_reload_check.gd` (14 checks) unless noted.
+
+| Item | Rule | Balance |
+|---|---|---|
+| Combo Extension (needs Sharpened Edge, level 5, 2 points per rank, 3 ranks) | After the third light hit the combo continues for one more hit per rank (rank 3 = a six-hit combo), replaying the light attack data in order. Hits do not change frame data; rank 0 is exactly the old chain. | Extra hits cost the normal stamina; no new damage numbers |
+| Counterattack (needs Light Step, level 5, 2 points per rank, 3 ranks) | A dodge that actually avoids a hit inside its i-frames arms the next fresh light attack for 0.8 s: +25% / +40% / +55% damage, once. Cooldown 1.5 s from arming; a heavy attack neither gets it nor uses it up; the bonus is gone on the next combo step. Dodging with nothing to dodge, or a hit avoided by other invulnerability, never arms it. `Player.counter_triggered(bonus)` is emitted for effects. | Bonus applies to light attacks only, exactly once |
+| Enemy scaling (`resources/progression/enemy_scaling.tres`, `EnemyScaling.apply` from `Enemy._ready`) | Regular enemies: +4% health and +2% damage per player level above 1, capped at x1.8 and x1.4. Warden: +2% health per level, capped at x1.4, damage not scaled. Applied once per instance; level 1 equals the authored numbers. | At level 6: x1.2 health, x1.1 damage |
+| Temporary buffs | Consumable buffs (sharpening oil) go through `Inventory.stat_totals()`, so the swing scale includes them exactly once; reusing refreshes and never stacks; they expire. They were already correct, tests added. | |
+| Death and reload | Through the real 2 s death timer and scene reload: level, XP (including XP earned after the checkpoint), attributes and skills are kept; the inventory and currency return to the checkpoint snapshot, so items and credits gathered after a checkpoint and before dying are lost. | By design of the checkpoint system, not changed |
+
+**Not verified:** how any of this feels in play (combo timing, counter window, scaling curve). The Warden's own attacks (`warden.gd`) do not read `damage_mult`; only its health scales. Combo Extension replays the existing light data, so a dedicated fourth-hit animation does not exist. The skill screen shows the two new skills in a fifth row, which was not captured in a screenshot.

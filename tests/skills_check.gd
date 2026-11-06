@@ -44,7 +44,7 @@ func _run() -> void:
 
 func _test_data() -> void:
 	print("data")
-	_check(_tree.skills.size() == 12, "12 skills load (got %d)" % _tree.skills.size())
+	_check(_tree.skills.size() == 14, "14 skills load (got %d)" % _tree.skills.size())
 	_check(_tree.validate().is_empty(), "the shipped tree validates: %s" % [_tree.validate()])
 	var categories := {}
 	for skill: SkillData in _tree.all():
@@ -55,7 +55,7 @@ func _test_data() -> void:
 		if skill.prerequisites.is_empty():
 			roots += 1
 	_check(roots >= 4, "every category can be entered without prerequisites (roots: %d)" % roots)
-	_check(_tree.all().size() == 12, "all() returns every skill, sorted")
+	_check(_tree.all().size() == 14, "all() returns every skill, sorted")
 
 
 func _test_rules() -> void:

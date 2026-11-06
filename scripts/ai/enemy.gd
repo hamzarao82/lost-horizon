@@ -58,6 +58,9 @@ var _patrol_counted: bool = false
 
 @export var display_name: String = "Soldier"
 @export var hit_points: float = 60.0
+## Outgoing damage multiplier; EnemyScaling raises it with the player level. 1.0 = authored numbers.
+var damage_mult: float = 1.0
+
 @export var swing_path: String = "res://resources/attacks/enemy_swing.tres"
 @export var body_color: Color = Color(0.55, 0.25, 0.2)
 @export var body_scale: float = 1.0
@@ -102,6 +105,9 @@ var _label_filled: int = -1
 func _ready() -> void:
 	add_to_group("enemies")
 	_counted = true
+	var progression := get_node_or_null("/root/Progression")
+	if progression != null:
+		EnemyScaling.apply(self, int(progression.level()))
 	_alive += 1
 	_swing = load(swing_path) as AttackData
 	_material = StandardMaterial3D.new()
@@ -295,7 +301,7 @@ func _state_attack(delta: float) -> void:
 		var facing := -_visual_root.global_transform.basis.z
 		_move_horizontal(facing, _swing.lunge_speed)
 		if not _hitbox.is_active():
-			_hitbox.activate(_swing, self)
+			_hitbox.activate(_swing, self, damage_mult)
 	else:
 		_move_horizontal(Vector3.ZERO, 0.0)
 		if _hitbox.is_active():

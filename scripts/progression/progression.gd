@@ -214,6 +214,11 @@ func currency() -> int:
 
 # --- multipliers read by gameplay ---------------------------------------------
 
+# Raw skill/attribute effect total for one key (combo and counter skills read their rank through this).
+func effect(key: StringName) -> float:
+	return StatsResolver.effect_total(key, progress, attribute_defs, tree)
+
+
 func attack_multiplier(data: AttackData) -> float:
 	return damage_multiplier(StatsResolver.kind_of(data.id))
 

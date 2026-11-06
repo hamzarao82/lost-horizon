@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SkillData" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/skill_data.gd" id="1_d5gwg"]
+
+[resource]
+script = ExtResource("1_d5gwg")
+id = &"combo_extension"
+display_name = "Combo Extension"
+description = "The light combo continues for one more hit per rank."
+cost = 2
+min_level = 5
+prerequisites = PackedStringArray("sharpened_edge")
+effects = {
+&"combo_extra": 1.0
+}
+tree_position = Vector2i(0, 4)
