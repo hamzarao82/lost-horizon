@@ -61,6 +61,7 @@ func _ready() -> void:
 	if save_path == "":
 		save_path = default_save_path()
 	load_state()
+	_apply_progression_recharge()
 	if get_parent() is Player:
 		_build_ui()
 		_fx = TeleportFx.new()
@@ -364,3 +365,20 @@ func _show_denied(seconds_left: float) -> void:
 static func format_time(seconds: float) -> String:
 	var total := ceili(maxf(seconds, 0.0))
 	return "%02d:%02d" % [total / 60, total % 60]
+
+
+# --- progression hook ---------------------------------------------------------
+
+var _base_recharge: float = -1.0
+
+
+## Technique and skills shorten the recharge by a multiplier (1.0 at level 1). Only the player's own
+## ability listens, so standalone instances in tests keep their configured recharge time.
+func _apply_progression_recharge() -> void:
+	var progression := get_node_or_null("/root/Progression")
+	if progression == null or not get_parent() is Player:
+		return
+	if _base_recharge < 0.0:
+		_base_recharge = recharge_seconds
+		progression.points_changed.connect(_apply_progression_recharge)
+	recharge_seconds = _base_recharge * progression.teleport_recharge_multiplier()

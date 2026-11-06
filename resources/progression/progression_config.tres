@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="ProgressionConfig" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/progression_config.gd" id="1_50ssa"]
+
+[resource]
+script = ExtResource("1_50ssa")
+xp_to_next = PackedInt32Array(100, 150, 220, 300, 400, 520, 660, 820, 1000, 1200, 1450)

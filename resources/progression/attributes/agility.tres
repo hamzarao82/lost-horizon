@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AttributeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/attribute_data.gd" id="1_7au13"]
+
+[resource]
+script = ExtResource("1_7au13")
+id = &"agility"
+display_name = "Agility"
+purpose = "Faster movement and cheaper dodges."
+effects = {
+&"dodge_cost": -0.015,
+&"move_speed": 0.01
+}

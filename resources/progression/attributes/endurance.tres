@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AttributeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/attribute_data.gd" id="1_5ry1g"]
+
+[resource]
+script = ExtResource("1_5ry1g")
+id = &"endurance"
+display_name = "Endurance"
+purpose = "Stamina pool and a little damage resistance."
+effects = {
+&"max_stamina": 4.0,
+&"resist": 0.005
+}

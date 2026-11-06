@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="AttributeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/attribute_data.gd" id="1_xgcbb"]
+
+[resource]
+script = ExtResource("1_xgcbb")
+id = &"vitality"
+display_name = "Vitality"
+purpose = "Maximum health: survive more hits."
+effects = {
+&"max_health": 5.0
+}

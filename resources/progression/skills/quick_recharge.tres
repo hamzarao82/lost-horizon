@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SkillData" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/skill_data.gd" id="1_nvjef"]
+
+[resource]
+script = ExtResource("1_nvjef")
+id = &"quick_recharge"
+display_name = "Quick Recharge"
+description = "Teleport recharges faster."
+category = 3
+cost = 2
+min_level = 3
+effects = {
+&"teleport_recharge": -0.08
+}
+tree_position = Vector2i(0, 3)

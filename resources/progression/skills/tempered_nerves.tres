@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SkillData" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/skill_data.gd" id="1_uqfg7"]
+
+[resource]
+script = ExtResource("1_uqfg7")
+id = &"tempered_nerves"
+display_name = "Tempered Nerves"
+description = "Take less damage from every hit."
+category = 1
+min_level = 3
+prerequisites = PackedStringArray("toughness")
+effects = {
+&"resist": 0.02
+}
+tree_position = Vector2i(1, 1)

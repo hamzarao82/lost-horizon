@@ -21,6 +21,7 @@ Teleport="*res://scripts/player/teleport_watcher.gd"
 WorldState="*res://scripts/core/world_state.gd"
 QuestManager="*res://scripts/quests/quest_manager.gd"
 RunStats="*res://scripts/core/run_stats.gd"
+Progression="*res://scripts/progression/progression.gd"
 
 [display]
 
