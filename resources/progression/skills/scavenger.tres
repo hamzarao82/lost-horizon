@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SkillData" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/skill_data.gd" id="1_fg5wb"]
+
+[resource]
+script = ExtResource("1_fg5wb")
+id = &"scavenger"
+display_name = "Scavenger"
+description = "Find more currency."
+category = 3
+min_level = 4
+prerequisites = PackedStringArray("focus")
+effects = {
+&"currency": 0.1
+}
+tree_position = Vector2i(2, 3)

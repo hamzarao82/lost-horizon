@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SkillData" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/skill_data.gd" id="1_2uj2g"]
+
+[resource]
+script = ExtResource("1_2uj2g")
+id = &"deep_lungs"
+display_name = "Deep Lungs"
+description = "A larger stamina pool."
+category = 2
+min_level = 4
+prerequisites = PackedStringArray("fleet_foot")
+effects = {
+&"max_stamina": 8.0
+}
+tree_position = Vector2i(2, 2)

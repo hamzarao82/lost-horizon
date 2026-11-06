@@ -379,7 +379,7 @@ func _state_attack(delta: float) -> void:
 			_pulsed = true
 			_aoe_strike(data, 1.0)
 	elif in_active and not _hitbox.is_active():
-		_hitbox.activate(data, self, inventory.damage_multiplier())
+		_hitbox.activate(data, self, inventory.damage_multiplier() * _progression_scale(data))
 	elif not in_active and _hitbox.is_active():
 		_hitbox.deactivate()
 
@@ -450,7 +450,7 @@ func _aoe_strike(data: AttackData, scale: float) -> int:
 		if Targeting.flat(offset).length() > data.aoe_radius or absf(offset.y) > 2.5:
 			continue
 		_swing_hits.append(enemy)
-		if enemy.receive_hit(data, global_position, inventory.damage_multiplier() * scale):
+		if enemy.receive_hit(data, global_position, inventory.damage_multiplier() * scale * _progression_scale(data)):
 			hits += 1
 			_on_hit_landed(enemy, data)
 	return hits
@@ -696,7 +696,7 @@ func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float
 	_queue.clear()
 	velocity.x = away.x * attack.knockback
 	velocity.z = away.z * attack.knockback
-	health.take_damage(attack.damage * damage_scale)  # armor is a bar in HealthComponent now
+	health.take_damage(attack.damage * damage_scale * _incoming_scale())  # armor is a bar in HealthComponent now
 	_sfx(&"hurt")
 	if state != State.DEAD:
 		state = State.HIT
@@ -717,3 +717,17 @@ func _die() -> void:
 	_clear_lock()
 	_hitbox.deactivate()
 	get_tree().create_timer(2.0, true, false, true).timeout.connect(get_tree().reload_current_scene)
+
+
+# --- progression hooks (see scripts/progression/stats_resolver.gd) -----------------
+
+## Attribute, skill and gear bonus on top of the weapon multiplier. 1.0 at level 1.
+func _progression_scale(data: AttackData) -> float:
+	var progression := get_node_or_null("/root/Progression")
+	return progression.attack_multiplier(data) if progression else 1.0
+
+
+## Damage-taken multiplier from resistances. 1.0 at level 1.
+func _incoming_scale() -> float:
+	var progression := get_node_or_null("/root/Progression")
+	return progression.incoming_multiplier() if progression else 1.0

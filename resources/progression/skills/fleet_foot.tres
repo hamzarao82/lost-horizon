@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SkillData" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/skill_data.gd" id="1_ea7pj"]
+
+[resource]
+script = ExtResource("1_ea7pj")
+id = &"fleet_foot"
+display_name = "Fleet Foot"
+description = "Move faster."
+category = 2
+effects = {
+&"move_speed": 0.02
+}
+tree_position = Vector2i(0, 2)

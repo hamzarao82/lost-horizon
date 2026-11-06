@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AttributeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/attribute_data.gd" id="1_x6q0k"]
+
+[resource]
+script = ExtResource("1_x6q0k")
+id = &"technique"
+display_name = "Technique"
+purpose = "Heavy attack damage and faster teleport recharge."
+effects = {
+&"damage_heavy": 0.015,
+&"teleport_recharge": -0.03
+}

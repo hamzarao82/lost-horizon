@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/skill_data.gd" id="1_pmqh5"]
+
+[resource]
+script = ExtResource("1_pmqh5")
+id = &"light_step"
+display_name = "Light Step"
+description = "Dodging costs less stamina."
+category = 2
+max_rank = 2
+min_level = 3
+prerequisites = PackedStringArray("fleet_foot")
+effects = {
+&"dodge_cost": -0.08
+}
+tree_position = Vector2i(1, 2)
