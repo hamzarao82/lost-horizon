@@ -2,7 +2,7 @@ class_name ItemData
 extends Resource
 ## Static item definition. Ownership and equipment state live in Inventory.
 
-enum Kind { WEAPON, ARMOR, CONSUMABLE, ARMOR_PLATE }
+enum Kind { WEAPON, ARMOR, CONSUMABLE, ARMOR_PLATE, MATERIAL, QUEST, COLLECTIBLE, UPGRADE_COMPONENT }
 enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY }
 
 const RARITY_COLORS: Array[Color] = [
@@ -30,6 +30,91 @@ const SPEED_WEIGHT: float = 0.5
 ## Armor plates: armor points restored when collected.
 @export var armor_restore: float = 0.0
 @export_multiline var description: String
+
+# --- Milestone 6 additions (every field has a default so older .tres files load unchanged) ---
+enum Category { WEAPON, ARMOR, CONSUMABLE, MATERIAL, QUEST, COLLECTIBLE, UPGRADE_COMPONENT }
+enum Slot { NONE, PRIMARY_WEAPON, SECONDARY_WEAPON, HEAD, BODY, GLOVES, LEGS, ACCESSORY }
+
+## Equipment slot names used in saves and UI.
+const SLOT_NAMES: Array[String] = ["none", "primary_weapon", "secondary_weapon", "head", "body", "gloves", "legs", "accessory"]
+const CATEGORY_NAMES: Array[String] = ["Weapon", "Armor", "Consumable", "Material", "Quest", "Collectible", "Upgrade"]
+const ICON_DIR: String = "res://assets/icons/"
+
+## NONE = derive from `kind` (weapons: primary, body armor: body).
+@export var slot: Slot = Slot.NONE
+## 0 = derive: equipment 1, everything else 99.
+@export var max_stack: int = 0
+## Equipment stats read by Inventory.stat_totals(): damage_mult, damage_reduction, max_health, move_speed_mult.
+@export var base_stats: Dictionary = {}
+@export var max_upgrade: int = 5
+## Unique items (boss rewards, quest items) are claimed once per save and can never be dropped or sold.
+@export var unique: bool = false
+@export var quest_item: bool = false
+## Currency value; vendors buy at value * rarity sell multiplier * vendor multiplier.
+@export var value: int = 0
+## Items that grant credits on pickup instead of occupying a slot.
+@export var currency_amount: int = 0
+## Consumables other than the medkit: "heal", "armor_restore", "buff", "teleport_charge". Empty = classic medkit.
+@export var effect: String = ""
+@export var effect_amount: float = 0.0
+@export var buff_stat: String = ""
+@export var buff_seconds: float = 0.0
+@export var cooldown: float = 0.0
+## Region tag for loot tables and merchants ("" = anywhere).
+@export var region: String = ""
+@export var icon_path: String = ""
+## Non-equipment categories use Kind values appended below the original four.
+
+
+func category() -> Category:
+	match kind:
+		Kind.WEAPON:
+			return Category.WEAPON
+		Kind.ARMOR:
+			return Category.ARMOR
+		Kind.CONSUMABLE, Kind.ARMOR_PLATE:
+			return Category.CONSUMABLE
+		Kind.MATERIAL:
+			return Category.MATERIAL
+		Kind.QUEST:
+			return Category.QUEST
+		Kind.COLLECTIBLE:
+			return Category.COLLECTIBLE
+		Kind.UPGRADE_COMPONENT:
+			return Category.UPGRADE_COMPONENT
+	return Category.MATERIAL
+
+
+func is_equipment() -> bool:
+	return kind == Kind.WEAPON or kind == Kind.ARMOR
+
+
+func equip_slot() -> Slot:
+	if slot != Slot.NONE:
+		return slot
+	if kind == Kind.WEAPON:
+		return Slot.PRIMARY_WEAPON
+	if kind == Kind.ARMOR:
+		return Slot.BODY
+	return Slot.NONE
+
+
+func stack_limit() -> int:
+	if max_stack > 0:
+		return max_stack
+	return 1 if is_equipment() else 99
+
+
+## Quest and unique items cannot be dropped or sold.
+func is_protected() -> bool:
+	return unique or quest_item or kind == Kind.QUEST
+
+
+func icon() -> Texture2D:
+	var path := icon_path if icon_path != "" else ICON_DIR + String(item_id) + ".png"
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
 
 
 func color() -> Color:

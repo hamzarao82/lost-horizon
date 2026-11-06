@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/loot_table.gd" id="1_xpuul"]
+
+[resource]
+script = ExtResource("1_xpuul")
+drop_chance = 1.0
+item_paths = PackedStringArray("res://resources/items/scrap_metal.tres", "res://resources/items/electronics.tres", "res://resources/items/armor_patch.tres", "res://resources/items/combat_helmet.tres", "res://resources/items/credits_medium.tres")
+weights = PackedFloat32Array(30, 18, 12, 6, 20)
+source = 2
+region = "outpost17"
+guaranteed_paths = PackedStringArray("res://resources/items/upgrade_kit_armor.tres")
+rolls = 2
+rarity_weights = PackedFloat32Array(1, 1, 1.5, 2, 2)
+max_counts = PackedInt32Array(4, 2, 1, 1, 1)

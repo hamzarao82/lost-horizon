@@ -12,3 +12,4 @@ damage_multiplier = 1.0
 attack_speed = 1.0
 reach = 0.9
 description = "A sharpened piece of wreckage."
+value = 10

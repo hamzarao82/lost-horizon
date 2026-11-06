@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_b5t5u"]
+
+[resource]
+script = ExtResource("1_b5t5u")
+item_id = &"upgrade_kit_armor"
+display_name = "Armor Upgrade Kit"
+kind = 7
+rarity = 1
+description = "Plate liners, straps and rivets."
+max_stack = 20
+value = 40

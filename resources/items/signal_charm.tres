@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_45ilu"]
+
+[resource]
+script = ExtResource("1_45ilu")
+item_id = &"signal_charm"
+display_name = "Signal Charm"
+kind = 1
+rarity = 2
+description = "A radio crystal on a cord. It hums near the mast."
+slot = 7
+base_stats = {
+"damage_reduction": 0.03,
+"max_health": 4.0
+}
+value = 90

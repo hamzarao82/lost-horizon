@@ -12,3 +12,4 @@ damage_multiplier = 1.75
 attack_speed = 1.1
 reach = 1.1
 description = "Light, fast and razor sharp."
+value = 150

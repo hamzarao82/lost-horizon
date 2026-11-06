@@ -12,3 +12,4 @@ damage_multiplier = 2.3
 attack_speed = 0.95
 reach = 1.4
 description = "Taken from the Warden. It is still warm."
+unique = true

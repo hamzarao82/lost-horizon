@@ -12,3 +12,4 @@ damage_multiplier = 1.35
 attack_speed = 1.0
 reach = 1.0
 description = "Plain, sturdy, reliable."
+value = 60

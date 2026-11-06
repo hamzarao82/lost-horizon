@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_jms7e"]
+
+[resource]
+script = ExtResource("1_jms7e")
+item_id = &"teleport_cell"
+display_name = "Teleport Cell"
+kind = 2
+rarity = 2
+description = "Restores one teleport charge."
+max_stack = 3
+value = 60
+effect = "teleport_charge"
+effect_amount = 1.0
+cooldown = 3.0

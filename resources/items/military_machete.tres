@@ -12,3 +12,4 @@ damage_multiplier = 1.5
 attack_speed = 1.0
 reach = 1.0
 description = "Heavy, brutal, reliable."
+value = 90

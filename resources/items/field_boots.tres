@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_vft3k"]
+
+[resource]
+script = ExtResource("1_vft3k")
+item_id = &"field_boots"
+display_name = "Field Boots"
+kind = 1
+rarity = 1
+description = "Broken in by someone who walked far."
+slot = 6
+base_stats = {
+"move_speed_mult": 1.04
+}
+value = 40

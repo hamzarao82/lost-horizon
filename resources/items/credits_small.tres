@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_yjqca"]
+
+[resource]
+script = ExtResource("1_yjqca")
+item_id = &"credits_small"
+display_name = "Credits (20)"
+kind = 6
+description = "Outpost script, good at any trader."
+currency_amount = 20

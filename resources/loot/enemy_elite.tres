@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/loot_table.gd" id="1_kkr72"]
+
+[resource]
+script = ExtResource("1_kkr72")
+drop_chance = 0.6
+item_paths = PackedStringArray("res://resources/items/scrap_metal.tres", "res://resources/items/credits_small.tres", "res://resources/items/armor_patch.tres", "res://resources/items/antiseptic.tres", "res://resources/items/field_boots.tres", "res://resources/items/tactical_gloves.tres", "res://resources/items/upgrade_kit_weapon.tres")
+weights = PackedFloat32Array(30, 20, 12, 12, 3, 3, 4)
+source = 1
+region = "outpost17"
+rolls = 2
+max_counts = PackedInt32Array(3, 2, 1, 1, 1, 1, 1)

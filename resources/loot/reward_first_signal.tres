@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/loot_table.gd" id="1_kycjo"]
+
+[resource]
+script = ExtResource("1_kycjo")
+drop_chance = 1.0
+source = 6
+region = "outpost17"
+guaranteed_paths = PackedStringArray("res://resources/items/credits_medium.tres", "res://resources/items/upgrade_kit_weapon.tres", "res://resources/items/intel_drive.tres")
+rolls = 0

@@ -12,3 +12,4 @@ damage_multiplier = 1.0
 damage_reduction = 0.0
 heal_amount = 40.0
 description = "Restores 40 health."
+value = 30
