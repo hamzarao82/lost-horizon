@@ -78,6 +78,8 @@ func show_results(quest_id: StringName) -> void:
 	var saved: bool = saves != null and saves.autosave("mission")
 	_put("saved", "Progress saved" if saved else "Progress could not be saved",
 			HudTheme.STAMINA if saved else HudTheme.HEALTH)
+	if quest_id == &"first_signal":
+		_put("next", "Next: Dead Coast", HudTheme.GOLD)  # the road south opens after this mission (CampaignFlow)
 	_open = true
 	_was_paused = get_tree().paused
 	get_tree().paused = true

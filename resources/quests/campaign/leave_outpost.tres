@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_arrive"]
+script = ExtResource("2_obj")
+id = &"arrive_dead_coast"
+text = "Follow the signal to the Dead Coast"
+type = 5
+targets = PackedStringArray("dead_coast.arrived")
+count = 0
+progress_label = ""
+
+[resource]
+script = ExtResource("1_quest")
+id = &"leave_outpost"
+title = "The Road South"
+description = "The signal did not end at Outpost 17. It repeats from the south, past the beach gate, on the Dead Coast."
+prerequisites = PackedStringArray("first_signal")
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_arrive")])
+rewards = PackedStringArray()
+reward_text = ""
+next_quest = &""
+start_captions = PackedStringArray("The road south is open. Follow the signal to the Dead Coast.")
+complete_captions = PackedStringArray()
+caption_seconds = 4.5
+category = 0
+location_hint = "Beach gate, south of the outer perimeter"
