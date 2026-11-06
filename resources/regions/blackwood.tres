@@ -25,7 +25,7 @@ exit_points = {
 "target_region": &"research_complex"
 }
 }
-unlock_flag = &"blackwood.unlocked"
+unlock_flag = &"blackwood_unlocked"
 environment_preset = &"blackwood"
 ambience = &"blackwood"
 map_extents = Rect2(-45, -45, 90, 90)

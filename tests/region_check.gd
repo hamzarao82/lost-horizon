@@ -170,7 +170,13 @@ func _test_persistent_ids() -> void:
 	RegionFlags.set_flag(&"dead_coast", &"checkpoint_found")
 	_check(RegionFlags.has_flag(&"dead_coast", &"checkpoint_found") and not RegionFlags.has_flag(&"blackwood", &"checkpoint_found"),
 			"region flags are namespaced")
-	_check(_world.has_flag(&"dead_coast.checkpoint_found"), "the namespaced flag is a normal WorldState flag")
+	_check(_world.has_flag(&"dead_coast_checkpoint_found"), "the namespaced flag is a normal WorldState flag")
+	# WorldState only keeps saved flags made of a-z, 0-9 and underscore (max 48): a dotted key would vanish on load.
+	var saved: Dictionary = _world.to_dict()
+	_world.reset()
+	_world.from_dict(saved)
+	_check(RegionFlags.has_flag(&"dead_coast", &"checkpoint_found"), "a region flag survives a WorldState save and load")
+	_check(String(RegionFlags.key(&"research_complex", &"archive_terminal_unlocked")).length() <= 48, "long region flag keys stay within the 48 character limit")
 	_rm.reset()
 	_world.reset()
 

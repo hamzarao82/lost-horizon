@@ -26,7 +26,7 @@ exit_points = {
 "target_region": &"blackwood"
 }
 }
-unlock_flag = &"dead_coast.unlocked"
+unlock_flag = &"dead_coast_unlocked"
 environment_preset = &"dead_coast"
 ambience = &"dead_coast"
 map_extents = Rect2(-45, -45, 90, 90)
