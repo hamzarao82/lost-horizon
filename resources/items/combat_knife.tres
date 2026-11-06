@@ -12,3 +12,4 @@ damage_multiplier = 1.25
 attack_speed = 1.15
 reach = 0.7
 description = "Short and fast. Standard military issue."
+value = 30

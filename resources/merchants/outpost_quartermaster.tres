@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MerchantData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/merchant_data.gd" id="1_4plfn"]
+
+[resource]
+script = ExtResource("1_4plfn")
+merchant_id = &"outpost_quartermaster"
+display_name = "Quartermaster Vale"
+region = "outpost17"
+stock_ids = PackedStringArray("bandage", "armor_patch", "cloth_scrap", "scrap_metal", "antiseptic", "health_potion", "sharpening_oil", "upgrade_kit_weapon", "upgrade_kit_armor", "teleport_cell", "combat_helmet", "field_boots")
+stock_prices = PackedInt32Array(25, 40, 5, 7, 14, 70, 45, 95, 95, 150, 120, 105)
+stock_counts = PackedInt32Array(-1, -1, -1, -1, 10, 2, 5, 3, 3, 2, 1, 1)

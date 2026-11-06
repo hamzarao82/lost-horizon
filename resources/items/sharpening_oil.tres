@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_bsxpm"]
+
+[resource]
+script = ExtResource("1_bsxpm")
+item_id = &"sharpening_oil"
+display_name = "Sharpening Oil"
+kind = 2
+rarity = 1
+description = "+10% weapon damage for 60 seconds."
+max_stack = 10
+value = 20
+effect = "buff"
+effect_amount = 0.1
+buff_stat = "damage_mult"
+buff_seconds = 60.0
+cooldown = 5.0

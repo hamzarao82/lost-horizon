@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_cpsho"]
+
+[resource]
+script = ExtResource("1_cpsho")
+item_id = &"dog_tag"
+display_name = "Dog Tag"
+kind = 6
+description = "Someone from Outpost 17 never came home."
+max_stack = 99
+value = 8

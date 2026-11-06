@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_wyse0"]
+
+[resource]
+script = ExtResource("1_wyse0")
+item_id = &"credits_medium"
+display_name = "Credits (60)"
+kind = 6
+rarity = 1
+description = "A bundle of outpost script."
+currency_amount = 60

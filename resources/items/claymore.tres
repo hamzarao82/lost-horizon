@@ -12,3 +12,4 @@ damage_multiplier = 2.1
 attack_speed = 0.85
 reach = 1.3
 description = "Slow and enormous. Every hit counts."
+value = 260

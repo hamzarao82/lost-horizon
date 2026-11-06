@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_dkqmr"]
+
+[resource]
+script = ExtResource("1_dkqmr")
+item_id = &"tactical_gloves"
+display_name = "Tactical Gloves"
+kind = 1
+rarity = 1
+description = "A firmer grip on every swing."
+slot = 5
+base_stats = {
+"damage_mult": 1.03
+}
+value = 40

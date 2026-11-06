@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_4mgyx"]
+
+[resource]
+script = ExtResource("1_4mgyx")
+item_id = &"intel_drive"
+display_name = "Intel Drive"
+kind = 5
+rarity = 2
+description = "Encrypted. The signal is not the only thing on it."
+max_stack = 1
+unique = true
+quest_item = true

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_d0lxm"]
+
+[resource]
+script = ExtResource("1_d0lxm")
+item_id = &"electronics"
+display_name = "Salvaged Electronics"
+kind = 4
+rarity = 1
+description = "Boards and wiring pulled from dead consoles."
+max_stack = 50
+value = 10

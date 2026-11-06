@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_w0hro"]
+
+[resource]
+script = ExtResource("1_w0hro")
+item_id = &"armor_patch"
+display_name = "Armor Patch"
+kind = 2
+rarity = 1
+description = "Restores 30 armor points."
+max_stack = 10
+value = 18
+effect = "armor_restore"
+effect_amount = 30.0
+cooldown = 1.5

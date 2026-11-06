@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_y83pi"]
+
+[resource]
+script = ExtResource("1_y83pi")
+item_id = &"bandage"
+display_name = "Field Bandage"
+kind = 2
+description = "Restores 25 health."
+max_stack = 20
+value = 12
+effect = "heal"
+effect_amount = 25.0
+cooldown = 1.5

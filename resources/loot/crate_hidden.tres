@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/loot_table.gd" id="1_0uy13"]
+
+[resource]
+script = ExtResource("1_0uy13")
+drop_chance = 1.0
+item_paths = PackedStringArray("res://resources/items/electronics.tres", "res://resources/items/credits_medium.tres", "res://resources/items/combat_helmet.tres", "res://resources/items/tactical_gloves.tres", "res://resources/items/signal_charm.tres", "res://resources/items/teleport_cell.tres", "res://resources/items/sharpening_oil.tres")
+weights = PackedFloat32Array(20, 20, 3, 3, 2, 4, 8)
+source = 5
+region = "outpost17"
+guaranteed_paths = PackedStringArray("res://resources/items/dog_tag.tres")
+rolls = 2
+rarity_weights = PackedFloat32Array(1, 1, 1.2, 1.5, 1.5)
+max_counts = PackedInt32Array(2, 1, 1, 1, 1, 1, 1)

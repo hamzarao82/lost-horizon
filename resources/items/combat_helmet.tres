@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_vp7he"]
+
+[resource]
+script = ExtResource("1_vp7he")
+item_id = &"combat_helmet"
+display_name = "Combat Helmet"
+kind = 1
+rarity = 1
+description = "Dented, but it still turns a blow."
+slot = 3
+base_stats = {
+"damage_reduction": 0.02,
+"max_health": 6.0
+}
+value = 45

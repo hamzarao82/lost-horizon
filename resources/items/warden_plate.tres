@@ -12,3 +12,4 @@ damage_multiplier = 1.0
 damage_reduction = 0.0
 armor_points = 140.0
 description = "Adds a 140 point armor bar."
+unique = true

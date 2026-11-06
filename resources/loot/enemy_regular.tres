@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/loot_table.gd" id="1_0exh5"]
+
+[resource]
+script = ExtResource("1_0exh5")
+drop_chance = 0.35
+item_paths = PackedStringArray("res://resources/items/scrap_metal.tres", "res://resources/items/cloth_scrap.tres", "res://resources/items/credits_small.tres", "res://resources/items/bandage.tres")
+weights = PackedFloat32Array(40, 30, 20, 10)
+region = "outpost17"
+max_counts = PackedInt32Array(2, 2, 1, 1)
