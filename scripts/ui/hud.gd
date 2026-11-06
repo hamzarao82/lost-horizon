@@ -469,8 +469,9 @@ func _refresh_equipment() -> void:
 			inv.potions)
 
 
-func _on_item_collected(item: ItemData, kept: bool) -> void:
-	_show_toast(("Picked up %s" if kept else "%s (not an upgrade)") % item.display_name, item.color())
+func _on_item_collected(_item: ItemData, _kept: bool) -> void:
+	# RpgNotifications shows the loot toast and the bag-full notice; a second line here would duplicate it.
+	pass
 
 
 # --- story: quest tracker and subtitles (presentation only) -----------------
