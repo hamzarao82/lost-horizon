@@ -5,7 +5,7 @@ extends Node
 
 signal saved(reason: String)
 
-const CURRENT_VERSION: int = 3
+const CURRENT_VERSION: int = 4
 const MAX_POTIONS: int = 99
 const MAX_WORLD_IDS: int = 256
 const POSITION_LIMIT: float = 1000.0
@@ -59,6 +59,10 @@ func _on_player_died() -> void:
 	_respawn_pending = not in_arena and not world_checkpoint.is_empty()
 	if _respawn_pending:
 		_spawn_position = _position_from(world_checkpoint.get("position", null))
+		var regions := get_node_or_null("/root/RegionManager")
+		if regions:  # a checkpoint in another region respawns there once the reloaded Main is up
+			var region := str(world_checkpoint.get("region", "outpost_17"))
+			regions.pending_restore = {} if region == "outpost_17" else {"current": region, "position": world_checkpoint.get("position", null)}
 
 
 ## Moves the new Player to a queued spawn position after every _ready (WorldFlow places the
@@ -149,6 +153,9 @@ func build_save() -> Dictionary:
 			var v: Vector3 = p
 			world = {"checkpoint_id": checkpoint_id, "position": [v.x, v.y, v.z]}
 	data["world"] = world
+	var regions := get_node_or_null("/root/RegionManager")
+	if regions:
+		data["regions"] = regions.to_dict()
 	return data
 
 
@@ -163,6 +170,7 @@ func activate_checkpoint(id: String) -> bool:
 		"position": [player.global_position.x, player.global_position.y, player.global_position.z],
 		"inventory": player.inventory.to_dict(),
 		"player": {"health": player.health.health, "max_health": player.health.max_health},
+		"region": _current_region_id(),
 	}
 	return save_game("checkpoint")
 
@@ -245,6 +253,11 @@ func load_game() -> bool:
 	var progression := get_node_or_null("/root/Progression")
 	if progression:
 		progression.from_dict(data.get("progression", {}))  # a v2 save has none: level 1
+	var regions := get_node_or_null("/root/RegionManager")
+	if regions:
+		regions.from_dict(data.get("regions", {}))  # the region switch happens once the next Main is up
+		if not world_checkpoint.is_empty():  # keep the checkpoint empty when there is none: emptiness means "no checkpoint"
+			world_checkpoint["region"] = str((data.get("regions", {}) as Dictionary).get("current", "outpost_17"))
 	return true
 
 
@@ -266,6 +279,8 @@ func _migrate(data: Dictionary) -> Dictionary:
 				data = _migrate_1_to_2(data)
 			2:
 				data = _migrate_2_to_3(data)
+			3:
+				data = _migrate_3_to_4(data)
 		version += 1
 		data["version"] = version
 	return data
@@ -302,6 +317,15 @@ func _migrate_2_to_3(old: Dictionary) -> Dictionary:
 	var upgraded := old.duplicate(true)
 	if not upgraded.has("progression"):
 		upgraded["progression"] = {}
+	return upgraded
+
+
+## v3 (Milestone 6) had one world. v4 adds the regions section: the player is in Outpost 17, nothing else
+## is unlocked and no region has saved state.
+func _migrate_3_to_4(old: Dictionary) -> Dictionary:
+	var upgraded := old.duplicate(true)
+	if not upgraded.has("regions"):
+		upgraded["regions"] = RegionStore.default_section()
 	return upgraded
 
 
@@ -345,6 +369,7 @@ func _sanitize(data: Dictionary) -> Dictionary:
 	if not quests.is_empty():
 		result["quests"] = quests
 	result["world"] = _sanitize_world(data.get("world", {}))
+	result["regions"] = RegionStore.sanitize(data.get("regions", {}))
 	# Milestone 6: the inventory section also carries the bag, slots, currency, upgrades, unique rewards
 	# and merchant stock; Inventory.sanitize enforces types, ids and ranges. Progression is validated
 	# (budgets and skill prerequisites) by the autoload; without it the section is dropped.
@@ -422,6 +447,9 @@ func reset_runtime_state() -> void:
 	_respawn_pending = false
 	_spawn_position = null
 	_notice = ""
+	var region_manager := get_node_or_null("/root/RegionManager")
+	if region_manager:
+		region_manager.reset()
 	var quest_manager := get_node_or_null("/root/QuestManager")
 	if quest_manager:
 		quest_manager.reset()  # a fresh run starts the quest line (and the world flags) again
@@ -488,3 +516,8 @@ static func _flag(value: Variant) -> bool:
 	if value is int or value is float:
 		return value != 0
 	return false
+
+
+func _current_region_id() -> String:
+	var regions := get_node_or_null("/root/RegionManager")
+	return String(regions.current_region_id) if regions else "outpost_17"

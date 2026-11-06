@@ -486,10 +486,12 @@ func _set_amounts(pool: Pool, base: int) -> void:
 func _on_node_added(node: Node) -> void:
 	if node is Enemy:
 		var enemy := node as Enemy
-		enemy.damaged.connect(_on_enemy_damaged.bind(enemy))
-		enemy.defeated.connect(_on_enemy_defeated.bind(enemy))
-		enemy.swing_started.connect(_on_enemy_swing.bind(enemy))
-		enemy.was_hit.connect(_on_enemy_was_hit.bind(enemy))
+		if not enemy.has_meta(&"fx_bound"):  # a node re-entering the tree (region return) must not be hooked twice
+			enemy.set_meta(&"fx_bound", true)
+			enemy.damaged.connect(_on_enemy_damaged.bind(enemy))
+			enemy.defeated.connect(_on_enemy_defeated.bind(enemy))
+			enemy.swing_started.connect(_on_enemy_swing.bind(enemy))
+			enemy.was_hit.connect(_on_enemy_was_hit.bind(enemy))
 		_attach_trail.call_deferred(enemy, false)  # deferred: the tree is busy adding this very node
 	elif node is Player:
 		_hook_player(node as Player)
@@ -669,6 +671,9 @@ func _on_player_health_changed(current: float, _maximum: float) -> void:
 
 
 func _hook_pickup(pickup: Pickup) -> void:
+	if pickup.has_meta(&"fx_bound"):
+		return  # already hooked: it is only re-entering the tree
+	pickup.set_meta(&"fx_bound", true)
 	var color := Color.WHITE
 	if pickup.item:
 		color = pickup.item.color()
