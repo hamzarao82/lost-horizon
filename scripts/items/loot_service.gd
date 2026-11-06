@@ -15,9 +15,12 @@ static func grant(table: LootTable, inventory: Inventory, rng: RandomNumberGener
 		var item: ItemData = entry["item"]
 		var count: int = entry["count"]
 		if item.is_equipment():
-			var taken := inventory.add_item(item)
+			var taken := inventory.add_item(item, false)
 			if not taken:
+				inventory._quiet += 1
 				taken = int(inventory.collect(item, 1)["added"]) > 0  # keep it in the bag for selling
+				inventory._quiet -= 1
+			inventory.announce(item, taken)
 			(granted if taken else overflow).append({"item": item, "count": 1})
 		else:
 			var result := inventory.collect(item, count)

@@ -27,3 +27,6 @@ Buildings are still low-poly boxes with only surface grain added. The beach lost
 | materials pass | 59.1 / 57.4 | 23.2 / 20.5 | 109 / 105 ms | 140 |
 
 The pass costs about 30% of the frame rate on this integrated GPU and worsens frame spikes. Tried and removed for cost: glow, colour adjustment (about 5 FPS), roughness maps and anisotropic filtering (about 20 FPS together). Web export: wasm 39.5 MB (unchanged), pck 7.1 MB (was 1.6 MB; the normal maps are excluded from the web preset). Textures on disk: 11 MB. 30 test suites pass with zero script errors.
+
+## Worn gear models
+`blender --background --python tools/blender/make_gear.py` builds `assets/armor/combat_helmet.glb`, `tactical_gloves.glb` and `field_boots.glb` with the same helpers as `weapons_armor.py` (origin at the bone head of the 1.8 m player rig, vertex colours, one material). Gloves and boots are symmetric, so one model serves both sides. Scale and attachment were checked in screenshots from a free camera.

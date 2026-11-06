@@ -40,6 +40,8 @@ var _stacks: Array[Dictionary] = []
 ## Extra equipment slots (Slot -> ItemData). Primary weapon and body armor stay in `weapon` / `armor`.
 var _slots: Dictionary = {}
 var currency: int = 0
+## > 0 while add_item() runs: its inner collect() calls must not announce a second time.
+var _quiet: int = 0
 ## item_id -> upgrade level (items are shared Resources, so levels live here, never on the resource).
 var upgrades: Dictionary = {}
 ## Unique rewards already received; reloading a save can never give them twice.
@@ -302,15 +304,24 @@ func refresh_gear() -> void:
 	changed.emit()
 
 
-## Returns true if the item was taken (and should disappear from the world).
-func add_item(item: ItemData) -> bool:
+## Returns true if the item was taken (and should disappear from the world). Raises item_collected
+## exactly once (collect() calls made from inside stay quiet); pass announce = false when the caller
+## announces the final outcome itself (see LootService).
+func add_item(item: ItemData, announce: bool = true) -> bool:
+	_quiet += 1
+	var kept := _add_item_core(item)
+	_quiet -= 1
+	if announce:
+		item_collected.emit(item, kept)
+	return kept
+
+
+func _add_item_core(item: ItemData) -> bool:
 	var kept := false
 	if item.unique and unique_claimed.has(String(item.item_id)):
-		item_collected.emit(item, false)
 		return false
 	if item.currency_amount > 0:
 		add_currency(item.currency_amount)
-		item_collected.emit(item, true)
 		return true
 	match item.kind:
 		ItemData.Kind.CONSUMABLE:
@@ -337,7 +348,6 @@ func add_item(item: ItemData) -> bool:
 		if item.unique:
 			unique_claimed[String(item.item_id)] = true
 		changed.emit()
-	item_collected.emit(item, kept)
 	return kept
 
 
@@ -475,6 +485,7 @@ func collect(item: ItemData, quantity: int = 1) -> Dictionary:
 		return {"added": 0, "overflow": 0}
 	if item.currency_amount > 0:
 		add_currency(item.currency_amount * quantity)
+		_announce(item, true)
 		return {"added": quantity, "overflow": 0}
 	if item.unique and unique_claimed.has(String(item.item_id)):
 		return {"added": 0, "overflow": quantity}
@@ -486,6 +497,7 @@ func collect(item: ItemData, quantity: int = 1) -> Dictionary:
 			potion_heal = item.heal_amount
 			changed.emit()
 			item_changed.emit("health_potion")
+		_announce(item, taken > 0)
 		return {"added": taken, "overflow": quantity - taken}
 	if item.is_equipment() and (_is_equipped(item) or count_of(String(item.item_id)) > 0):
 		return {"added": 0, "overflow": quantity}  # one copy of any equipment piece at a time
@@ -502,7 +514,18 @@ func collect(item: ItemData, quantity: int = 1) -> Dictionary:
 			unique_claimed[String(item.item_id)] = true
 		changed.emit()
 		item_changed.emit(String(item.item_id))
+	_announce(item, added > 0)
 	return {"added": added, "overflow": quantity - added}
+
+
+## One item_collected per collect() call, unless an add_item() call around it announces instead.
+func announce(item: ItemData, kept: bool) -> void:
+	item_collected.emit(item, kept)
+
+
+func _announce(item: ItemData, kept: bool) -> void:
+	if _quiet == 0:
+		item_collected.emit(item, kept)
 
 
 ## Puts up to `quantity` into existing stacks, then a new stack. Returns how many went in.

@@ -57,6 +57,7 @@ var loaded: bool = false
 var authored_height: float = 1.8
 var driver: AnimationDriver
 var model: Node3D
+var gear: GearVisuals
 var hand_socket: WeaponSocket
 var chest_socket: WeaponSocket
 var meshes: Array[MeshInstance3D] = []
@@ -181,6 +182,11 @@ func _load_model() -> bool:
 		chest_socket = WeaponSocket.attach(skeleton, &"Chest", "ChestSocket")
 		if chest_socket:
 			chest_socket.position_offset = plate_position
+	if _is_player:
+		gear = GearVisuals.new()
+		gear.attach(skeleton)
+		if _inventory != null:
+			gear.refresh(_inventory)
 	authored_height = _measure_height()
 	_has_death = driver.has_exact("death")  # a fallback pose must not cancel the enemy tip-over
 	loaded = true
@@ -220,6 +226,8 @@ func _on_inventory_changed() -> void:
 		return
 	set_weapon(_inventory.weapon.item_id if _inventory.weapon else &"")
 	_update_plate(_inventory.armor.item_id if _inventory.armor else &"")
+	if gear != null:
+		gear.refresh(_inventory)
 
 
 func _weapon_scene(item_id: StringName) -> PackedScene:
