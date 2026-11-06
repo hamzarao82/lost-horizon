@@ -37,3 +37,17 @@ All from ambientCG (https://ambientcg.com), licence **CC0 1.0** (public domain; 
 | Metal041B | https://ambientcg.com/view?id=Metal041B | merged kit meshes (triplanar) |
 
 Considered and removed again (downloaded but not used): CorrugatedSteel005, Fabric084.
+
+## Imported 3D props (Milestone 5 visual pass)
+Source: Poly Haven (https://polyhaven.com), licence CC0 1.0 (public domain, commercial use allowed, no attribution required; credited here anyway). Downloaded as 1k glTF through the public API (`https://api.polyhaven.com/files/<id>`), textures downscaled to 256 px and re-exported as one GLB each with `tools/blender/import_polyhaven.py` (origin moved to the base centre, JPEG textures at quality 85).
+
+| File | Poly Haven id and page | Author | Tris | Size |
+|---|---|---|---|---|
+| assets/environments/props_new/barrel_01.glb | Barrel_01, https://polyhaven.com/a/Barrel_01 | Jorge Camacho | 2682 | 0.12 MB |
+| assets/environments/props_new/barrel_03.glb | barrel_03, https://polyhaven.com/a/barrel_03 | Serhii Khromov | 1473 | 0.08 MB |
+| assets/environments/props_new/wooden_crate_01.glb | wooden_crate_01, https://polyhaven.com/a/wooden_crate_01 | James Ray Cock | 6576 | 0.23 MB |
+| assets/environments/props_new/wooden_crate_02.glb | wooden_crate_02, https://polyhaven.com/a/wooden_crate_02 | James Ray Cock, Jurita Burger | 5176 | 0.19 MB |
+| assets/environments/props_new/security_camera_02.glb | security_camera_02, https://polyhaven.com/a/security_camera_02 | Garrison Gager, Yann Kervran | 12477 | 0.52 MB |
+
+Rejected and not shipped: old_military_crate (21k triangles), shrub_sorrel_01 (35 cm plant in 11 meshes), jerrycan and oil tin (too many meshes per draw-call budget).
+Quaternius and Kenney packs were checked: their downloads are behind Patreon/JavaScript pages that could not be fetched unattended, so no palms or foliage were imported. Palms, bushes and rocks remain the procedural Blender kit pieces from Milestone 2 (`palm_a`, `palm_b`, `bush`, `rocks_*`), now scattered with `scripts/world/vegetation_scatter.gd`.

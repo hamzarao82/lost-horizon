@@ -777,6 +777,7 @@ func _kit_jungle() -> void:
 		for i in (10 if quality_level == QUALITY_MEDIUM else 18):
 			var pos := _palm_position()
 			_kit_add("jungle", "bush", _xf(pos, _rng.randf() * TAU, _rng.randf_range(0.9, 1.5)))
+	_add_scatter()
 
 
 func _kit_beach(b: Builder) -> void:
@@ -900,3 +901,13 @@ func _add_clouds() -> void:
 	holder.add_child(node)
 	_clouds = holder
 	_track(holder)
+
+
+## Dense ground cover and story clusters (Milestone 5 visual pass); see vegetation_scatter.gd.
+func _add_scatter() -> void:
+	var density := 1.0 if quality_level == QUALITY_HIGH else (0.7 if quality_level == QUALITY_MEDIUM else 0.4)
+	var view_range := 45.0 if quality_level == QUALITY_HIGH else 30.0
+	for node in VegetationScatter.build(density, Callable(self, "_height"), view_range):
+		_track(node)
+	for node in VegetationScatter.build_clusters(Callable(self, "_height")):
+		_track(node)
