@@ -53,3 +53,5 @@ All 43 suites pass on the merged `master`, with zero script errors, after the fi
 **Bugs found and fixed while merging:** (1) the weapon damage multiplier was applied twice (a 2.1x claymore hit for 4.4x), now guarded by `gear_integration_check`; (2) two separate currency balances, now one owner (the Inventory) guarded by `currency_single_owner_check`; (3) the playthrough bot crashed on a freed pickup once the new loot tables created more pickups (test loop made robust).
 
 **Known gaps:** elite and heavy enemies now have about a 4.3% chance per kill to drop boots or gloves; `Inventory.collect()` does not emit the item-collected signal so crafted and bought items show no toast; death reload keeping progression is tested through a respawned scene, not the real 2 s death timer; Android and web storage not run.
+
+**Web load after Milestone 6 (boot probe, desktop Chromium, one run):** reveal done at 41.8 s game clock, against 37.0 s for the previous live build and 27.7 s for the Milestone 4 build. The budget is 30 s: **missed**, and it has grown with each milestone since Milestone 4. Pack 9.7 MB, wasm 39.5 MB. The cause of the growth has not been investigated.
