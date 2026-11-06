@@ -16,6 +16,11 @@ var _root: Control
 var _main_page: VBoxContainer
 var _settings_page: SettingsPage
 var _equipment: EquipmentScreen
+var _inventory_screen: InventoryScreen
+var _character_screen: CharacterScreen
+var _crafting_screen: CraftingScreen
+var _merchant_screen: MerchantScreen
+var _notifications: RpgNotifications
 var _pause_button: Button
 var _load_button: Button
 
@@ -75,9 +80,14 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_K:
+		if not _rpg_screen_open():
+			show_character()
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("equipment") and not event.is_echo():
-		if not _equipment.is_open():
-			show_equipment()
+		if not _rpg_screen_open() and not _equipment.is_open():
+			show_inventory()
 			get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("pause") and not event.is_echo():
@@ -149,6 +159,16 @@ func _build_ui() -> void:
 	holder.add_child(_main_page)
 	holder.add_child(_settings_page)
 
+	_inventory_screen = InventoryScreen.new()
+	add_child(_inventory_screen)
+	_character_screen = CharacterScreen.new()
+	add_child(_character_screen)
+	_crafting_screen = CraftingScreen.new()
+	add_child(_crafting_screen)
+	_merchant_screen = MerchantScreen.new()
+	add_child(_merchant_screen)
+	_notifications = RpgNotifications.new()
+	add_child(_notifications)
 	_equipment = EquipmentScreen.new()
 	add_child(_equipment)
 
@@ -171,7 +191,10 @@ func _build_main_page() -> VBoxContainer:
 	page.add_theme_constant_override("separation", 12)
 	page.add_child(_title("PAUSED"))
 	page.add_child(_button("Resume", close))
-	page.add_child(_button("Equipment", show_equipment))
+	page.add_child(_button("Inventory", show_inventory))
+	page.add_child(_button("Character", show_character))
+	page.add_child(_button("Crafting", show_crafting))
+	page.add_child(_button("Gear overview", show_equipment))
 	page.add_child(_button("Save", _on_save))
 	_load_button = _button("Load", _on_load)
 	page.add_child(_load_button)
@@ -265,3 +288,30 @@ func _on_main_menu() -> void:
 		stats.reset()
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/boot/Boot.tscn")
+
+
+## The RPG screens (Milestone 6). Each opens the pause menu first so Resume/close behave as for the
+## equipment screen; the screens pause the tree themselves.
+func show_inventory() -> void:
+	open()
+	_inventory_screen.open()
+
+
+func show_character() -> void:
+	open()
+	_character_screen.open()
+
+
+func show_crafting() -> void:
+	open()
+	_crafting_screen.open()
+
+
+func show_merchant(data: MerchantData) -> void:
+	open()
+	_merchant_screen.open_for(data)
+
+
+func _rpg_screen_open() -> bool:
+	return _inventory_screen.is_open() or _character_screen.is_open() \
+			or _crafting_screen.is_open() or _merchant_screen.is_open()
