@@ -34,6 +34,10 @@ const SIGHT_FOV_DEG: float = 130.0
 const NOTICE_RANGE: float = 6.0       # a visible player this close is noticed at once
 const SUSPICION_RATE: float = 1.6     # per second while a farther player stays visible
 const HEAR_RADIUS: float = 12.0       # combat noise reaches patrols this far
+## Opt-in (Blackwood encounters): when this enemy notices the player, enemies within ALLY_ALERT_RADIUS
+## that have not noticed yet join the chase. One hop only, so the cost stays a single scan of the group.
+@export var coordinate_alarm: bool = false
+const ALLY_ALERT_RADIUS: float = 10.0
 const SUSPICIOUS_TIMEOUT: float = 8.0
 const RETURN_TIMEOUT: float = 14.0
 const STUCK_SECONDS: float = 2.0
@@ -231,6 +235,7 @@ func _state_idle() -> void:
 	var player := _target()
 	if player and _flat_to(player).length() <= detection_range:
 		state = State.CHASE
+		_raise_alarm()
 
 
 func _state_chase(delta: float) -> void:
@@ -517,6 +522,7 @@ func _alert() -> void:
 	_suspicion = 1.0
 	_cooldown = minf(_cooldown, 0.4)
 	state = State.CHASE
+	_raise_alarm()
 
 
 ## Called by other enemies' hits: investigate where the fight was.
@@ -658,3 +664,24 @@ func _state_return(delta: float) -> void:
 		_begin_patrol()
 		_arrived = true  # at the marker: wait there as usual, then move on
 		_wait_left = 0.2
+
+
+func _raise_alarm() -> void:
+	if not coordinate_alarm:
+		return
+	for node in get_tree().get_nodes_in_group("enemies"):
+		var other := node as Enemy
+		if other == null or other == self or other.is_dead():
+			continue
+		if other.global_position.distance_to(global_position) > ALLY_ALERT_RADIUS:
+			continue
+		if other.state == State.IDLE or other.state == State.PATROL or other.state == State.SUSPICIOUS \
+				or other.state == State.SEARCH or other.state == State.RETURN:
+			other.receive_ally_alert()
+
+
+## An ally noticed the player: join the chase (does not alarm further allies).
+func receive_ally_alert() -> void:
+	_suspicion = 1.0
+	_cooldown = minf(_cooldown, 0.6)
+	state = State.CHASE

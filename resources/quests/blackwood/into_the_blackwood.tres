@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_eel55"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_wuwxo"]
+
+[sub_resource type="Resource" id="Resource_cqkwb"]
+script = ExtResource("1_eel55")
+id = &"enter_blackwood"
+text = "Enter the Blackwood"
+type = 1
+targets = PackedStringArray("blackwood_jungle_entrance")
+
+[sub_resource type="Resource" id="Resource_rpvvs"]
+script = ExtResource("1_eel55")
+id = &"follow_trail"
+text = "Follow the military trail"
+type = 1
+targets = PackedStringArray("blackwood_trail")
+
+[sub_resource type="Resource" id="Resource_6omu8"]
+script = ExtResource("1_eel55")
+id = &"check_patrol_gear"
+text = "Investigate the abandoned patrol equipment"
+targets = PackedStringArray("bw_patrol_gear")
+
+[sub_resource type="Resource" id="Resource_hc4pw"]
+script = ExtResource("1_eel55")
+id = &"survive_ambush"
+text = "Survive the ambush"
+type = 5
+targets = PackedStringArray("blackwood_ambush_cleared")
+
+[sub_resource type="Resource" id="Resource_n4pwp"]
+script = ExtResource("1_eel55")
+id = &"find_camp"
+text = "Find the abandoned patrol camp"
+type = 1
+targets = PackedStringArray("blackwood_patrol_camp")
+
+[sub_resource type="Resource" id="Resource_dlva3"]
+script = ExtResource("1_eel55")
+id = &"camp_logs"
+text = "Read the patrol logs"
+type = 5
+targets = PackedStringArray("doc_bw_log_patrol_1_found", "doc_bw_log_patrol_2_found")
+progress_label = "Logs"
+optional = true
+
+[resource]
+script = ExtResource("2_wuwxo")
+id = &"into_the_blackwood"
+title = "Into the Blackwood"
+description = "The coast trail ends at a wall of jungle. A military track leads in. Follow it and find out what happened to the patrol that took it."
+objectives = Array[ExtResource("1_eel55")]([SubResource("Resource_cqkwb"), SubResource("Resource_rpvvs"), SubResource("Resource_6omu8"), SubResource("Resource_hc4pw"), SubResource("Resource_n4pwp"), SubResource("Resource_dlva3")])
+rewards = PackedStringArray("credits_medium", "bandage", "bandage")
+reward_text = "Credits and field dressings."
+next_quest = &"ghost_frequency"
+start_captions = PackedStringArray("The trail goes in. The patrol never came out.")
+complete_captions = PackedStringArray("A hand-drawn map in the camp marks a signal tower deeper in.")
+location_hint = "Blackwood"
