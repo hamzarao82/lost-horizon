@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/loot_table.gd" id="1_3fdgt"]
+
+[resource]
+script = ExtResource("1_3fdgt")
+drop_chance = 0.6
+item_paths = PackedStringArray("res://resources/items/health_potion.tres", "res://resources/items/armor_patch.tres", "res://resources/items/credits_medium.tres", "res://resources/items/coastal_alloy.tres", "res://resources/items/sharpening_oil.tres", "res://resources/items/electronics.tres", "res://resources/items/tactical_gloves.tres")
+weights = PackedFloat32Array(20, 14, 20, 16, 8, 14, 3)
+source = 1
+region = "dead_coast"
+rarity_weights = PackedFloat32Array(1, 1, 1.1, 1.3, 1.3)
+max_counts = PackedInt32Array(1, 1, 1, 2, 1, 1, 1)
