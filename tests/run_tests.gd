@@ -323,11 +323,16 @@ func _test_variants_and_drops() -> void:
 
 	var table := load(soldier.loot_table_path) as LootTable
 	var original_chance := table.drop_chance
+	# The tier bonus roll is random by design; pin it off so this check counts only the base table drop.
+	var bonus_table := load(Enemy.BONUS_TABLES[soldier.loot_table_path.get_file().get_basename()]) as LootTable
+	var bonus_original := bonus_table.drop_chance
+	bonus_table.drop_chance = 0.0
 	table.drop_chance = 1.0
 	var kill := load("res://resources/attacks/heavy_1.tres") as AttackData
 	for i in 3:
 		soldier.receive_hit(kill, player.global_position)
 	table.drop_chance = original_chance
+	bonus_table.drop_chance = bonus_original
 	await _frames(3)
 	var pickups: Array[Pickup] = []
 	for child in main.get_children():
