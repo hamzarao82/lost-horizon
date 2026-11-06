@@ -405,6 +405,25 @@ func _on_health_changed(current: float, maximum: float) -> void:
 	_label.text = "%s [%s%s]" % [display_name, "#".repeat(filled), "-".repeat(10 - filled)]
 
 
+## Materials and credits dropped on top of the gear table, by the tier the enemy's own table implies.
+## Gear drop rates are unchanged; see docs/ITEMS_AND_ECONOMY.md for the resulting rates.
+const BONUS_TABLES: Dictionary = {
+	"soldier_loot": "res://resources/loot/enemy_regular.tres",
+	"hunter_loot": "res://resources/loot/enemy_elite.tres",
+	"heavy_loot": "res://resources/loot/enemy_elite.tres",
+}
+
+
+func _drop_bonus_loot() -> void:
+	var key := loot_table_path.get_file().get_basename()
+	if not BONUS_TABLES.has(key):
+		return
+	var table := load(BONUS_TABLES[key]) as LootTable
+	var item := table.roll() if table else null
+	if item:
+		Pickup.spawn.call_deferred(get_parent(), item, Vector3(global_position.x + 0.8, 0.0, global_position.z))
+
+
 func _drop_loot() -> void:
 	if loot_table_path == "":
 		return
@@ -428,6 +447,7 @@ func _die() -> void:
 	_material.albedo_color = Color(0.2, 0.2, 0.2)
 	set_deferred("collision_layer", 0)  # nobody collides with the body; it still lands on the floor
 	_drop_loot()
+	_drop_bonus_loot()
 	var tween := create_tween()
 	tween.tween_property(_visual_root, "rotation_degrees:x", -90.0, 0.35)
 	tween.tween_interval(1.5)

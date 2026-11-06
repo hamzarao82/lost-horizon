@@ -228,6 +228,7 @@ func _test_caches() -> void:
 		for path in crate.loot_paths:
 			loadable = loadable and load(path) is ItemData
 		_check(loadable, "%s loot items all load" % id)
+		crate.bonus_table_path = ""  # this test counts the fixed items; the bonus roll is covered by world_progression_check
 		var pickups_before := _count_pickups()
 		_check(crate.interact(player), "%s can be opened" % id)
 		await _frames(3)

@@ -100,10 +100,10 @@ func from_dict(data: Dictionary) -> void:
 	armor = _item_by_id(str(data.get("armor", "")), ItemData.Kind.ARMOR)
 	if armor and armor.equip_slot() != ItemData.Slot.BODY:
 		armor = null
-	potions = clampi(int(data.get("potions", 0)), 0, MAX_POTIONS)
+	potions = clampi(_whole(data.get("potions", 0)), 0, MAX_POTIONS)
 	_load_extended(data)
 	# Saves written before armor became a bar have no points: restore the bar full.
-	_sync_armor_pool(float(data.get("armor_points", -1.0)))
+	_sync_armor_pool(_num(data.get("armor_points", -1.0)))
 	changed.emit()
 
 
@@ -115,7 +115,7 @@ func _load_extended(data: Dictionary) -> void:
 	merchant_stock.clear()
 	_cooldowns.clear()
 	_buffs.clear()
-	currency = clampi(int(data.get("currency", 0)), 0, MAX_CURRENCY)
+	currency = clampi(_whole(data.get("currency", 0)), 0, MAX_CURRENCY)
 	var slots_raw: Variant = data.get("slots", {})
 	if slots_raw is Dictionary:
 		for slot_name in (slots_raw as Dictionary).keys():
@@ -136,7 +136,7 @@ func _load_extended(data: Dictionary) -> void:
 			if item == null or _is_equipped(item) or _stacks.size() >= BAG_CAPACITY:
 				invalid_ids_dropped += 1
 				continue
-			var count := clampi(int((entry as Dictionary).get("count", 1)), 1, item.stack_limit())
+			var count := clampi(_whole((entry as Dictionary).get("count", 1)), 1, item.stack_limit())
 			_add_to_bag(item, count)
 	var upgrades_raw: Variant = data.get("upgrades", {})
 	if upgrades_raw is Dictionary:
@@ -145,7 +145,7 @@ func _load_extended(data: Dictionary) -> void:
 			if item == null or not item.is_equipment():
 				invalid_ids_dropped += 1
 				continue
-			upgrades[String(item.item_id)] = clampi(int((upgrades_raw as Dictionary)[key]), 0, item.max_upgrade)
+			upgrades[String(item.item_id)] = clampi(_whole((upgrades_raw as Dictionary)[key]), 0, item.max_upgrade)
 	var claimed_raw: Variant = data.get("unique_claimed", [])
 	if claimed_raw is Array:
 		for id in claimed_raw as Array:
@@ -160,7 +160,7 @@ func _load_extended(data: Dictionary) -> void:
 			var clean: Dictionary = {}
 			for item_id in (entry as Dictionary).keys():
 				if _valid_id(str(item_id)):
-					clean[str(item_id)] = clampi(int((entry as Dictionary)[item_id]), 0, 9999)
+					clean[str(item_id)] = clampi(_whole((entry as Dictionary)[item_id]), 0, 9999)
 			merchant_stock[str(merchant_id)] = clean
 
 
@@ -168,13 +168,13 @@ func _load_extended(data: Dictionary) -> void:
 ## fields never reach the game): same shape as to_dict(), but types, lengths and ranges are enforced.
 static func sanitize(raw: Dictionary) -> Dictionary:
 	var out: Dictionary = {}
-	out["currency"] = clampi(int(raw.get("currency", 0)), 0, MAX_CURRENCY)
+	out["currency"] = clampi(_whole(raw.get("currency", 0)), 0, MAX_CURRENCY)
 	var bag: Array = []
 	var bag_raw: Variant = raw.get("bag", [])
 	if bag_raw is Array:
 		for entry in bag_raw as Array:
 			if entry is Dictionary and _valid_id(str((entry as Dictionary).get("id", ""))) and bag.size() < BAG_CAPACITY:
-				bag.append({"id": str(entry["id"]), "count": clampi(int((entry as Dictionary).get("count", 1)), 1, 99)})
+				bag.append({"id": str(entry["id"]), "count": clampi(_whole((entry as Dictionary).get("count", 1)), 1, 99)})
 	out["bag"] = bag
 	var slots: Dictionary = {}
 	var slots_raw: Variant = raw.get("slots", {})
@@ -188,7 +188,7 @@ static func sanitize(raw: Dictionary) -> Dictionary:
 	if upgrades_raw is Dictionary:
 		for key in (upgrades_raw as Dictionary).keys():
 			if _valid_id(str(key)):
-				upgrades_clean[str(key)] = clampi(int((upgrades_raw as Dictionary)[key]), 0, 20)
+				upgrades_clean[str(key)] = clampi(_whole((upgrades_raw as Dictionary)[key]), 0, 20)
 	out["upgrades"] = upgrades_clean
 	var claimed: Array = []
 	var claimed_raw: Variant = raw.get("unique_claimed", [])
@@ -206,7 +206,7 @@ static func sanitize(raw: Dictionary) -> Dictionary:
 				var inner: Dictionary = {}
 				for item_id in (entry as Dictionary).keys():
 					if _valid_id(str(item_id)):
-						inner[str(item_id)] = clampi(int((entry as Dictionary)[item_id]), 0, 9999)
+						inner[str(item_id)] = clampi(_whole((entry as Dictionary)[item_id]), 0, 9999)
 				stock_clean[str(merchant_id)] = inner
 	out["merchant_stock"] = stock_clean
 	return out
@@ -397,7 +397,7 @@ func use_potion(health: HealthComponent) -> bool:
 	if potions <= 0 or health.is_dead() or health.health >= health.max_health:
 		return false
 	potions -= 1
-	health.heal(potion_heal)
+	health.heal(potion_heal * _heal_scale())
 	changed.emit()
 	return true
 
@@ -815,3 +815,28 @@ func tick(delta: float) -> void:
 		_buffs[i]["remaining"] = float(_buffs[i]["remaining"]) - delta
 		if float(_buffs[i]["remaining"]) <= 0.0:
 			_buffs.remove_at(i)
+
+
+## Field Medic skill: 1.0 unless the Progression autoload says otherwise (detached inventories in tests too).
+func _heal_scale() -> float:
+	if not is_inside_tree():
+		return 1.0
+	var progression := get_node_or_null("/root/Progression")
+	if progression != null and progression.has_method("heal_multiplier"):
+		return float(progression.heal_multiplier())
+	return 1.0
+
+
+# --- safe conversions for untrusted save data -------------------------------
+# int()/float() throw on Dictionary and Array values; saved numbers come through these instead.
+
+static func _num(value: Variant, fallback: float = 0.0) -> float:
+	if (value is float and is_finite(value)) or value is int:
+		return float(value)
+	if value is String and (value as String).is_valid_float():
+		return float(value)
+	return fallback
+
+
+static func _whole(value: Variant, fallback: int = 0) -> int:
+	return int(clampf(_num(value, float(fallback)), -2147483648.0, 2147483647.0))

@@ -208,6 +208,7 @@ func _test_crates() -> void:
 	var world := main.get_node("World") as WorldFlow
 	var player := main.get_node("Player") as Player
 	var crate := world.crates[0]
+	crate.bonus_table_path = ""  # counts the fixed items; the bonus roll is covered by world_progression_check
 	var before := _count_pickups(world)
 	_check(crate.interact(player), "a crate opens")
 	await _frames(3)

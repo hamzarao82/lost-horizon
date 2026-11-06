@@ -60,7 +60,37 @@ func to_dict() -> Dictionary:
 
 func from_dict(raw: Variant) -> void:
 	progress.from_dict(raw, attribute_defs, tree.skills.values())
+	_prune_skills(progress)
 	_notify_changed()
+
+
+## Validated copy of saved progression for the save layer, so unknown or inconsistent data never
+## reaches the game state.
+func sanitize(raw: Variant) -> Dictionary:
+	var temp := PlayerProgress.new(config)
+	temp.from_dict(raw, attribute_defs, tree.skills.values())
+	_prune_skills(temp)
+	return temp.to_dict()
+
+
+## from_dict only checks point budgets. A hand-edited save could still own a skill whose prerequisite
+## or level requirement is missing: drop those ranks and refund their points, until nothing changes.
+func _prune_skills(target: PlayerProgress) -> void:
+	var changed := true
+	while changed:
+		changed = false
+		for id in target.skills.keys():
+			var skill := tree.get_skill(StringName(id))
+			var valid := skill != null and target.level() >= skill.min_level
+			if valid:
+				for pre in skill.prerequisites:
+					if target.skill_rank(StringName(pre)) < 1:
+						valid = false
+			if not valid:
+				var refund: int = int(target.skills[id]) * (skill.cost if skill else 0)
+				target.skill_points += refund
+				target.skills.erase(id)
+				changed = true
 
 
 func attribute_def(id: StringName) -> AttributeData:

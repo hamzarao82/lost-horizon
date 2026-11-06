@@ -49,3 +49,19 @@ Status legend: **V** verified by a test that was run; **P** partly implemented; 
 **Recipes** (`resources/recipes/`): bandage (2 cloth), medkit supply (3 cloth + 1 antiseptic), armor patch (3 scrap + 1 cloth), sharpening oil (1 antiseptic + 1 scrap), weapon upgrade kit (4 scrap + 1 electronics + 20 credits), armor upgrade kit (3 scrap + 2 cloth + 20 credits).
 
 **Regenerating data.** `godot --headless --path . -s tools/gen_items.gd` rewrites the Milestone 6 items, recipes, loot tables and merchant (existing items are never touched). `tools/gen_icons.gd` redraws every icon.
+
+## World wiring (Milestone 6 phase 2)
+Verified by `tests/world_progression_check.gd` (32 checks).
+
+| Source | What drops | Rate |
+|---|---|---|
+| Soldier (regular) | its existing gear table (`soldier_loot`, unchanged) plus `enemy_regular`: scrap, cloth, small credits, bandage | gear 70% as before; bonus 35% (measured 4000 seeded rolls) |
+| Hunter and heavy (elite) | their existing tables plus `enemy_elite` (scrap, credits, armor patch, antiseptic, field boots, tactical gloves, weapon kit) | bonus drop chance from the table; about 4.3% per kill is wearable gear (boots or gloves), a small addition to elite gear drops |
+| Warden (boss) | unchanged guaranteed table; blade and plate are unique and never given twice | guaranteed |
+| Supply crates | their fixed items plus `crate_common` once, at opening | one roll; the crate is one-shot through its world flag |
+| Hidden caches (`cache_*`) | fixed items plus `crate_hidden` | same |
+| Mission `first_signal` | `reward_first_signal`: 60 credits, weapon upgrade kit, intel drive | once, guarded by the saved flag `mission_reward_granted` |
+
+The quartermaster (`outpost_quartermaster`, from `resources/merchants`) stands at the compound gate in Area B (about x -14, z 24) behind a plain supply table. Interacting emits `MerchantNpc.open_requested(merchant_data)` (and the older `trade_requested`); no trading screen exists yet, that is the UI work. Purchases and the remaining stock persist through save and load (verified).
+
+Field Medic: `Inventory.use_potion` heals `potion_heal x Progression.heal_multiplier()`; 1.0 without the skill (verified: 40 vs 44 with rank 1).

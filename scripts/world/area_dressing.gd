@@ -88,6 +88,8 @@ static func _crate(outpost: Node3D, crate_id: StringName, pos: Vector3, loot: Pa
 	crate.name = String(crate_id).capitalize().replace(" ", "")
 	crate.crate_id = crate_id
 	crate.loot_paths = loot
+	if String(crate_id).begins_with("cache"):
+		crate.bonus_table_path = "res://resources/loot/crate_hidden.tres"
 	crate.position = pos
 	outpost.add_child(crate)
 	outpost.call("_collider", String(crate_id) + "Body", pos + Vector3(0.0, 0.4, 0.0), Vector3(1.1, 0.8, 0.85))

@@ -6,6 +6,9 @@ extends Interactable
 
 @export var crate_id: StringName = &"crate_1"
 @export var loot_paths: PackedStringArray = PackedStringArray()
+## Extra weighted roll on top of the fixed items (materials, credits); "" disables it. Hidden caches use crate_hidden.
+@export var bonus_table_path: String = "res://resources/loot/crate_common.tres"
+
 
 static var _wood: StandardMaterial3D
 static var _lid_wood: StandardMaterial3D
@@ -71,6 +74,7 @@ func _on_interact(_player: Node3D) -> void:
 	if state:
 		state.set_flag(_taken_flag(), true)
 	_drop_loot()
+	_drop_bonus()
 
 
 func _drop_loot() -> void:
@@ -86,3 +90,25 @@ func _drop_loot() -> void:
 		var spot := global_position + spread
 		spot.y = global_position.y
 		Pickup.spawn(parent, item, spot)
+
+
+## Rolls the bonus table once at opening; the crate itself stays one-shot through its world flag, so
+## a reload cannot roll it again. Unique items already received never drop.
+func _drop_bonus() -> void:
+	var parent := get_parent()
+	var table := load(bonus_table_path) as LootTable if bonus_table_path != "" else null
+	if parent == null or table == null:
+		return
+	var claimed: Dictionary = {}
+	var player := get_tree().get_first_node_in_group("player") as Player
+	if player and player.inventory:
+		claimed = player.inventory.unique_claimed
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var index := 0
+	for entry in table.roll_all(rng, claimed):
+		for n in mini(int(entry["count"]), 3):
+			var spot := global_position + Vector3((float(index) - 1.0) * 0.8, 0.0, -1.2)
+			spot.y = global_position.y
+			Pickup.spawn(parent, entry["item"], spot)
+			index += 1

@@ -68,8 +68,8 @@ func _test_migration_and_sanitising() -> void:
 	_write_raw('{"version": 1, "next_wave": 2, "completed": false, "inventory": {"weapon": "combat_knife", "armor": "", "potions": 3}, "player": {"health": 80, "max_health": 100}, "defeated_bosses": []}')
 	_check(_sm.load_game(), "a real version 1 save still loads")
 	var data: Dictionary = _sm.pending_data
-	_check(int(data["version"]) == 2 and data["world"]["checkpoint_id"] == "" and data["world"]["position"] == null,
-			"it is upgraded to version 2 with an empty world section")
+	_check(int(data["version"]) == _sm.CURRENT_VERSION and data["world"]["checkpoint_id"] == "" and data["world"]["position"] == null,
+			"it is upgraded to the current version with an empty world section")
 	_check(data["inventory"]["weapon"] == "combat_knife" and int(data["inventory"]["potions"]) == 3 and int(data["next_wave"]) == 2,
 			"its inventory and wave are untouched")
 	_check(_sm.consume_spawn_position() == null, "no checkpoint means the default spawn")
@@ -98,7 +98,7 @@ func _test_checkpoint_and_respawn() -> void:
 
 	_check(_sm.activate_checkpoint("checkpoint_c"), "activating a checkpoint writes the save")
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(_sm.save_path()))
-	_check(parsed is Dictionary and int(parsed["version"]) == 2, "the file is version 2")
+	_check(parsed is Dictionary and int(parsed["version"]) == _sm.CURRENT_VERSION, "the file has the current version")
 	var world: Dictionary = parsed["world"]
 	_check(world["checkpoint_id"] == "checkpoint_c", "it records the checkpoint id")
 	_check(absf(float(world["position"][0]) - 3.0) < 0.2 and absf(float(world["position"][2]) + 40.0) < 0.2,

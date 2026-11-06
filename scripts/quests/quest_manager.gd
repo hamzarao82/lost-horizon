@@ -27,6 +27,8 @@ const FIRST_QUEST: StringName = &"first_signal"
 ## Completing this quest ends the Milestone 4 mission: flag, autosave, mission_completed.
 const MISSION_QUEST: StringName = &"first_signal"
 const MISSION_COMPLETE_FLAG: StringName = &"mission_first_signal_complete"
+const MISSION_REWARD_TABLE: String = "res://resources/loot/reward_first_signal.tres"
+const MISSION_REWARD_FLAG: StringName = &"mission_reward_granted"
 const RADIO_CARD: String = "That card opens the research wing. Whatever they're hiding is behind it."
 const RADIO_TERMINAL: String = "Coordinates received. Now the command center. The Warden holds it."
 const FINAL_QUEST: StringName = &"final_transmission"
@@ -210,6 +212,7 @@ func _complete(quest_id: StringName) -> void:
 func _finish_mission(quest_id: StringName) -> void:
 	if _world != null and _world.has_method("set_flag"):
 		_world.set_flag(MISSION_COMPLETE_FLAG, true)
+	_grant_mission_reward()
 	if mission_autosave:
 		var saves := get_node_or_null("/root/SaveManager")
 		if saves != null and saves.has_method("autosave"):
@@ -643,3 +646,18 @@ func reset(replay_intro: bool = false) -> void:
 		_world.reset()
 	_ensure_progress()
 	tracker_changed.emit()
+
+
+## Credits and materials for finishing the mission: paid once, guarded by a saved world flag so a
+## reload or a repeated completion cannot pay again. Items that do not fit are left as pickups.
+func _grant_mission_reward() -> void:
+	if _world == null or not _world.has_method("has_flag") or _world.has_flag(MISSION_REWARD_FLAG):
+		return
+	var player := get_tree().get_first_node_in_group("player") as Player
+	var table := load(MISSION_REWARD_TABLE) as LootTable
+	if player == null or player.inventory == null or table == null:
+		return
+	_world.set_flag(MISSION_REWARD_FLAG, true)
+	var result := LootService.grant(table, player.inventory)
+	for entry in result["overflow"]:
+		Pickup.spawn(player.get_parent(), entry["item"], player.global_position + Vector3(1.5, 0.0, 0.0))

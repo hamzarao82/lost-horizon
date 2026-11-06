@@ -236,6 +236,11 @@ func _build_interactables() -> void:
 		crate.position = crates[id][0]
 		add_child(crate)
 		_collider(String(id) + "Body", crate.position + Vector3(0.0, 0.4, 0.0), Vector3(1.1, 0.8, 0.85))
+	# Area B: the quartermaster at the compound gate. The trading screen listens to open_requested.
+	var vendor := MerchantNpc.new()
+	_place(vendor, &"merchant_quartermaster", Vector3(-14.0, 0.0, 24.0))
+	_build_stall(vendor)
+	_collider("QuartermasterStallBody", Vector3(-14.0, 0.5, 24.9), Vector3(2.0, 1.0, 0.8))
 	var reader := CardReader.new()
 	reader.door_id = &"bc"
 	_place(reader, &"card_reader_c", Vector3(9.0, 1.0, -28.9))
@@ -373,3 +378,36 @@ func _on_area_entered(id: StringName) -> void:
 	_banner_tween = create_tween()
 	_banner_tween.tween_interval(BANNER_SECONDS)
 	_banner_tween.tween_property(_banner, "modulate:a", 0.0, 0.6)
+
+
+## A plain supply table with a lit sign: enough to read as a vendor from the gate.
+func _build_stall(vendor: Node3D) -> void:
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.42, 0.3, 0.18)
+	var table := MeshInstance3D.new()
+	var table_mesh := BoxMesh.new()
+	table_mesh.size = Vector3(2.0, 0.9, 0.8)
+	table.mesh = table_mesh
+	table.position = Vector3(0.0, 0.45, 0.9)
+	table.material_override = wood
+	table.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	vendor.add_child(table)
+	var sign_post := MeshInstance3D.new()
+	var post_mesh := BoxMesh.new()
+	post_mesh.size = Vector3(0.12, 1.8, 0.12)
+	sign_post.mesh = post_mesh
+	sign_post.position = Vector3(0.9, 0.9, 0.9)
+	sign_post.material_override = wood
+	vendor.add_child(sign_post)
+	var board := MeshInstance3D.new()
+	var board_mesh := BoxMesh.new()
+	board_mesh.size = Vector3(0.9, 0.35, 0.06)
+	board.mesh = board_mesh
+	board.position = Vector3(0.9, 1.65, 0.9)
+	var glow := StandardMaterial3D.new()
+	glow.albedo_color = Color(0.2, 0.55, 0.3)
+	glow.emission_enabled = true
+	glow.emission = Color(0.2, 0.7, 0.35)
+	glow.emission_energy_multiplier = 0.8
+	board.material_override = glow
+	vendor.add_child(board)

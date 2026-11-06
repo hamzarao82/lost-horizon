@@ -4,6 +4,9 @@ extends Interactable
 ## this node only identifies the vendor and announces that the player wants to trade.
 
 signal trade_requested(merchant: MerchantData, player: Node3D)
+## The trading screen listens to this one: it carries only the vendor data.
+signal open_requested(merchant_data: MerchantData)
+
 
 @export var merchant_path: String = "res://resources/merchants/outpost_quartermaster.tres"
 
@@ -22,3 +25,4 @@ func _ready() -> void:
 func _on_interact(player: Node3D) -> void:
 	if data:
 		trade_requested.emit(data, player)
+		open_requested.emit(data)

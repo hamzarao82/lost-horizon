@@ -130,7 +130,7 @@ func _test_persistence(player: Player) -> void:
 	_check(_saves.save_game("manual"), "the game saves")
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(_saves.save_path()))
 	_check(parsed is Dictionary and (parsed as Dictionary).has("stats"), "the save file has an optional stats section")
-	_check(parsed is Dictionary and int((parsed as Dictionary)["version"]) == 2, "the save version stays 2")
+	_check(parsed is Dictionary and int((parsed as Dictionary)["version"]) == _saves.CURRENT_VERSION, "the save is written at the current version")
 	_stats.reset()
 	_check(_stats.enemies_defeated == 0, "reset clears the counters")
 	_check(_saves.load_game(), "the save loads")

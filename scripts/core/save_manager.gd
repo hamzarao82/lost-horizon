@@ -5,7 +5,7 @@ extends Node
 
 signal saved(reason: String)
 
-const CURRENT_VERSION: int = 2
+const CURRENT_VERSION: int = 3
 const MAX_POTIONS: int = 99
 const MAX_WORLD_IDS: int = 256
 const POSITION_LIMIT: float = 1000.0
@@ -139,6 +139,9 @@ func build_save() -> Dictionary:
 	var run_stats := get_node_or_null("/root/RunStats")
 	if run_stats:
 		data["stats"] = run_stats.to_dict()  # optional too
+	var progression := get_node_or_null("/root/Progression")
+	if progression:
+		data["progression"] = progression.to_dict()
 	var world := {"checkpoint_id": "", "position": null}
 	if not world_checkpoint.is_empty():
 		var p: Variant = _position_from(world_checkpoint.get("position", null))
@@ -239,6 +242,9 @@ func load_game() -> bool:
 	if run_stats:
 		run_stats.reset()
 		run_stats.from_dict(data.get("stats", {}))
+	var progression := get_node_or_null("/root/Progression")
+	if progression:
+		progression.from_dict(data.get("progression", {}))  # a v2 save has none: level 1
 	return true
 
 
@@ -251,13 +257,15 @@ func _reject_corrupt(path: String, message: String) -> bool:
 
 ## Upgrades old save layouts one version at a time.
 func _migrate(data: Dictionary) -> Dictionary:
-	var version := int(data.get("version", 0))
+	var version := _whole(data.get("version"), 0)
 	while version < CURRENT_VERSION:
 		match version:
 			0:
 				data = _migrate_0_to_1(data)
 			1:
 				data = _migrate_1_to_2(data)
+			2:
+				data = _migrate_2_to_3(data)
 		version += 1
 		data["version"] = version
 	return data
@@ -288,6 +296,15 @@ func _migrate_1_to_2(old: Dictionary) -> Dictionary:
 	return upgraded
 
 
+## v2 (Milestone 5) had no progression and only weapon/armor/medkits in the inventory section. It gains an
+## empty progression (level 1); the inventory's new keys are optional and default when absent.
+func _migrate_2_to_3(old: Dictionary) -> Dictionary:
+	var upgraded := old.duplicate(true)
+	if not upgraded.has("progression"):
+		upgraded["progression"] = {}
+	return upgraded
+
+
 ## Normalises types and ranges. Unknown keys are dropped. Returns {} if the shape is unusable.
 func _sanitize(data: Dictionary) -> Dictionary:
 	var inv_raw: Variant = data.get("inventory", {})
@@ -303,23 +320,23 @@ func _sanitize(data: Dictionary) -> Dictionary:
 			if boss is String and not bosses.has(boss):
 				bosses.append(boss)
 	var clean_player := {}
-	var max_health := float(player.get("max_health", 0.0))
+	var max_health := _num(player.get("max_health"), 0.0)
 	if max_health > 0.0:
 		clean_player = {
-			"health": clampf(float(player.get("health", max_health)), 1.0, max_health),
+			"health": clampf(_num(player.get("health"), max_health), 1.0, max_health),
 			"max_health": max_health,
 		}
 	var result := {
 		"version": CURRENT_VERSION,
-		"saved_at": int(data.get("saved_at", 0)),
-		"next_wave": clampi(int(data.get("next_wave", 1)), 1, WaveManager.WAVES.size()),
-		"completed": bool(data.get("completed", false)),
+		"saved_at": _whole(data.get("saved_at"), 0),
+		"next_wave": clampi(_whole(data.get("next_wave"), 1), 1, WaveManager.WAVES.size()),
+		"completed": _flag(data.get("completed")),
 		"inventory": {
 			"weapon": str(inventory.get("weapon", "")),
 			"armor": str(inventory.get("armor", "")),
 			# Optional (added after v1 shipped): current armor bar; -1 or missing means full.
-			"armor_points": maxf(float(inventory.get("armor_points", -1.0)), -1.0),
-			"potions": clampi(int(inventory.get("potions", 0)), 0, MAX_POTIONS),
+			"armor_points": maxf(_num(inventory.get("armor_points"), -1.0), -1.0),
+			"potions": clampi(_whole(inventory.get("potions"), 0), 0, MAX_POTIONS),
 		},
 		"player": clean_player,
 		"defeated_bosses": bosses,
@@ -328,6 +345,13 @@ func _sanitize(data: Dictionary) -> Dictionary:
 	if not quests.is_empty():
 		result["quests"] = quests
 	result["world"] = _sanitize_world(data.get("world", {}))
+	# Milestone 6: the inventory section also carries the bag, slots, currency, upgrades, unique rewards
+	# and merchant stock; Inventory.sanitize enforces types, ids and ranges. Progression is validated
+	# (budgets and skill prerequisites) by the autoload; without it the section is dropped.
+	(result["inventory"] as Dictionary).merge(Inventory.sanitize(inventory), true)
+	var progression := get_node_or_null("/root/Progression")
+	if progression and progression.has_method("sanitize"):
+		result["progression"] = progression.sanitize(data.get("progression", {}))
 	var run_stats := get_node_or_null("/root/RunStats")
 	if run_stats:
 		var stats: Dictionary = run_stats.sanitize(data.get("stats", {}))
@@ -366,7 +390,7 @@ func peek_restore() -> Dictionary:
 func consume_start_wave(total_waves: int) -> int:
 	var wave := 1
 	if pending_load and not pending_data.is_empty():
-		wave = 1 if bool(pending_data.get("completed", false)) else int(pending_data.get("next_wave", 1))
+		wave = 1 if _flag(pending_data.get("completed")) else int(pending_data.get("next_wave", 1))
 		_notice = "Save loaded - wave %d" % clampi(wave, 1, total_waves)
 	elif not checkpoint.is_empty():
 		wave = int(checkpoint.get("next_wave", 1))
@@ -404,6 +428,9 @@ func reset_runtime_state() -> void:
 	var run_stats := get_node_or_null("/root/RunStats")
 	if run_stats:
 		run_stats.reset()
+	var progression := get_node_or_null("/root/Progression")
+	if progression:
+		progression.reset()  # a new game starts at level 1 with no skills or points
 
 
 func mark_boss_defeated(boss_id: String) -> void:
@@ -437,3 +464,27 @@ func _exit_tree() -> void:
 			var path: String = save_path() + suffix
 			if FileAccess.file_exists(path):
 				DirAccess.remove_absolute(path)
+
+
+# --- safe conversions for untrusted save data -------------------------------
+# GDScript's int()/float()/bool() throw on Dictionary, Array and (for bool) String values, so every
+# number or flag read from a file goes through these instead.
+
+static func _num(value: Variant, fallback: float) -> float:
+	if (value is float and is_finite(value)) or value is int:
+		return float(value)
+	if value is String and (value as String).is_valid_float():
+		return float(value)
+	return fallback
+
+
+static func _whole(value: Variant, fallback: int) -> int:
+	return int(clampf(_num(value, float(fallback)), -2147483648.0, 2147483647.0))
+
+
+static func _flag(value: Variant) -> bool:
+	if value is bool:
+		return value
+	if value is int or value is float:
+		return value != 0
+	return false
