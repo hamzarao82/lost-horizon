@@ -70,3 +70,22 @@ Captured windowed at 1280x720 by a script that teleported the player; therefore 
 - **Performance:** the warm-up now renders the skinned character and weapon models before play. Benchmark (two runs each, Intel UHD 620, 1280x720): average 85.6–96.6 to 103.6–106.9 FPS, 1% low 29.7–44.8 to 51–56, worst frame 93–124 ms to 43–60 ms. Still over the 40 ms budget: Warden spawn (46–53 ms), wave spawn (30–38 ms), first boss shockwave. The web build keeps its light warm-up, so web is unaffected.
 - **Interiors:** power room, generator shed, command building and Areas C/D got floor variation, wall trim, cables, hazard markings, shelves, desks with glowing screens, a wall map and papers (about +2 draw calls, unmeasured exactly). Screenshots show a clear improvement but the rooms still look like low-poly greyboxes. Courtyard ground, foliage density and wall materials are unchanged. This remains the largest visual gap.
 - **Tests:** all 30 suites pass with zero script errors (dressing_check now 47 checks).
+
+## 8. Visual pass (CC0 PBR materials, props, vegetation scatter, atmosphere)
+Merged from `milestone-005-materials` and `milestone-005-assets`. Sources and licences are in `ASSETS.md` (ambientCG Ground111, Gravel043, Concrete034, Metal041B; Poly Haven barrel_01, barrel_03, wooden_crate_01/02, security_camera_02; all CC0). Quaternius and Kenney downloads were not reachable unattended, so no new palms, foliage or rigged characters were added.
+
+**What changed:** ground is a two-texture dirt/gravel blend with a normal map instead of flat orange; walls and kit use triplanar concrete and metal grain; hazier sky, ACES tonemap, lower sun; MultiMesh scatter of the existing kit palms, bushes and rocks plus nine story clusters. Normal/roughness maps are used only on the desktop High quality preset; Medium/Low, web and mobile use albedo only, and web keeps the old plain vertex-colour materials.
+
+**Measured cost (same session, Intel UHD 620, 1280x720, `tests/benchmark.gd`, two runs each):**
+
+| Build | Avg FPS | 1% low | Max frame |
+|---|---:|---:|---:|
+| Before the visual pass (`97a36d0`) | 88.6–89.8 | 47.2–47.6 | 57–68 ms |
+| After, High (full PBR maps) | 57.2–57.7 | 24.4–24.9 | 66 ms |
+| After, lite variant | 71.1–71.5 | 36.2–37.5 | 63–70 ms |
+
+So the visual pass costs about 36% of the frame rate on integrated graphics at High, which misses the 60 FPS desktop target on this laptop; it was not measured on a discrete GPU. Medium/Low are cheaper but still below the earlier build.
+
+**Web:** pack grew from 1.6 MB to about 9.5 MB. Boot probe (desktop Chromium): reveal done at 37.5 s game clock for the candidate against 37.0 s for the build already live; the earlier Milestone 4 build measured 27.7 s. So web load regressed about 9 s before this visual pass (cause not investigated: dressing, warm-up or audio) and the pass added about nothing on top. The budget is 30 s: **missed**.
+
+**Not done from the visual addendum:** character, enemy, Warden and weapon remodelling and new animations; detailed military buildings (still boxes); a dedicated visual benchmark scene; weapon trails and further effects; the camera pass. The result is visibly better ground and atmosphere, not the reference look.
