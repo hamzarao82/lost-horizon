@@ -12,6 +12,8 @@ extends RefCounted
 ## Every effect key attributes and skills may use, with what it does.
 const EFFECTS: Dictionary = {
 	&"damage_all": "melee damage, fraction added to every attack kind",
+	&"combo_extra": "extra light-attack steps allowed after the third hit, per rank",
+	&"counter_rank": "counterattack rank; the bonus comes from Player.COUNTER_BONUS_BY_RANK",
 	&"damage_light": "light attack damage, fraction",
 	&"damage_heavy": "heavy and sprint attack damage, fraction",
 	&"damage_special": "spin and air attack damage, fraction",

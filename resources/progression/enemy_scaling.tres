@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ScalingConfig" format=3]
+
+[ext_resource type="Script" path="res://scripts/progression/scaling_config.gd" id="1_scale"]
+
+[resource]
+script = ExtResource("1_scale")
+health_per_level = 0.04
+damage_per_level = 0.02
+max_health_mult = 1.8
+max_damage_mult = 1.4
+boss_health_per_level = 0.02
+boss_max_health_mult = 1.4
+boss_damage_per_level = 0.0

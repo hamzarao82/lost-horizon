@@ -28,6 +28,8 @@ func _initialize() -> void:
 	_skill(&"quick_recharge", "Quick Recharge", "Teleport recharges faster.", C.SPECIAL, 3, 2, 3, [], {&"teleport_recharge": -0.08}, Vector2i(0, 3))
 	_skill(&"focus", "Focus", "Stamina regenerates faster.", C.SPECIAL, 3, 1, 3, [], {&"stamina_regen": 0.10}, Vector2i(1, 3))
 	_skill(&"scavenger", "Scavenger", "Find more currency.", C.SPECIAL, 3, 1, 4, [&"focus"], {&"currency": 0.10}, Vector2i(2, 3))
+	_skill(&"combo_extension", "Combo Extension", "The light combo continues for one more hit per rank.", C.COMBAT, 3, 2, 5, [&"sharpened_edge"], {&"combo_extra": 1.0}, Vector2i(0, 4))
+	_skill(&"counterattack", "Counterattack", "Dodging an attack arms a bonus light attack: +25%, +40%, +55%.", C.COMBAT, 3, 2, 5, [&"light_step"], {&"counter_rank": 1.0}, Vector2i(1, 4))
 	print("progression data written")
 	quit()
 
