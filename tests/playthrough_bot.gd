@@ -245,6 +245,8 @@ func _run() -> void:
 	_check(not _done(14), "the reward is not counted before it is picked up")
 	var taken := 0
 	for node in root.find_children("*", "Pickup", true, false):
+		if not is_instance_valid(node):
+			continue  # an earlier pickup in this loop may have collected or freed it
 		var pickup := node as Node3D
 		if pickup != null and is_instance_valid(pickup) and not pickup.is_queued_for_deletion() and _done(14) == false:
 			await _move(pickup.global_position)

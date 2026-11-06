@@ -18,10 +18,10 @@ Inventory with equipment slots for one weapon and one armor, `ItemData` and `Loo
 ## 4. Work phases
 | Phase | Content | Status |
 |---|---|---|
-| 1a | Progression: XP curve, attributes, skills, damage pipeline, tests, `PROGRESSION_SYSTEM.md` | in progress (agent), **not verified** |
-| 1b | Items: item data, inventory, slots, loot, crafting, upgrading, merchant logic, icons, tests, `ITEMS_AND_ECONOMY.md` | in progress (agent), **not verified** |
-| 2a | Save v3, migration from v2, test loading a Milestone 5 save | not started |
-| 2b | Screens: inventory, character/skills, crafting/upgrade, merchant, loot and level-up notices | not started |
+| 1a | Progression: XP curve, attributes, skills, damage pipeline | done, verified by tests |
+| 1b | Items: item data, inventory, slots, loot, crafting, upgrading, merchant, icons | done, verified by tests |
+| 2a | Save v3, migration from v2 | done, verified by tests |
+| 2b | Screens | done, tested, screenshots of five screens |
 | 3 | In-world integration (merchant placed, XP and loot hooks, balance pass), screenshots, performance check | not started |
 
 ## 5. Acceptance status (all **not yet verified** until phase results are checked)
@@ -32,3 +32,24 @@ Every item in the brief's test list (inventory, equipment, loot, progression, cr
 - Visual equipment attachment on the skeleton (head, gloves, legs) needs models that do not exist; only weapon and body armor have models.
 - Skill and attribute effects that touch dodge, teleport and movement are small additive hooks and need play feel testing.
 - The Milestone 5 gaps remain: human play-through, Android device run, desktop frame rate at High quality, web load time.
+
+## 7. Status after phases 1 and 2 (2026-11-06)
+All 43 suites pass on the merged `master`, with zero script errors, after the fixes listed below. New suites: progression_check 74, skills_check 33, damage_pipeline_check 54, gear_integration_check 6, currency_single_owner_check 9, items_inventory_check 64, items_equipment_check 46, items_loot_check 35, items_economy_check 47, save_v3_check 56, world_progression_check 32, rpg_screens_check 105.
+
+| Area | Status |
+|---|---|
+| XP, levels, attributes, 12 skills, damage pipeline | Implemented, **verified** by tests (level 1 equals the old numbers; each modifier applied once) |
+| Inventory (40 stacks, categories, rarity, sort, filter, protection of quest and unique items) | Implemented, **verified** by tests |
+| Equipment slots (weapon, secondary, head, body, gloves, legs, accessory), compare, stat totals | Implemented, **verified** by tests; worn gear has no model on the character |
+| Loot tables, rarity, unique rewards once | Implemented, **verified** by tests with seeded RNG; wired to enemies, crates, Warden, mission reward |
+| Crafting (6 recipes), upgrading (cap 5, Warden's Cleaver own curve) | Implemented, **verified** by tests |
+| Merchant (service, placed quartermaster in Area B, trading screen) | Implemented; buy/sell **verified** through the service and the screen test; the quartermaster's stall has no character model and was never seen in a screenshot |
+| Save v3 with migration from a Milestone 5 save | Implemented, **verified** by tests (fixture v2 save loads at level 1 with its gear intact; hostile data loads safely) |
+| Screens: inventory, character and skill tree, crafting, merchant, notifications | Implemented, **verified** by tests; five screenshots of the real game were looked at; upgrade dialog, level-up banner and loot toasts were not captured |
+| Combo extension and counterattack skills | **Not implemented** |
+| Temporary buffs beyond sharpening oil; enemy scaling | Configuration only, unused |
+| Balance, feel, controller and touch use of the screens | **Not tested** by a person or on a device |
+
+**Bugs found and fixed while merging:** (1) the weapon damage multiplier was applied twice (a 2.1x claymore hit for 4.4x), now guarded by `gear_integration_check`; (2) two separate currency balances, now one owner (the Inventory) guarded by `currency_single_owner_check`; (3) the playthrough bot crashed on a freed pickup once the new loot tables created more pickups (test loop made robust).
+
+**Known gaps:** elite and heavy enemies now have about a 4.3% chance per kill to drop boots or gloves; `Inventory.collect()` does not emit the item-collected signal so crafted and bought items show no toast; death reload keeping progression is tested through a respawned scene, not the real 2 s death timer; Android and web storage not run.

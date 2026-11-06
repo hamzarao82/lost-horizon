@@ -55,6 +55,9 @@ func reset() -> void:
 
 
 func to_dict() -> Dictionary:
+	var inv := _inventory()
+	if inv != null:
+		progress.currency = int(inv.currency)
 	return progress.to_dict()
 
 
@@ -163,27 +166,50 @@ func unlock_skill(id: StringName) -> bool:
 
 
 # --- currency ---------------------------------------------------------------
+# The Inventory owns the balance (merchant, crafting and upgrade services all spend from it).
+# These forward to it so there is one number; progress.currency is only a fallback when no
+# player exists (tests, menus) and is refreshed from the inventory before every save.
+
+func _inventory() -> Object:
+	if is_instance_valid(_player):
+		var inv: Object = _player.get("inventory")
+		if inv != null and inv.has_method("add_currency"):
+			return inv
+	return null
+
 
 ## Earned currency gets the Scavenger bonus; pass bonus = false for refunds and sales adjustments.
 func add_currency(amount: int, bonus: bool = true) -> int:
 	if amount <= 0:
 		return 0
 	var scaled := roundi(amount * (currency_multiplier() if bonus else 1.0))
-	progress.currency = mini(progress.currency + scaled, PlayerProgress.MAX_CURRENCY)
+	var inv := _inventory()
+	if inv != null:
+		inv.add_currency(scaled)
+		progress.currency = int(inv.currency)
+	else:
+		progress.currency = mini(progress.currency + scaled, PlayerProgress.MAX_CURRENCY)
 	currency_changed.emit(progress.currency)
 	return scaled
 
 
 func spend_currency(amount: int) -> bool:
-	if amount < 0 or progress.currency < amount:
-		return false
-	progress.currency -= amount
+	var inv := _inventory()
+	if inv != null:
+		if not inv.spend_currency(amount):
+			return false
+		progress.currency = int(inv.currency)
+	else:
+		if amount < 0 or progress.currency < amount:
+			return false
+		progress.currency -= amount
 	currency_changed.emit(progress.currency)
 	return true
 
 
 func currency() -> int:
-	return progress.currency
+	var inv := _inventory()
+	return int(inv.currency) if inv != null else progress.currency
 
 
 # --- multipliers read by gameplay ---------------------------------------------
