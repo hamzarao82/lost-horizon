@@ -112,9 +112,9 @@ func _run() -> void:
 
 func _test_contract() -> void:
 	print("Flag contract and data")
-	_check(CampaignFlow.mission_flag(&"dead_coast", 3) == &"dead_coast.mission_3_complete", "mission flag name: dead_coast.mission_3_complete")
-	_check(CampaignFlow.mission_flag(&"blackwood", 3) == &"blackwood.mission_3_complete", "mission flag name: blackwood.mission_3_complete")
-	_check(CampaignFlow.unlock_flag(&"research_complex") == &"research_complex.unlocked", "unlock flag name: research_complex.unlocked")
+	_check(CampaignFlow.mission_flag(&"dead_coast", 3) == &"dead_coast_mission_3_complete", "mission flag name: dead_coast_mission_3_complete")
+	_check(CampaignFlow.mission_flag(&"blackwood", 3) == &"blackwood_mission_3_complete", "mission flag name: blackwood_mission_3_complete")
+	_check(CampaignFlow.unlock_flag(&"research_complex") == &"research_complex_unlocked", "unlock flag name: research_complex_unlocked")
 	for id in [&"dead_coast", &"blackwood", &"research_complex"]:
 		var data := RegionStore.load_data(id)
 		_check(data != null and data.unlock_flag == CampaignFlow.unlock_flag(id), "%s unlocks through %s" % [id, CampaignFlow.unlock_flag(id)])
@@ -132,18 +132,37 @@ func _test_contract() -> void:
 
 
 func _test_flag_persistence() -> void:
-	print("Region flags survive a save (WorldState ids with a dot)")
+	print("Every flag the campaign uses survives WorldState.to_dict / from_dict")
 	_fresh()
-	_world.set_flag(&"dead_coast.cache_wreck_01", true)
-	_world.set_flag(&"blackwood.mission_3_complete", true)
+	var regions: Array[StringName] = [&"outpost_17", &"dead_coast", &"blackwood", &"research_complex"]
+	var ids: Array[StringName] = [&"mission_first_signal_complete", &"dead_coast_arrived"]
+	for region in regions:
+		ids.append(CampaignFlow.unlock_flag(region))
+		for n in [1, 2, 3]:
+			ids.append(CampaignFlow.mission_flag(region, n))
+		ids.append(StringName("%s_region_complete" % region))
+		ids.append(StringName(CampaignFlow.SAID_PREFIX + String(region)))
+	var longest := 0
+	var all_plain := true
+	for id in ids:
+		longest = maxi(longest, String(id).length())
+		for i in String(id).length():
+			var c := String(id).unicode_at(i)
+			if not ((c >= 97 and c <= 122) or (c >= 48 and c <= 57) or c == 95):
+				all_plain = false
+	_check(all_plain, "all %d campaign flag ids use only a-z, 0-9 and underscore" % ids.size())
+	_check(longest <= 48, "the longest id is %d characters (limit 48)" % longest)
+	for id in ids:
+		_world.set_flag(id, true)
 	var saved: Dictionary = _world.to_dict()
 	_world.reset()
+	_check(not _world.has_flag(&"dead_coast_unlocked"), "reset clears them")
 	_world.from_dict(saved)
-	_check(_world.has_flag(&"dead_coast.cache_wreck_01") and _world.has_flag(&"blackwood.mission_3_complete"), "dotted region flags round-trip through to_dict / from_dict")
-	_world.from_dict({"flags": ["dead_coast.ok", "Bad.Flag", "has space", "x.".repeat(40), "dead_coast.\n", ""]})
-	_check(_world.has_flag(&"dead_coast.ok"), "a plain dotted id is accepted")
-	_check(not _world.has_flag(&"Bad.Flag") and not _world.has_flag(&"has space"), "uppercase and spaces are still rejected")
-	_check(not _world.has_flag(StringName("x.".repeat(40))), "ids over 64 characters are still rejected")
+	var lost: Array[String] = []
+	for id in ids:
+		if not _world.has_flag(id):
+			lost.append(String(id))
+	_check(lost.is_empty(), "none is lost through the real round trip %s" % str(lost))
 	_fresh()
 
 
@@ -172,7 +191,7 @@ func _test_unlock_and_bridge() -> void:
 	_complete_first_signal()
 	await _frames(3)
 	_check(_qm.is_completed(FIRST), "The First Signal completed through events")
-	_check(_world.has_flag(&"dead_coast.unlocked"), "that sets dead_coast.unlocked")
+	_check(_world.has_flag(&"dead_coast_unlocked"), "that sets dead_coast_unlocked")
 	_check(_rm.is_unlocked(&"dead_coast"), "Dead Coast is unlocked")
 	_check(_qm.is_active(BRIDGE) and started.count(BRIDGE) == 1, "the bridge quest started exactly once")
 	_check(_qm.is_active(&"restore_power"), "the older chained quest is also active (restore_power)")
@@ -182,7 +201,7 @@ func _test_unlock_and_bridge() -> void:
 	_check(_gates(main) == 0, "the road gate is removed once the road is open")
 	await get_create_timer_wait(6.5)
 	var unlock_lines := _captions.filter(func(t: String) -> bool: return t.contains("The road is open"))
-	_check(unlock_lines.size() == 1, "the hand-off line is said once (%d)" % unlock_lines.size())
+	_check(unlock_lines.size() == 1, "the hand-off line is said once (%d: %s)" % [unlock_lines.size(), str(unlock_lines)])
 	_complete_first_signal()
 	_world.set_flag(&"mission_first_signal_complete", true)
 	await _frames(3)
@@ -206,7 +225,7 @@ func _test_travel_rewards_and_returns() -> void:
 	_captions.clear()
 	_check(await _rm.travel(&"dead_coast", &"beach_arrival"), "travel to Dead Coast works through the beach_arrival entry")
 	await _frames(3)
-	_check(_world.has_flag(&"dead_coast.arrived"), "arriving sets dead_coast.arrived")
+	_check(_world.has_flag(&"dead_coast_arrived"), "arriving sets dead_coast_arrived")
 	_check(_qm.is_completed(BRIDGE), "the bridge quest completes")
 	var quest_xp: int = 0
 	for event in xp_events:
@@ -255,26 +274,26 @@ func _test_gate_not_duplicated() -> void:
 func _test_chain() -> void:
 	print("Unlock chain")
 	_fresh()
-	_check(not _world.has_flag(&"blackwood.unlocked"), "Blackwood starts locked")
+	_check(not _world.has_flag(&"blackwood_unlocked"), "Blackwood starts locked")
 	_check(CampaignFlow.mark_mission_complete(&"dead_coast", 1), "mission 1 of Dead Coast marks once")
 	_check(not CampaignFlow.mark_mission_complete(&"dead_coast", 1), "marking it again returns false")
 	CampaignFlow.mark_mission_complete(&"dead_coast", 2)
-	_check(not _world.has_flag(&"blackwood.unlocked"), "missions 1 and 2 do not unlock Blackwood")
+	_check(not _world.has_flag(&"blackwood_unlocked"), "missions 1 and 2 do not unlock Blackwood")
 	_check(CampaignFlow.mark_mission_complete(&"dead_coast", 3), "mission 3 of Dead Coast marks")
-	_check(_world.has_flag(&"blackwood.unlocked") and _rm.is_unlocked(&"blackwood"), "mission 3 unlocks Blackwood")
-	_check(not _world.has_flag(&"research_complex.unlocked"), "the Research Complex stays locked")
+	_check(_world.has_flag(&"blackwood_unlocked") and _rm.is_unlocked(&"blackwood"), "mission 3 unlocks Blackwood")
+	_check(not _world.has_flag(&"research_complex_unlocked"), "the Research Complex stays locked")
 	_check(CampaignFlow.mark_mission_complete(&"blackwood", 3), "mission 3 of Blackwood marks")
-	_check(_world.has_flag(&"research_complex.unlocked") and _rm.is_unlocked(&"research_complex"), "it unlocks the Research Complex")
+	_check(_world.has_flag(&"research_complex_unlocked") and _rm.is_unlocked(&"research_complex"), "it unlocks the Research Complex")
 	_check(not CampaignFlow.mark_mission_complete(&"blackwood", 0), "mission numbers below 1 are ignored")
 	_fresh()
-	_world.set_flag(&"dead_coast.region_complete", true)
-	_check(_world.has_flag(&"blackwood.unlocked"), "the region_complete alias also unlocks the next region")
+	_world.set_flag(&"dead_coast_region_complete", true)
+	_check(_world.has_flag(&"blackwood_unlocked"), "the region_complete alias also unlocks the next region")
 
 
 func _test_no_softlock() -> void:
 	print("No softlock across regions")
 	_fresh()
-	_world.set_flag(&"dead_coast.arrived", true)  # visited before the quest existed (an older save)
+	_world.set_flag(&"dead_coast_arrived", true)  # visited before the quest existed (an older save)
 	var main := await _spawn_main()
 	_complete_first_signal()
 	await _frames(3)

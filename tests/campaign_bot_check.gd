@@ -161,10 +161,10 @@ func _play_campaign() -> void:
 	await _frames(3)
 	var xp_before_save := _total_xp()
 	var flags_before := {
-		"dead_coast.unlocked": _world.has_flag(&"dead_coast.unlocked"),
-		"blackwood.unlocked": _world.has_flag(&"blackwood.unlocked"),
-		"research_complex.unlocked": _world.has_flag(&"research_complex.unlocked"),
-		"dead_coast.arrived": _world.has_flag(&"dead_coast.arrived"),
+		"dead_coast_unlocked": _world.has_flag(&"dead_coast_unlocked"),
+		"blackwood_unlocked": _world.has_flag(&"blackwood_unlocked"),
+		"research_complex_unlocked": _world.has_flag(&"research_complex_unlocked"),
+		"dead_coast_arrived": _world.has_flag(&"dead_coast_arrived"),
 	}
 	_check(_sm.save_game("manual"), "saved in Blackwood")
 	main.queue_free()

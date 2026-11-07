@@ -6,11 +6,12 @@ extends Node
 ##
 ## Flag names (the contract for the region content):
 ##   mission_first_signal_complete   set by QuestManager when The First Signal ends  -> unlocks Dead Coast
-##   dead_coast.mission_3_complete   set by the Dead Coast content (mark_mission_complete)   -> unlocks Blackwood
-##   blackwood.mission_3_complete    set by the Blackwood content                             -> unlocks the Research Complex
-##   <region>.unlocked               derived here; RegionData.unlock_flag points at it
-##   dead_coast.arrived              set on the first arrival; completes the bridge quest
-## `<region>.region_complete` is accepted as an alias of `<region>.mission_3_complete`.
+##   dead_coast_mission_3_complete   set by the Dead Coast content (mark_mission_complete)   -> unlocks Blackwood
+##   blackwood_mission_3_complete    set by the Blackwood content                             -> unlocks the Research Complex
+##   <region>_unlocked               derived here; RegionData.unlock_flag points at it
+##   dead_coast_arrived              set on the first arrival; completes the bridge quest
+## `<region>_region_complete` is accepted as an alias of `<region>_mission_3_complete`.
+## All ids use [a-z0-9_] and stay within 48 characters: WorldState drops anything else when it loads a save.
 
 const OUTPOST: StringName = &"outpost_17"
 const BRIDGE_QUEST: StringName = &"leave_outpost"
@@ -27,13 +28,13 @@ const CHAIN: Dictionary = {
 		"caption": "Radio: The signal repeats from the south, past the beach gate. The Dead Coast. The road is open.",
 	},
 	&"blackwood": {
-		"after": &"dead_coast.mission_3_complete",
-		"alias": &"dead_coast.region_complete",
+		"after": &"dead_coast_mission_3_complete",
+		"alias": &"dead_coast_region_complete",
 		"caption": "Radio: The shipment's trail runs inland. Blackwood. Stay off the open road.",
 	},
 	&"research_complex": {
-		"after": &"blackwood.mission_3_complete",
-		"alias": &"blackwood.region_complete",
+		"after": &"blackwood_mission_3_complete",
+		"alias": &"blackwood_region_complete",
 		"caption": "Radio: Clearance code accepted. Access granted. Something is waiting at the end of the trail.",
 	},
 }
@@ -91,11 +92,11 @@ static func mark_mission_complete(region_id: StringName, n: int) -> bool:
 
 
 static func mission_flag(region_id: StringName, n: int) -> StringName:
-	return StringName("%s.mission_%d_complete" % [region_id, n])
+	return StringName("%s_mission_%d_complete" % [region_id, n])
 
 
 static func unlock_flag(region_id: StringName) -> StringName:
-	return StringName("%s.unlocked" % region_id)
+	return StringName("%s_unlocked" % region_id)
 
 
 ## Text shown when a locked exit is walked into. RegionManager asks before it falls back to a generic line.
@@ -132,7 +133,7 @@ func _on_quest_completed(quest_id: StringName) -> void:
 
 func _on_region_changed(_old: StringName, new_id: StringName) -> void:
 	if new_id == &"dead_coast" and _world != null:
-		_world.set_flag(&"dead_coast.arrived", true)  # completes the bridge quest through the normal flag event
+		_world.set_flag(&"dead_coast_arrived", true)  # completes the bridge quest through the normal flag event
 	_say_once(new_id, ARRIVAL.get(new_id, ""))
 	_update_gate()
 

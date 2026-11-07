@@ -8,7 +8,7 @@ script = ExtResource("2_obj")
 id = &"arrive_dead_coast"
 text = "Follow the signal to the Dead Coast"
 type = 5
-targets = PackedStringArray("dead_coast.arrived")
+targets = PackedStringArray("dead_coast_arrived")
 count = 0
 progress_label = ""
 
