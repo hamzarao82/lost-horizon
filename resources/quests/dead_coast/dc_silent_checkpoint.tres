@@ -14,33 +14,33 @@ targets = PackedStringArray("dc_checkpoint")
 script = ExtResource("1_qglf7")
 id = &"investigate_security"
 text = "Investigate the checkpoint's security systems"
-targets = PackedStringArray("dead_coast.checkpoint_terminal")
+targets = PackedStringArray("dead_coast_checkpoint_terminal")
 
 [sub_resource type="Resource" id="Resource_1xohk"]
 script = ExtResource("1_qglf7")
 id = &"discover_reason"
 text = "Find out why it was abandoned"
-targets = PackedStringArray("dead_coast.log_checkpoint_orders")
+targets = PackedStringArray("dead_coast_log_checkpoint_orders")
 
 [sub_resource type="Resource" id="Resource_we5y4"]
 script = ExtResource("1_qglf7")
 id = &"obtain_route_access"
 text = "Obtain access to the coastal supply route"
 type = 5
-targets = PackedStringArray("dead_coast.route_pass")
+targets = PackedStringArray("dead_coast_route_pass")
 
 [sub_resource type="Resource" id="Resource_u18w5"]
 script = ExtResource("1_qglf7")
 id = &"defeat_defenders"
 text = "Defeat the checkpoint's defenders"
 type = 5
-targets = PackedStringArray("patrol_dead_coast.checkpoint_cleared")
+targets = PackedStringArray("patrol_dead_coast_checkpoint_cleared")
 
 [sub_resource type="Resource" id="Resource_yxraa"]
 script = ExtResource("1_qglf7")
 id = &"search_guardhouse"
 text = "Search the guardhouse"
-targets = PackedStringArray("dead_coast.cache_guardhouse")
+targets = PackedStringArray("dead_coast_cache_guardhouse")
 optional = true
 
 [resource]

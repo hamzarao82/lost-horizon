@@ -7,8 +7,8 @@ extends Node3D
 const REGION_ID: StringName = &"dead_coast"
 const FIRST_QUEST: StringName = &"dc_wreckage"
 const LAST_QUEST: StringName = &"dc_lost_cargo"
-const COMPLETE_FLAG: StringName = &"dead_coast.cargo_complete"
-const ROUTE_FLAG: StringName = &"dead_coast.route_pass"
+const COMPLETE_FLAG: StringName = &"dead_coast_cargo_complete"
+const ROUTE_FLAG: StringName = &"dead_coast_route_pass"
 const RETRY_SECONDS: float = 2.5
 const ENEMY_TABLE_REGULAR: String = "res://resources/loot/dead_coast_regular.tres"
 const ENEMY_TABLE_ELITE: String = "res://resources/loot/dead_coast_elite.tres"
@@ -194,6 +194,7 @@ func _wire_quests() -> void:
 	var quests := _quest_manager()
 	if quests != null and quests.has_signal("quest_completed"):
 		quests.quest_completed.connect(_on_quest_completed)
+	_wire_claims()
 
 
 func _on_quest_completed(quest_id: StringName) -> void:
@@ -291,3 +292,11 @@ func _tag_loot(group: PatrolGroup) -> void:
 		enemy.set_meta(&"dc_loot", true)
 		var elite := enemy.scene_file_path.contains("Hunter") or enemy.scene_file_path.contains("Heavy")
 		enemy.loot_table_path = ENEMY_TABLE_ELITE if elite else ENEMY_TABLE_REGULAR
+
+
+## Mirrors one-time claims into the framework's per-region claimed set (PersistentIds) next to the world flags.
+func _wire_claims() -> void:
+	for id in content.crate_ids:
+		var crate := content.nodes[id] as Interactable
+		if crate != null:
+			crate.interacted.connect(func(_player: Node3D) -> void: PersistentIds.claim(REGION_ID, StringName(id)))

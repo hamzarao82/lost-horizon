@@ -14,38 +14,38 @@ targets = PackedStringArray("dc_wreckage_beach")
 script = ExtResource("1_pewld")
 id = &"investigate_wreckage"
 text = "Investigate the freighter wreckage"
-targets = PackedStringArray("dead_coast.wreck_hull")
+targets = PackedStringArray("dead_coast_wreck_hull")
 
 [sub_resource type="Resource" id="Resource_wyoud"]
 script = ExtResource("1_pewld")
 id = &"find_comm_equipment"
 text = "Search for surviving communication equipment"
-targets = PackedStringArray("dead_coast.radio_wreck")
+targets = PackedStringArray("dead_coast_radio_wreck")
 
 [sub_resource type="Resource" id="Resource_kneqw"]
 script = ExtResource("1_pewld")
 id = &"find_shipment_evidence"
 text = "Find evidence of a military shipment"
-targets = PackedStringArray("dead_coast.log_wreck_manifest")
+targets = PackedStringArray("dead_coast_log_wreck_manifest")
 
 [sub_resource type="Resource" id="Resource_p508b"]
 script = ExtResource("1_pewld")
 id = &"defeat_beach_patrols"
 text = "Defeat the hostile patrols"
 type = 5
-targets = PackedStringArray("patrol_dead_coast.beach_cleared")
+targets = PackedStringArray("patrol_dead_coast_beach_cleared")
 
 [sub_resource type="Resource" id="Resource_oiwf8"]
 script = ExtResource("1_pewld")
 id = &"recover_data_device"
 text = "Recover the data device"
-targets = PackedStringArray("dead_coast.data_device")
+targets = PackedStringArray("dead_coast_data_device")
 
 [sub_resource type="Resource" id="Resource_epphx"]
 script = ExtResource("1_pewld")
 id = &"find_wreck_cache"
 text = "Search the lifeboat for supplies"
-targets = PackedStringArray("dead_coast.cache_wreck")
+targets = PackedStringArray("dead_coast_cache_wreck")
 optional = true
 
 [resource]

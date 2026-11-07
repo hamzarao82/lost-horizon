@@ -80,9 +80,9 @@ func _test_builder() -> void:
 	_check(unique, "every persistent id is unique")
 	var namespaced := true
 	for id in ids:
-		if not id.begins_with("dead_coast."):
+		if not id.begins_with("dead_coast_"):
 			namespaced = false
-	_check(namespaced, "every persistent id carries the dead_coast. prefix")
+	_check(namespaced, "every persistent id carries the dead_coast_ prefix")
 	for quest_id in [&"dc_wreckage", &"dc_silent_checkpoint", &"dc_lost_cargo"]:
 		_check(_qm != null and _qm.quests.has(quest_id), "quest registered: %s" % quest_id)
 	var in_water := 0  # the pier and crane stand in the water on purpose
@@ -240,7 +240,7 @@ func _test_interactables_reachable() -> void:
 			buried += 1
 			print("    buried: ", id, " at ", str(item.global_position))
 	_check(buried == 0, "no document is inside a solid (%d)" % buried)
-	for id in ["dead_coast.radio_wreck", "dead_coast.checkpoint_terminal", "dead_coast.guard_pass"]:
+	for id in ["dead_coast_radio_wreck", "dead_coast_checkpoint_terminal", "dead_coast_guard_pass"]:
 		var item := _region.content.nodes[id] as Node3D
 		var query := PhysicsPointQueryParameters3D.new()
 		query.position = item.global_position
@@ -258,7 +258,7 @@ func _test_interactables_reachable() -> void:
 
 func _test_patrols() -> void:
 	print("-- patrols")
-	var beach := _region.content.patrols["dead_coast.beach"] as PatrolGroup
+	var beach := _region.content.patrols["dead_coast_beach"] as PatrolGroup
 	_check(not beach.spawned, "the beach patrol waits for the player")
 	(_region.triggers[&"dc_wreckage_beach"] as AreaTrigger).report_entered()
 	await _frames(3)
@@ -275,8 +275,8 @@ func _test_patrols() -> void:
 			tagged += 1
 	_check(tagged == 2, "Dead Coast soldiers use the region's loot table")
 	# group cap: with four patrollers out a fifth group waits and retries instead of flooding the level
-	var camp := _region.content.patrols["dead_coast.camp"] as PatrolGroup
-	var cove := _region.content.patrols["dead_coast.cove"] as PatrolGroup
+	var camp := _region.content.patrols["dead_coast_camp"] as PatrolGroup
+	var cove := _region.content.patrols["dead_coast_cove"] as PatrolGroup
 	(_region.triggers[&"dc_cove"] as AreaTrigger).report_entered()
 	(_region.triggers[&"dc_coastal_trail"] as AreaTrigger).report_entered()
 	await _frames(3)
@@ -289,14 +289,14 @@ func _test_patrols() -> void:
 				enemy.receive_hit(attack, enemy.global_position + Vector3(0.0, 0.0, 2.0))
 				await physics_frame
 	await _frames(4)
-	_check(_world.has_flag(&"patrol_dead_coast.beach_cleared"), "killing the squad sets patrol_dead_coast.beach_cleared")
-	_check((_region.capture_state()["cleared"] as Array).has("dead_coast.beach"), "capture_state lists the cleared beach patrol")
+	_check(_world.has_flag(&"patrol_dead_coast_beach_cleared"), "killing the squad sets patrol_dead_coast_beach_cleared")
+	_check((_region.capture_state()["cleared"] as Array).has("dead_coast_beach"), "capture_state lists the cleared beach patrol")
 	_check(camp != null and cove != null, "camp and cove groups exist")
 
 
 func _test_persistence() -> void:
 	print("-- persistence")
-	var crate := _region.content.nodes["dead_coast.cache_wreck"] as SupplyCrate
+	var crate := _region.content.nodes["dead_coast_cache_wreck"] as SupplyCrate
 	var dummy := Node3D.new()
 	root.add_child(dummy)
 	var before := _count_pickups()
@@ -305,18 +305,18 @@ func _test_persistence() -> void:
 	var after_first := _count_pickups()
 	_check(after_first > before, "opening it drops loot (%d -> %d)" % [before, after_first])
 	_check(not crate.interact(dummy), "an opened cache cannot be opened again")
-	var doc := _region.content.nodes["dead_coast.log_cove_ledger"] as LoreDocument
+	var doc := _region.content.nodes["dead_coast_log_cove_ledger"] as LoreDocument
 	doc.interact(dummy)
-	_check(_world.has_flag(&"doc_dead_coast.log_cove_ledger_found"), "reading a log sets its flag")
+	_check(_world.has_flag(&"doc_dead_coast_log_cove_ledger_found"), "reading a log sets its flag")
 	var saved := _region.capture_state()
-	_check((saved["claimed"] as Array).has("dead_coast.cache_wreck") and (saved["read"] as Array).has("dead_coast.log_cove_ledger"), "capture_state lists the claimed cache and read log")
+	_check((saved["claimed"] as Array).has("dead_coast_cache_wreck") and (saved["read"] as Array).has("dead_coast_log_cove_ledger"), "capture_state lists the claimed cache and read log")
 	# wipe the world flags and restore: the cache stays shut, nothing is handed out twice
 	_world.from_dict({})
-	_check(not _world.has_flag(&"dead_coast.cache_wreck_taken"), "(flags wiped)")
+	_check(not _world.has_flag(&"dead_coast_cache_wreck_taken"), "(flags wiped)")
 	crate.mark_used(false)
 	_region.restore_state(saved)
-	_check(_world.has_flag(&"dead_coast.cache_wreck_taken"), "restore_state re-claims the cache")
-	_check(_world.has_flag(&"patrol_dead_coast.beach_cleared"), "restore_state keeps the beach patrol dead")
+	_check(_world.has_flag(&"dead_coast_cache_wreck_taken"), "restore_state re-claims the cache")
+	_check(_world.has_flag(&"patrol_dead_coast_beach_cleared"), "restore_state keeps the beach patrol dead")
 	var pickups := _count_pickups()
 	_check(not crate.interact(dummy), "after a reload the cache cannot be looted again")
 	await _frames(3)

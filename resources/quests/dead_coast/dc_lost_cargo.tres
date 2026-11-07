@@ -7,7 +7,7 @@
 script = ExtResource("1_pw6ra")
 id = &"track_shipment"
 text = "Track the missing shipment"
-targets = PackedStringArray("dead_coast.trail_markers")
+targets = PackedStringArray("dead_coast_trail_markers")
 
 [sub_resource type="Resource" id="Resource_e8msw"]
 script = ExtResource("1_pw6ra")
@@ -20,7 +20,7 @@ targets = PackedStringArray("dc_cove")
 script = ExtResource("1_pw6ra")
 id = &"find_containers"
 text = "Locate the hidden supply containers"
-targets = PackedStringArray("dead_coast.cargo_a", "dead_coast.cargo_b", "dead_coast.cargo_c")
+targets = PackedStringArray("dead_coast_cargo_a", "dead_coast_cargo_b", "dead_coast_cargo_c")
 count = 3
 progress_label = "Containers"
 
@@ -28,13 +28,13 @@ progress_label = "Containers"
 script = ExtResource("1_pw6ra")
 id = &"recover_equipment"
 text = "Recover the sealed equipment case"
-targets = PackedStringArray("dead_coast.cargo_gear")
+targets = PackedStringArray("dead_coast_cargo_gear")
 
 [sub_resource type="Resource" id="Resource_5nx5a"]
 script = ExtResource("1_pw6ra")
 id = &"discover_black_site"
 text = "Discover the link to Project Black Site"
-targets = PackedStringArray("dead_coast.log_black_site_link")
+targets = PackedStringArray("dead_coast_log_black_site_link")
 
 [sub_resource type="Resource" id="Resource_eoxeb"]
 script = ExtResource("1_pw6ra")
@@ -57,7 +57,7 @@ script = ExtResource("1_pw6ra")
 id = &"clear_raider_camp"
 text = "Clear the raider camp"
 type = 5
-targets = PackedStringArray("patrol_dead_coast.camp_cleared")
+targets = PackedStringArray("patrol_dead_coast_camp_cleared")
 optional = true
 
 [resource]
