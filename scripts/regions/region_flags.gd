@@ -1,10 +1,10 @@
 class_name RegionFlags
 extends RefCounted
-## WorldState flags stay global; this is the naming convention `<region_id>.<flag>` so regions never collide.
+## WorldState flags stay global; this is the naming convention `<region_id>_<flag> (underscore)` so regions never collide.
 
 
 static func key(region_id: StringName, flag: StringName) -> StringName:
-	return StringName("%s.%s" % [region_id, flag])
+	return StringName("%s_%s" % [region_id, flag])  # underscore: WorldState drops saved flags that are not [a-z0-9_] or longer than 48
 
 
 static func set_flag(region_id: StringName, flag: StringName, value: bool = true) -> void:

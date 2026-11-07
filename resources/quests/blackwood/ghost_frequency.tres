@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_tvsyj"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_kxwe3"]
+
+[sub_resource type="Resource" id="Resource_kkctu"]
+script = ExtResource("1_tvsyj")
+id = &"find_station"
+text = "Locate the hidden communications station"
+type = 1
+targets = PackedStringArray("blackwood_comms_station")
+
+[sub_resource type="Resource" id="Resource_jm0lb"]
+script = ExtResource("1_tvsyj")
+id = &"read_frequency"
+text = "Read the technician's frequency log"
+targets = PackedStringArray("bw_log_frequency")
+
+[sub_resource type="Resource" id="Resource_askpc"]
+script = ExtResource("1_tvsyj")
+id = &"restore_station"
+text = "Restore the station: tune the three dials"
+type = 5
+targets = PackedStringArray("blackwood_comms_power")
+
+[sub_resource type="Resource" id="Resource_50py6"]
+script = ExtResource("1_tvsyj")
+id = &"read_transmissions"
+text = "Investigate the encrypted transmissions"
+type = 5
+targets = PackedStringArray("blackwood_transmissions_read")
+
+[sub_resource type="Resource" id="Resource_tncf4"]
+script = ExtResource("1_tvsyj")
+id = &"recover_data"
+text = "Recover the research data"
+targets = PackedStringArray("bw_data_recorder")
+
+[sub_resource type="Resource" id="Resource_rntt0"]
+script = ExtResource("1_tvsyj")
+id = &"black_site_link"
+text = "Find the connection to Project Black Site"
+type = 5
+targets = PackedStringArray("blackwood_black_site_link")
+
+[sub_resource type="Resource" id="Resource_71x64"]
+script = ExtResource("1_tvsyj")
+id = &"tech_notes"
+text = "Read the technician's notes"
+type = 5
+targets = PackedStringArray("doc_bw_log_tech_notes_found")
+optional = true
+
+[resource]
+script = ExtResource("2_kxwe3")
+id = &"ghost_frequency"
+title = "Ghost Frequency"
+description = "A transmitter is still sending from somewhere in the trees. Tune the hidden station and listen."
+objectives = Array[ExtResource("1_tvsyj")]([SubResource("Resource_kkctu"), SubResource("Resource_jm0lb"), SubResource("Resource_askpc"), SubResource("Resource_50py6"), SubResource("Resource_tncf4"), SubResource("Resource_rntt0"), SubResource("Resource_71x64")])
+rewards = PackedStringArray("credits_medium", "armor_plate", "electronics")
+reward_text = "Credits, an armor plate and electronics."
+next_quest = &"experimental_site"
+start_captions = PackedStringArray("Static, then a voice counting numbers. Find where it comes from.")
+complete_captions = PackedStringArray("Black Site. The same name as the file in Outpost 17.")
+location_hint = "Hidden station"

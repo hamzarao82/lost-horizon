@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_pewld"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_p3wyp"]
+
+[sub_resource type="Resource" id="Resource_h7dec"]
+script = ExtResource("1_pewld")
+id = &"enter_dead_coast"
+text = "Enter the Dead Coast"
+type = 1
+targets = PackedStringArray("dc_wreckage_beach")
+
+[sub_resource type="Resource" id="Resource_06vip"]
+script = ExtResource("1_pewld")
+id = &"investigate_wreckage"
+text = "Investigate the freighter wreckage"
+targets = PackedStringArray("dead_coast_wreck_hull")
+
+[sub_resource type="Resource" id="Resource_wyoud"]
+script = ExtResource("1_pewld")
+id = &"find_comm_equipment"
+text = "Search for surviving communication equipment"
+targets = PackedStringArray("dead_coast_radio_wreck")
+
+[sub_resource type="Resource" id="Resource_kneqw"]
+script = ExtResource("1_pewld")
+id = &"find_shipment_evidence"
+text = "Find evidence of a military shipment"
+targets = PackedStringArray("dead_coast_log_wreck_manifest")
+
+[sub_resource type="Resource" id="Resource_p508b"]
+script = ExtResource("1_pewld")
+id = &"defeat_beach_patrols"
+text = "Defeat the hostile patrols"
+type = 5
+targets = PackedStringArray("patrol_dead_coast_beach_cleared")
+
+[sub_resource type="Resource" id="Resource_oiwf8"]
+script = ExtResource("1_pewld")
+id = &"recover_data_device"
+text = "Recover the data device"
+targets = PackedStringArray("dead_coast_data_device")
+
+[sub_resource type="Resource" id="Resource_epphx"]
+script = ExtResource("1_pewld")
+id = &"find_wreck_cache"
+text = "Search the lifeboat for supplies"
+targets = PackedStringArray("dead_coast_cache_wreck")
+optional = true
+
+[resource]
+script = ExtResource("2_p3wyp")
+id = &"dc_wreckage"
+title = "Wreckage"
+description = "A freighter broke apart on the Dead Coast. Somebody was moving something the military did not want seen."
+objectives = Array[ExtResource("1_pewld")]([SubResource("Resource_h7dec"), SubResource("Resource_06vip"), SubResource("Resource_wyoud"), SubResource("Resource_kneqw"), SubResource("Resource_p508b"), SubResource("Resource_oiwf8"), SubResource("Resource_epphx")])
+rewards = PackedStringArray("upgrade_kit_weapon", "credits_medium")
+reward_text = "Weapon Upgrade Kit and credits"
+next_quest = &"dc_silent_checkpoint"
+start_captions = PackedStringArray("The coast is quiet. Too quiet. The wreck is the only thing out here that is still talking.")
+complete_captions = PackedStringArray("Wreckage: complete.", "Someone staged this crash. The data device points up the coast.")
+caption_seconds = 4.5
+location_hint = "Wreckage Beach"

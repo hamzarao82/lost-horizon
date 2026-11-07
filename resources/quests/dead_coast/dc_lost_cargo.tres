@@ -1,0 +1,75 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_pw6ra"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_3nwrq"]
+
+[sub_resource type="Resource" id="Resource_dbanm"]
+script = ExtResource("1_pw6ra")
+id = &"track_shipment"
+text = "Track the missing shipment"
+targets = PackedStringArray("dead_coast_trail_markers")
+
+[sub_resource type="Resource" id="Resource_e8msw"]
+script = ExtResource("1_pw6ra")
+id = &"explore_cove"
+text = "Explore Smuggler's Cove"
+type = 1
+targets = PackedStringArray("dc_cove")
+
+[sub_resource type="Resource" id="Resource_giky3"]
+script = ExtResource("1_pw6ra")
+id = &"find_containers"
+text = "Locate the hidden supply containers"
+targets = PackedStringArray("dead_coast_cargo_a", "dead_coast_cargo_b", "dead_coast_cargo_c")
+count = 3
+progress_label = "Containers"
+
+[sub_resource type="Resource" id="Resource_o40wg"]
+script = ExtResource("1_pw6ra")
+id = &"recover_equipment"
+text = "Recover the sealed equipment case"
+targets = PackedStringArray("dead_coast_cargo_gear")
+
+[sub_resource type="Resource" id="Resource_5nx5a"]
+script = ExtResource("1_pw6ra")
+id = &"discover_black_site"
+text = "Discover the link to Project Black Site"
+targets = PackedStringArray("dead_coast_log_black_site_link")
+
+[sub_resource type="Resource" id="Resource_eoxeb"]
+script = ExtResource("1_pw6ra")
+id = &"reach_watchpoint"
+text = "Climb to the cliffside watchpoint"
+type = 1
+targets = PackedStringArray("dc_watchpoint")
+optional = true
+
+[sub_resource type="Resource" id="Resource_6kch5"]
+script = ExtResource("1_pw6ra")
+id = &"find_depot"
+text = "Find the hidden supply depot"
+type = 1
+targets = PackedStringArray("dc_depot")
+optional = true
+
+[sub_resource type="Resource" id="Resource_ppkch"]
+script = ExtResource("1_pw6ra")
+id = &"clear_raider_camp"
+text = "Clear the raider camp"
+type = 5
+targets = PackedStringArray("patrol_dead_coast_camp_cleared")
+optional = true
+
+[resource]
+script = ExtResource("2_3nwrq")
+id = &"dc_lost_cargo"
+title = "Lost Cargo"
+description = "The shipment never reached Outpost 17. Follow it to Smuggler's Cove."
+prerequisites = PackedStringArray("dc_silent_checkpoint")
+objectives = Array[ExtResource("1_pw6ra")]([SubResource("Resource_dbanm"), SubResource("Resource_e8msw"), SubResource("Resource_giky3"), SubResource("Resource_o40wg"), SubResource("Resource_5nx5a"), SubResource("Resource_eoxeb"), SubResource("Resource_6kch5"), SubResource("Resource_ppkch")])
+rewards = PackedStringArray("coastal_weapon_part", "credits_medium")
+reward_text = "Coastal weapon part and credits"
+start_captions = PackedStringArray("The cargo left the beach in sealed crates. Find where they were hidden.")
+complete_captions = PackedStringArray("Lost Cargo: complete.", "The trail goes on into the Blackwood. The way north is open.")
+caption_seconds = 4.5
+location_hint = "Smuggler's Cove"

@@ -36,6 +36,9 @@ func _ready() -> void:
 	if DisplayServer.get_name() == "headless":
 		fade_time = 0.0
 	get_tree().node_added.connect(_on_node_added)
+	var flow := CampaignFlow.new()  # unlock chain, road gate, bridge quest and hand-off lines
+	flow.name = "CampaignFlow"
+	add_child(flow)
 
 
 # --- container (Main) ------------------------------------------------------
@@ -113,7 +116,8 @@ func refuse(region_id: StringName) -> void:
 	var name := data.display_name if data else String(region_id)
 	var quests := get_node_or_null("/root/QuestManager")
 	if quests != null and quests.has_method("say"):
-		quests.say("%s is not reachable yet." % name, 3.0)
+		var custom := CampaignFlow.refusal_text(region_id)
+		quests.say(custom if custom != "" else "%s is not reachable yet." % name, 3.0)
 
 
 func _world_has(flag: StringName) -> bool:

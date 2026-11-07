@@ -22,7 +22,22 @@ const QUEST_PATHS: Array[String] = [
 	"res://resources/quests/restore_power.tres",
 	"res://resources/quests/broken_perimeter.tres",
 	"res://resources/quests/final_transmission.tres",
+	"res://resources/quests/dead_coast/dc_wreckage.tres",
+	"res://resources/quests/dead_coast/dc_silent_checkpoint.tres",
+	"res://resources/quests/dead_coast/dc_lost_cargo.tres",
+	"res://resources/quests/blackwood/into_the_blackwood.tres",
+	"res://resources/quests/blackwood/ghost_frequency.tres",
+	"res://resources/quests/blackwood/experimental_site.tres",
 ]
+## Extra quest folders (Milestone 7 campaign): every .tres QuestData inside is registered at startup.
+const QUEST_DIRS: Array[String] = [
+	"res://resources/quests/campaign/",
+	"res://resources/quests/dead_coast/",
+	"res://resources/quests/blackwood/",
+	"res://resources/quests/research_complex/",
+]
+## HUD pin: when this quest is active the tracker shows it before the others (set by CampaignFlow, not saved).
+var tracker_first: StringName = &""
 const FIRST_QUEST: StringName = &"first_signal"
 ## Completing this quest ends the Milestone 4 mission: flag, autosave, mission_completed.
 const MISSION_QUEST: StringName = &"first_signal"
@@ -79,15 +94,48 @@ func _ready() -> void:
 func _load_quests() -> void:
 	quests.clear()
 	for path in QUEST_PATHS:
-		var quest := load(path) as QuestData
-		if quest == null:
-			push_warning("QuestManager: could not load %s" % path)
-			continue
-		var errors := quest.validate()
-		if not errors.is_empty():
-			push_warning("QuestManager: %s is invalid: %s" % [path, "; ".join(errors)])
-			continue
-		quests[quest.id] = quest
+		_load_quest_file(path)
+	# Campaign regions drop their quests into these folders; no list to edit (Milestone 7).
+	for dir in QUEST_DIRS:
+		for path in quest_files_in(dir):
+			_load_quest_file(path)
+
+
+func _load_quest_file(path: String) -> void:
+	var quest := load(path) as QuestData
+	if quest == null:
+		push_warning("QuestManager: could not load %s" % path)
+		return
+	var errors := quest.validate()
+	if not errors.is_empty():
+		push_warning("QuestManager: %s is invalid: %s" % [path, "; ".join(errors)])
+		return
+	quests[quest.id] = quest
+
+
+## Quest resources in a folder, sorted. Exported games list resources as "<name>.tres.remap": the suffix is
+## stripped so load() gets the original path in both editor and export.
+static func quest_files_in(dir: String) -> PackedStringArray:
+	var found := PackedStringArray()
+	if not DirAccess.dir_exists_absolute(dir):
+		return found  # a region folder that has no quests yet
+	for file in DirAccess.get_files_at(dir):
+		var file_name := file.trim_suffix(".remap")
+		if file_name.ends_with(".tres") and not found.has(dir + file_name):
+			found.append(dir + file_name)
+	found.sort()
+	return found
+
+
+## Quests to show first in the HUD tracker: the pinned one (the campaign bridge), then the rest in start order.
+func _tracker_order() -> Array:
+	var order: Array = []
+	if tracker_first != &"" and active.has(tracker_first):
+		order.append(tracker_first)
+	for quest_id in active.keys():
+		if quest_id != tracker_first:
+			order.append(quest_id)
+	return order
 
 
 func get_quest(quest_id: StringName) -> QuestData:
@@ -448,7 +496,7 @@ func say_lines(lines: PackedStringArray, seconds: float = 4.0) -> void:
 # --- tracker text for the HUD ----------------------------------------------
 
 func tracker_title() -> String:
-	for quest_id in active.keys():
+	for quest_id in _tracker_order():
 		var quest := get_quest(quest_id)
 		if quest:
 			return quest.title
@@ -457,7 +505,7 @@ func tracker_title() -> String:
 
 ## The first unfinished objective of the current quest, with progress ("... (Switches 1/3)").
 func tracker_objective() -> String:
-	for quest_id in active.keys():
+	for quest_id in _tracker_order():
 		var quest := get_quest(quest_id)
 		if quest == null:
 			continue
@@ -473,7 +521,7 @@ func tracker_objective() -> String:
 ## The first unfinished OPTIONAL objective that is visible (its hidden_until flag, if any, is set).
 ## Shown on its own HUD line; it never blocks the quest.
 func tracker_optional() -> String:
-	for quest_id in active.keys():
+	for quest_id in _tracker_order():
 		var quest := get_quest(quest_id)
 		if quest == null:
 			continue

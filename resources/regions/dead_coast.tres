@@ -9,6 +9,7 @@ display_name = "Dead Coast"
 scene_path = "res://scenes/regions/StubRegion.tscn"
 entry_points = {
 &"from_outpost": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 30),
+&"beach_arrival": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 30),
 &"from_blackwood": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -30)
 }
 exit_points = {
@@ -25,7 +26,7 @@ exit_points = {
 "target_region": &"blackwood"
 }
 }
-unlock_flag = &"mission_first_signal_complete"
+unlock_flag = &"dead_coast_unlocked"
 environment_preset = &"dead_coast"
 ambience = &"dead_coast"
-map_extents = Rect2(-45, -45, 90, 90)
+map_extents = Rect2(-39.1, -236, 111.7, 272)
