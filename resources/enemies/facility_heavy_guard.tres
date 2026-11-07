@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="FacilityEnemyConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/regions/research_complex/facility_enemy_config.gd" id="1_cfg"]
+
+[resource]
+script = ExtResource("1_cfg")
+id = &"heavy_guard"
+display_name = "Heavy Facility Guard"
+base_scene_path = "res://scenes/enemies/HeavySoldier.tscn"
+hit_points = 180.0
+move_speed = 2.0
+body_color = Color(0.26, 0.31, 0.38, 1)
+body_scale = 1.3
+stagger_resist = 0.7
+swing_path = "res://resources/attacks/facility_shield_bash.tres"
+cooldown_min = 1.5
+cooldown_max = 2.3
+dodge_chance = 0.0
+attack_range = 2.3
+detection_range = 12.0
+loot_table_path = "res://resources/loot/heavy_loot.tres"
+patrols = true

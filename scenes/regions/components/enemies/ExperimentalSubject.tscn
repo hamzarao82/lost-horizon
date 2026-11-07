@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/enemies/PatrolSoldier.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/ai/experimental_subject.gd" id="2_subject"]
+
+[node name="ExperimentalSubject" instance=ExtResource("1_base")]
+script = ExtResource("2_subject")
+display_name = "Subject"
+hit_points = 90.0
+swing_path = "res://resources/attacks/experimental_lunge.tres"
+body_color = Color(0.45, 0.5, 0.35, 1)
+body_scale = 1.05
+cooldown_min = 0.9
+cooldown_max = 1.4
+loot_table_path = "res://resources/loot/research_complex_subject.tres"
+move_speed = 4.6
+detection_range = 9.0
+lose_range = 22.0
+attack_range = 2.4
