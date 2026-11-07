@@ -74,3 +74,10 @@ Every item in the brief's "definition of done" is **not started**. Rules for thi
 - New animation clips do not exist; "improved animations" means mapping and timing only unless Blender work is added.
 - The Iron Fortress and the Director do not exist in `master` yet, so cross-region balancing waits for them.
 - Performance on integrated graphics already misses 60 FPS at High quality; more AI and effects need budgets, or the quality tiers must absorb the cost.
+
+## 8. Status after implementation (2026-11-08)
+**Implemented and verified (parts 6 and 8 only):** the five-wave arena is now an explicit state machine (IDLE, SPAWNING, ACTIVE, CLEARED, TRANSITION, COMPLETE, FAILED) with data-driven waves (`arena_check` 49); six defects fixed, each with a test that fails on the old behaviour (a guard outside the arena holding a wave open, an enemy falling out of the world holding it open, a completed arena restarting at wave 1 on every load, no failure state, no completion reward, teleport landing in arena coordinates in every region); survival audit (`survival_check` 38: armor then health, single death, medkit and teleport limits unchanged: two charges, 600 s recharge).
+
+**Needs your decision:** the arena completion reward (100 XP, 120 credits, once) was chosen by the agent, not requested.
+
+**Not started:** weapon differentiation (reach, recovery, combo per weapon), the AI scheduler and tactical modes, the encounter director, the shared boss fairness test across all bosses (each boss has its own), explosive and cover environment objects, feedback and animation mapping, combat UI additions, the balance simulation, optional elite strongholds, performance budgets for AI and effects. Milestone 11 is roughly 25% done.

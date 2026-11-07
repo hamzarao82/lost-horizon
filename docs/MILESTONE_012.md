@@ -67,3 +67,6 @@ Project starts; main menu works; new game, continue and load work; all five regi
 
 ## 8. Things that belong to the next visual stage (Milestone 13)
 Replace the boxy region art; real foliage, vehicles and buildings; character and weapon models and animations (a firing pose, aiming, new hit reactions); material and lighting passes; the washed-out Research Complex interiors; the Dead Coast and Blackwood look against the reference images; texture and memory budgets for Android and web; and the audio replacement by listened-to, licensed assets.
+
+## 9. Status (2026-11-08)
+Still a plan; no phase completed as a unit. **Fall recovery now exists** (Phase 5 item): a player who falls below y = -40 returns to the last solid ground with the fall speed cleared, or takes the normal death and checkpoint respawn when no ground is known; a region change or teleport forgets the old ground (`fall_recovery_check` 8). Merged work that feeds this milestone: all five regions reachable through real travel, the ending and credits flow, the journal, the arena state machine. **Still missing:** a Load Game list, key rebinding, mission failure rules beyond death, an ending replay from the menu, the Android device run, audio for the ending and bosses, the five open story contradictions, a full human play-through, and the web persistence check for the current build.

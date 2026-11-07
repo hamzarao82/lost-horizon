@@ -165,6 +165,40 @@ func _physics_process(delta: float) -> void:
 	_visual_root.scale.y = 0.6 if state == State.DODGE else 1.0
 	_weapon_pivot.visible = state == State.ATTACK
 	move_and_slide()
+	_check_fall_recovery(delta)
+
+
+# --- falling out of the world ------------------------------------------------------
+
+## Below this height nothing walkable exists in any region.
+const FALL_RECOVERY_Y: float = -40.0
+const FALL_JUMP_RESET: float = 25.0
+var _last_safe_position: Vector3 = Vector3.INF
+var _safe_timer: float = 0.0
+var _fall_prev_position: Vector3 = Vector3.INF
+
+
+## Remembers solid ground and puts the player back on it after a fall through the terrain or off an edge.
+## With no known ground the normal death and checkpoint respawn takes over, so nobody is ever stuck falling.
+func _check_fall_recovery(delta: float) -> void:
+	if state == State.DEAD:
+		return
+	if _fall_prev_position.is_finite() and Vector2(global_position.x - _fall_prev_position.x, global_position.z - _fall_prev_position.z).length() > FALL_JUMP_RESET:
+		_last_safe_position = Vector3.INF  # a region change or teleport: the old ground belongs to another place
+	_fall_prev_position = global_position
+	if is_on_floor() and state == State.FREE:
+		_safe_timer -= delta
+		if _safe_timer <= 0.0:
+			_safe_timer = 0.5
+			_last_safe_position = global_position
+	if global_position.y >= FALL_RECOVERY_Y:
+		return
+	velocity = Vector3.ZERO
+	if _last_safe_position.is_finite():
+		global_position = _last_safe_position + Vector3.UP * 0.3
+		_fall_prev_position = global_position
+	else:
+		health.take_damage(health.max_health * 10.0)
 
 
 # --- input -----------------------------------------------------------------
