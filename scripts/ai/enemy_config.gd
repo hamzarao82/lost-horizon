@@ -51,6 +51,7 @@ func spawn(parent: Node, at: Vector3) -> Enemy:
 	var enemy := (load(scene_path) as PackedScene).instantiate() as Enemy
 	apply(enemy)
 	enemy.position = at
+	enemy.set_meta(&"enemy_config", self)  # keeps this resource (and its unique-drop callback) alive as long as the enemy
 	parent.add_child(enemy)
 	if armor > 0.0:
 		enemy._health.set_armor(armor)
