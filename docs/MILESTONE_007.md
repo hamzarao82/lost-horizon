@@ -54,3 +54,10 @@ Every checklist item from the brief (Dead Coast, Blackwood, integration, visual 
 - **Persistence bugs:** the highest risk is duplicate rewards across region changes; every collectible and unique reward needs a saved id, with a reload test.
 - **Android and web** are untested for all Milestone 6 and 7 content.
 - **No human playtest** of mission flow, balance or navigation readability has happened; automated bots prove reachability only.
+
+## 9. Status after implementation (2026-11-07)
+All 69 suites pass on the merged `master`, zero script errors. **Implemented and verified by tests:** region framework (travel, per-region state, save v4 with migration from v3), the saved-flag fix (WorldState keeps only `[a-z0-9_]` ids up to 48 characters, so every region id uses underscores; a regression test fails with dotted ids), Dead Coast (seven areas, three missions, a physics probe walks the route; 69/60/58 checks), Blackwood (seven areas, three missions, frequency puzzle, fair ambush; 55/63/36 checks), campaign flow (unlock chain, Outpost 17 gate, bridge quest, hand-off captions; 81 and 29 checks), world map (160 checks), per-region sky and ambience (82 checks, sounds unheard), real wiring of both regions through `RegionManager` (39 checks, five round trips leave memory at baseline), the HUD wave counter shown only in Outpost 17.
+
+**Screenshots seen through real travel:** Dead Coast arrival, Blackwood arrival, Outpost 17 return. Both regions are stylized and boxy, far from the reference images.
+
+**Not done:** Blackwood underground hatch (caption only); human playtest of either region; Android and web testing of the regions; the tracker showed the first mission's objective in a staged shot (probably a staging artifact, unconfirmed); a Dead Coast subtitle seen after travelling (probably a staging artifact, unconfirmed).
