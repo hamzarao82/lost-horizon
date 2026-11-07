@@ -29,6 +29,7 @@ const ATTACK_CLIPS: Dictionary = {
 	&"enemy_swing": "light_1", &"heavy_swing": "heavy", &"hunter_slash": "light_2",
 	&"warden_slam": "slam", &"warden_flurry": "flurry", &"warden_shockwave": "shockwave_cast",
 	&"warden_charge": "heavy", &"warden_leap": "shockwave_cast", &"warden_fire": "shockwave_cast",
+	&"ranged_shot": "shockwave_cast", &"ranged_shove": "light_2",
 }
 const VISUAL_HEIGHT: float = 1.8  # the figure the old capsule rig, the colliders and the hitboxes are built around
 const FLASH_STRENGTH: float = 0.55
@@ -420,6 +421,9 @@ func _drive_enemy(delta: float) -> void:
 			driver.play_state(&"hit")
 		Enemy.State.ATTACK:
 			_drive_attack(body.get("_swing") as AttackData)
+		Enemy.State.RANGED_ATTACK:
+			var brain: Variant = body.get("_ranged_brain")
+			_drive_attack(brain.shot_data() if brain != null else null)
 		_:
 			_drive_free(delta, enemy.state == Enemy.State.CHASE)
 
