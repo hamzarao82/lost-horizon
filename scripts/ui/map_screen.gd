@@ -58,6 +58,19 @@ func detail_entries() -> Array[Dictionary]:
 
 func detail_exits() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
+	var map := MapData.load_for(_detail_id())
+	if not map.exits.is_empty():
+		for raw in map.exits:
+			if not (raw is Dictionary) or not (raw.get("pos") is Vector2):
+				continue
+			var target_id := StringName(raw.get("target", &""))
+			var target_info := RegionStore.load_data(target_id)
+			out.append({
+				"pos": raw["pos"],
+				"label": "To %s" % (target_info.display_name if target_info != null else String(target_id)),
+				"locked": not MapData.is_unlocked(target_id),
+			})
+		return out
 	var data := RegionStore.load_data(_detail_id())
 	if data == null:
 		return out

@@ -51,8 +51,11 @@ func _run() -> void:
 	_test_statuses()
 	_test_discovery()
 	_test_markers_and_transform()
+	_test_builders()
+	await _test_dead_coast_screen()
 	await _test_screen()
 	await _test_layout()
+	await _test_real_save()
 	await _test_pause_hook()
 	_reset_state()
 	print("map_check: %d checks, %d failed" % [_checks, _failures])
@@ -112,17 +115,39 @@ func _test_statuses() -> void:
 	var coast_entry: Dictionary = entries[1]
 	_check(coast_entry["id"] == COAST and coast_entry["locked"] and String(coast_entry["hint"]) != "", "a locked region shows an unlock hint (%s)" % coast_entry["hint"])
 	_check(String(entries[0]["hint"]) == "", "an open region shows no hint")
+	# unlocking is the campaign's job (CampaignFlow sets `<region>_unlocked`); the map only reads it
+	_world.set_flag(CampaignFlow.unlock_flag(COAST))
+	_check(_status_of(COAST) == MapData.STATUS_AVAILABLE, "an unlocked Dead Coast is available")
+	_check(MapData.completion_flags(COAST).has(CampaignFlow.mission_flag(COAST, 3)), "Dead Coast completion includes its mission 3 flag from the campaign chain")
+	CampaignFlow.mark_mission_complete(COAST, 3)
+	_check(_status_of(COAST) == MapData.STATUS_COMPLETED, "mission 3 of Dead Coast marks it completed")
+	# every alias the campaign accepts for the next unlock also counts as completion on the map
+	for region in [COAST, WOOD]:
+		var next: StringName = RegionStore.IDS[RegionStore.IDS.find(region) + 1]
+		for alias in CampaignFlow.CHAIN[next]["aliases"]:
+			_reset_state()
+			_world.set_flag(CampaignFlow.unlock_flag(region))
+			_world.set_flag(alias)
+			_check(_status_of(region) == MapData.STATUS_COMPLETED, "the alias %s completes %s" % [alias, region])
+	_reset_state()
+	_world.set_flag(CampaignFlow.unlock_flag(COMPLEX))
+	_check(_status_of(COMPLEX) == MapData.STATUS_AVAILABLE, "the last region is available once unlocked")
+	_world.set_flag(CampaignFlow.mission_flag(COMPLEX, 4))
+	_check(_status_of(COMPLEX) == MapData.STATUS_COMPLETED, "mission 4 completes the last region")
+	_reset_state()
+	_world.set_flag(CampaignFlow.unlock_flag(WOOD))
+	RegionFlags.set_flag(WOOD, &"region_complete")
+	_check(_status_of(WOOD) == MapData.STATUS_COMPLETED, "`<region>_region_complete` also marks a region completed")
+	_reset_state()
 	_world.set_flag(&"mission_first_signal_complete")
-	_check(_status_of(COAST) == MapData.STATUS_AVAILABLE, "finishing The First Signal makes Dead Coast available")
-	RegionFlags.set_flag(COAST, &"region_complete")
-	_check(_status_of(COAST) == MapData.STATUS_COMPLETED, "Dead Coast reads as completed once its completion flag is set")
-	_check(_status_of(WOOD) == MapData.STATUS_AVAILABLE, "completing Dead Coast opens Blackwood")
-	RegionFlags.set_flag(WOOD, &"completed")
-	_check(_status_of(WOOD) == MapData.STATUS_COMPLETED, "the `completed` flag also marks a region completed")
 	_regions.current_region_id = COAST
+	_check(_status_of(OUTPOST) == MapData.STATUS_COMPLETED, "Outpost 17 reads as completed after The First Signal when the player is elsewhere")
 	_check(_status_of(COAST) == MapData.STATUS_CURRENT and _status_of(OUTPOST) != MapData.STATUS_CURRENT,
 			"the current marker follows the player's region")
-	_check(MapData.overview_entries()[1]["completed"], "a current region can also be completed (separate flag)")
+	_world.set_flag(CampaignFlow.unlock_flag(COAST))
+	CampaignFlow.mark_mission_complete(COAST, 3)
+	_check(MapData.overview_entries()[1]["completed"] and MapData.overview_entries()[1]["status"] == MapData.STATUS_CURRENT,
+			"a current region can also be completed (separate flag)")
 	_reset_state()
 
 
@@ -220,6 +245,158 @@ func _test_markers_and_transform() -> void:
 	var panned := MapData.to_canvas(Vector2(10.0, 10.0), ext, canvas, 1.0, Vector2(30.0, -20.0))
 	_check((panned - a1).is_equal_approx(Vector2(30.0, -20.0)), "pan shifts every point by the same offset")
 	_check(MapData.base_scale(ext, Vector2(10.0, 10.0)) > 0.0, "a tiny canvas still gives a positive scale")
+
+
+# --- the real levels ---------------------------------------------------------------------------------
+
+func _rect_close(a: Rect2, b: Rect2) -> bool:
+	return a.position.distance_to(b.position) < 0.05 and a.size.distance_to(b.size) < 0.05
+
+
+func _test_builders() -> void:
+	print("-- real levels")
+	var coast_map := MapData.load_for(COAST)
+	var coast_entries: Dictionary = {}
+	for e in coast_map.entries():
+		coast_entries[e["id"]] = e
+	_check(coast_map.landmarks.size() == DeadCoast.AREAS.size(), "the Dead Coast map has one landmark per builder area (%d)" % DeadCoast.AREAS.size())
+	var builder := DeadCoast.new()
+	var drift := 0
+	for area in DeadCoast.AREAS:
+		var id := String(area["id"])
+		if not coast_entries.has(id) or not _rect_close(coast_entries[id]["rect"], builder._area_rect(area)):
+			drift += 1
+	builder.free()
+	_check(drift == 0, "Dead Coast map rects equal the builder's (drift %d; regenerate with tools/gen_map_data.gd)" % drift)
+	var wood_map := MapData.load_for(WOOD)
+	var wood_entries: Dictionary = {}
+	for e in wood_map.entries():
+		wood_entries[e["id"]] = e
+	_check(wood_map.landmarks.size() == Blackwood.AREAS.size(), "the Blackwood map has one landmark per builder area (%d)" % Blackwood.AREAS.size())
+	drift = 0
+	for area in Blackwood.AREAS:
+		var id := String(area["area"])
+		if not wood_entries.has(id) or not _rect_close(wood_entries[id]["rect"], Blackwood.area_rect(area)):
+			drift += 1
+	_check(drift == 0, "Blackwood map rects equal the builder's (drift %d)" % drift)
+	# names: the fog hides them, so compare through the raw landmark data
+	var names_ok := true
+	for raw in coast_map.landmarks:
+		for area in DeadCoast.AREAS:
+			if String(area["id"]) == String(raw["id"]) and String(area["name"]) != String(raw["name"]):
+				names_ok = false
+	for raw in wood_map.landmarks:
+		for area in Blackwood.AREAS:
+			if String(area["area"]) == String(raw["id"]) and String(area["label"]) != String(raw["name"]):
+				names_ok = false
+	_check(names_ok, "area names equal the builders' names")
+	# extents hold every area and exit of the real levels
+	for id in [COAST, WOOD]:
+		var data := RegionStore.load_data(id)
+		var map := MapData.load_for(id)
+		var outside := 0
+		for e in map.entries():
+			if not data.map_extents.encloses(e["rect"]):
+				outside += 1
+		for ex in map.exits:
+			if not data.map_extents.has_point(ex["pos"]):
+				outside += 1
+		_check(outside == 0 and map.exits.size() == 2, "%s extents hold every area and both exits (%d outside)" % [id, outside])
+	# flag names line up with the ids the builders emit through WorldState.area_entered
+	_check(String(MapData.discovery_flag(COAST, &"dc_cove")) == "dead_coast_discovered_dc_cove", "Dead Coast discovery flag uses the builder's area id")
+	_check(String(MapData.discovery_flag(WOOD, &"blackwood_research_perimeter")) == "blackwood_discovered_research_perimeter",
+			"the region prefix is dropped so the Blackwood flag stays within 48 characters")
+	var too_long := 0
+	for area in DeadCoast.AREAS:
+		if String(MapData.discovery_flag(COAST, area["id"])).length() > MapData.MAX_FLAG_LENGTH:
+			too_long += 1
+	for area in Blackwood.AREAS:
+		if String(MapData.discovery_flag(WOOD, area["area"])).length() > MapData.MAX_FLAG_LENGTH:
+			too_long += 1
+	_check(too_long == 0, "every builder area id gives a discovery flag of at most 48 characters (%d too long)" % too_long)
+	# an over-long flag is refused instead of being silently lost on save
+	_world.reset()
+	MapData.mark_discovered(WOOD, StringName("x".repeat(60)))
+	_check(_world.to_dict()["flags"].is_empty(), "an area id that would make an unsaveable flag is not recorded")
+	_world.reset()
+
+
+func _test_dead_coast_screen() -> void:
+	print("-- Dead Coast detail")
+	_reset_state()
+	_regions.current_region_id = COAST
+	var screen := MapScreen.new()
+	root.add_child(screen)
+	await _frames(2)
+	screen.open()
+	await _frames(3)
+	_check(screen.detail_region == COAST and screen.canvas().landmarks.size() == 7, "the region view shows the seven Dead Coast areas")
+	var known := 0
+	for e in screen.detail_entries():
+		if e["discovered"]:
+			known += 1
+	_check(known == 1 and screen.detail_entries()[0]["name"] == "Wreckage Beach", "only the arrival area is known on arrival")
+	_world.emit_area_entered(&"dc_cove")
+	_check(_entry(screen.detail_entries(), "dc_cove")["name"] == "Smuggler's Cove", "entering the cove reveals it through the builder's area id")
+	var exits := screen.detail_exits()
+	_check(exits.size() == 2 and exits[0]["label"] == "To Outpost 17" and exits[1]["label"] == "To Blackwood", "the real exits are drawn with their targets")
+	_check(not exits[0]["locked"] and exits[1]["locked"], "the way back is open and Blackwood is locked until it is unlocked")
+	_world.set_flag(CampaignFlow.unlock_flag(WOOD))
+	_check(not screen.detail_exits()[1]["locked"], "unlocking Blackwood opens its exit marker")
+	var arrival := DeadCoastTerrain.ground(14.0, 10.0)
+	var canvas_pos: Vector2 = screen.canvas().world_to_canvas(Vector2(arrival.x, arrival.z))
+	_check(Rect2(Vector2.ZERO, screen.canvas().size).has_point(canvas_pos), "the arrival point lies on the canvas with the real extents")
+	var far := DeadCoastTerrain.ground(14.0, -224.0)
+	canvas_pos = screen.canvas().world_to_canvas(Vector2(far.x, far.z))
+	_check(Rect2(Vector2.ZERO, screen.canvas().size).has_point(canvas_pos), "so does the far exit, 245 m away")
+	screen.close()
+	screen.queue_free()
+	await _frames(2)
+	_reset_state()
+
+
+# --- a real save and load ----------------------------------------------------------------------------
+
+func _clean_save(sm: Node) -> void:
+	sm.delete_save()
+	for suffix in [".bak", ".tmp"]:
+		var path: String = sm.save_path() + suffix
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(path)
+
+
+func _test_real_save() -> void:
+	print("-- real save and load")
+	var sm := root.get_node_or_null("SaveManager")
+	var safe: bool = sm != null and sm.test_mode
+	_check(safe, "SaveManager is in test mode (per-process file, never the player's save)")
+	if not safe:
+		return
+	_reset_state()
+	_clean_save(sm)
+	var player := load(PLAYER_SCENE).instantiate() as Player
+	root.add_child(player)
+	await _frames(4)
+	MapData.mark_discovered(OUTPOST, &"area_b_compound")
+	MapData.mark_discovered(COAST, &"dc_cove")
+	MapData.mark_discovered(WOOD, &"blackwood_research_perimeter")
+	CampaignFlow.mark_mission_complete(COAST, 3)
+	_check(sm.save_game("manual"), "the game saves")
+	_world.reset()
+	_check(not _world.has_flag(MapData.discovery_flag(COAST, &"dc_cove")), "flags are gone after a reset")
+	_check(sm.load_game(), "the save loads")
+	await _frames(6)
+	_check(_entry(MapData.load_for(OUTPOST).entries(), "area_b_compound")["discovered"], "an Outpost 17 discovery survives a real save and load")
+	_check(_entry(MapData.load_for(COAST).entries(), "dc_cove")["discovered"], "a Dead Coast discovery survives")
+	var long_flag := String(MapData.discovery_flag(WOOD, &"blackwood_research_perimeter"))
+	_check(_entry(MapData.load_for(WOOD).entries(), "blackwood_research_perimeter")["discovered"], "the long Blackwood id survives (flag is %d characters)" % long_flag.length())
+	_check(MapData.is_completed(COAST), "a completion flag survives, so Dead Coast still reads as completed")
+	_check(not _entry(MapData.load_for(COAST).entries(), "dc_depot")["discovered"], "areas never visited stay fog after the reload")
+	player.queue_free()
+	await _frames(2)
+	_clean_save(sm)
+	sm.reset_runtime_state()
+	_reset_state()
 
 
 # --- the screen ----------------------------------------------------------------------------------

@@ -9,18 +9,28 @@ extends Resource
 ##   rect  Rect2    world (x, z) rectangle; size (0, 0) means a point marker
 ##   kind  String   "area", "arena", "checkpoint" or "landmark"
 ##   flag  String   WorldState flag that reveals it; "" means always known
-## Discovery flags follow the region convention `<region_id>_discovered_<area_id>` (underscores: WorldState only saves [a-z0-9_] ids up to 48 characters) (see RegionFlags).
-## The Dead Coast, Blackwood and Research Complex lists are PROVISIONAL placeholders: replace the rects
-## with the real level positions when those builders land (only the resource files change).
+## exits: Array of Dictionary {pos: Vector2 (x, z), label: String, target: String region id}. When present they
+## replace the exits of RegionData (which still describe the stub regions); when empty the RegionData exits are used.
+##
+## Discovery flags are `<region_id>_discovered_<area slug>`: underscores only and at most 48 characters, because
+## WorldState silently drops any other saved flag (see RegionFlags). The slug is the area id with a leading
+## `<region_id>_` removed, so `blackwood_research_perimeter` does not push the flag over the limit.
+## Dead Coast and Blackwood are generated from the builders' own area tables by tools/gen_map_data.gd (a test
+## fails when they drift). The Research Complex list is still a PROVISIONAL placeholder: that level does not exist.
+##
+## A region counts as completed when the flags that unlock the NEXT region in CampaignFlow.CHAIN are set (its
+## `after` flag or any alias), so the map and the campaign can never disagree; the last region uses its own
+## mission 4 or `<region>_region_complete` flag, and `<region>_region_complete` / `<region>_completed` always count.
 
 const DIR: String = "res://resources/regions/maps/"
 const STATUS_CURRENT: StringName = &"current"
 const STATUS_LOCKED: StringName = &"locked"
 const STATUS_COMPLETED: StringName = &"completed"
 const STATUS_AVAILABLE: StringName = &"available"
-## Either flag marks a region as finished: the framework unlocks the next region with `<id>.region_complete`.
-const COMPLETE_FLAGS: Array[StringName] = [&"region_complete", &"completed"]
 const FOG_NAME: String = "Unexplored"
+## WorldState keeps saved flags only when they are [a-z0-9_] and at most this long.
+const MAX_FLAG_LENGTH: int = 48
+const LAST_REGION_MISSION: int = 4
 
 static var _cache: Dictionary = {}
 
@@ -30,6 +40,7 @@ static var _cache: Dictionary = {}
 ## Shown on the overview while the region is locked.
 @export var unlock_hint: String = ""
 @export var landmarks: Array = []
+@export var exits: Array = []
 
 
 static func load_for(id: StringName) -> MapData:
@@ -52,14 +63,29 @@ static func clear_cache() -> void:
 
 # --- discovery ---------------------------------------------------------------------------------
 
+## The area id without a leading `<region>_` (the flag already names the region).
+static func area_slug(region: StringName, area_id: StringName) -> String:
+	var slug := String(area_id)
+	var prefix := String(region) + "_"
+	if slug.begins_with(prefix) and slug.length() > prefix.length():
+		slug = slug.substr(prefix.length())
+	return slug
+
+
 static func discovery_flag(region: StringName, area_id: StringName) -> StringName:
-	return RegionFlags.key(region, StringName("discovered_%s" % area_id))
+	return RegionFlags.key(region, StringName("discovered_%s" % area_slug(region, area_id)))
 
 
 static func mark_discovered(region: StringName, area_id: StringName) -> void:
 	if region == &"" or area_id == &"":
 		return
-	RegionFlags.set_flag(region, StringName("discovered_%s" % area_id))
+	var flag := discovery_flag(region, area_id)
+	if String(flag).length() > MAX_FLAG_LENGTH:
+		push_warning("MapData: discovery flag '%s' is longer than %d characters and would not survive a save" % [flag, MAX_FLAG_LENGTH])
+		return
+	var world := (Engine.get_main_loop() as SceneTree).root.get_node_or_null("WorldState") if Engine.get_main_loop() else null
+	if world != null:
+		world.set_flag(flag)
 
 
 static func is_flag_set(flag: String) -> bool:
@@ -110,9 +136,28 @@ static func current_region() -> StringName:
 	return RegionStore.OUTPOST_ID
 
 
+## Every flag that marks `region` as finished (see the header).
+static func completion_flags(region: StringName) -> Array[StringName]:
+	var out: Array[StringName] = [RegionFlags.key(region, &"region_complete"), RegionFlags.key(region, &"completed")]
+	var index := RegionStore.IDS.find(region)
+	var next: StringName = RegionStore.IDS[index + 1] if index >= 0 and index + 1 < RegionStore.IDS.size() else &""
+	if next != &"" and CampaignFlow.CHAIN.has(next):
+		var rule: Dictionary = CampaignFlow.CHAIN[next]
+		out.append(rule["after"])
+		for alias in rule["aliases"]:
+			out.append(alias)
+	elif next == &"":
+		out.append(CampaignFlow.mission_flag(region, LAST_REGION_MISSION))
+	return out
+
+
 static func is_completed(region: StringName) -> bool:
-	for flag in COMPLETE_FLAGS:
-		if RegionFlags.has_flag(region, flag):
+	var loop := Engine.get_main_loop() as SceneTree
+	var world := loop.root.get_node_or_null("WorldState") if loop else null
+	if world == null:
+		return false
+	for flag in completion_flags(region):
+		if world.has_flag(flag):
 			return true
 	return false
 

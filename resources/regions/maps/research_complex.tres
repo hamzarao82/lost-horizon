@@ -6,7 +6,7 @@
 script = ExtResource("1_map")
 region_id = &"research_complex"
 overview_pos = Vector2(0.8, 0.52)
-unlock_hint = "Complete Blackwood"
+unlock_hint = "Finish Blackwood: The Experimental Site"
 ; PROVISIONAL layout: replace the rects with the real level positions when the Research Complex lands.
 landmarks = [
 {"id": "research_perimeter", "name": "Research Perimeter", "rect": Rect2(-40, 26, 80, 16), "kind": "area", "flag": ""},
