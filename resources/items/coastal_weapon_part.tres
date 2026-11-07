@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_0plv3"]
+
+[resource]
+script = ExtResource("1_0plv3")
+item_id = &"coastal_weapon_part"
+display_name = "Coastal Weapon Part"
+kind = 7
+rarity = 3
+description = "A hardened guard and fittings cut for a weapon that never arrived. Improves a weapon at the bench."
+max_stack = 1
+unique = true
+value = 150
+region = "dead_coast"

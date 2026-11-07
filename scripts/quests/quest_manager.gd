@@ -22,6 +22,9 @@ const QUEST_PATHS: Array[String] = [
 	"res://resources/quests/restore_power.tres",
 	"res://resources/quests/broken_perimeter.tres",
 	"res://resources/quests/final_transmission.tres",
+	"res://resources/quests/dead_coast/dc_wreckage.tres",
+	"res://resources/quests/dead_coast/dc_silent_checkpoint.tres",
+	"res://resources/quests/dead_coast/dc_lost_cargo.tres",
 ]
 const FIRST_QUEST: StringName = &"first_signal"
 ## Completing this quest ends the Milestone 4 mission: flag, autosave, mission_completed.

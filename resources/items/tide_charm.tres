@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_yq1ni"]
+
+[resource]
+script = ExtResource("1_yq1ni")
+item_id = &"tide_charm"
+display_name = "Tide Charm"
+kind = 1
+rarity = 2
+description = "A smuggler's charm of salt-white shell. Whoever carried it always found the quiet route."
+slot = 7
+max_stack = 1
+base_stats = {
+"damage_reduction": 0.03,
+"max_health": 8.0,
+"move_speed_mult": 1.03
+}
+unique = true
+value = 120
+region = "dead_coast"
