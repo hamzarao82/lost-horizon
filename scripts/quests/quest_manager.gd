@@ -38,6 +38,8 @@ const QUEST_DIRS: Array[String] = [
 ]
 ## HUD pin: when this quest is active the tracker shows it before the others (set by CampaignFlow, not saved).
 var tracker_first: StringName = &""
+## quest id -> region id, filled at load from the quest folder.
+var _quest_region: Dictionary = {}
 
 const FIRST_QUEST: StringName = &"first_signal"
 ## Completing this quest ends the Milestone 4 mission: flag, autosave, mission_completed.
