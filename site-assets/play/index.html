@@ -5,93 +5,55 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
 		<title>Lost Horizon</title>
 		<style>
-html, body, #canvas {
-	margin: 0;
-	padding: 0;
-	border: 0;
-}
+html, body, #canvas { margin: 0; padding: 0; border: 0; }
+body { color: #f2e6c8; background-color: #0a0d12; overflow: hidden; touch-action: none; }
+#canvas { display: block; }
+#canvas:focus { outline: none; }
 
-body {
-	color: white;
-	background-color: black;
-	overflow: hidden;
-	touch-action: none;
-}
-
-#canvas {
-	display: block;
-}
-
-#canvas:focus {
-	outline: none;
-}
-
-#status, #status-splash, #status-progress {
-	position: absolute;
-	left: 0;
-	right: 0;
-}
-
-#status, #status-splash {
-	top: 0;
-	bottom: 0;
-}
-
+/* Same colour as the in-game boot screen (0.04, 0.05, 0.07) so the hand-over has no flash. */
 #status {
-	background-color: #242424;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-	visibility: hidden;
+	position: absolute; inset: 0; background: #0a0d12; visibility: hidden; overflow: hidden;
+	display: flex; flex-direction: column; justify-content: center; align-items: center;
+	padding: 0 16px; box-sizing: border-box; font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
 }
-
-#status-splash {
-	max-height: 100%;
-	max-width: 100%;
-	margin: auto;
+#embers { position: absolute; inset: 0; pointer-events: none; }
+.ember {
+	position: absolute; bottom: -12px; width: 3px; height: 3px; border-radius: 50%;
+	background: #e89a33; opacity: 0; animation: drift linear infinite;
 }
-
-#status-splash.show-image--false {
-	display: none;
+@keyframes drift {
+	0% { transform: translate(0, 0); opacity: 0; }
+	15% { opacity: 0.8; }
+	100% { transform: translate(var(--dx), -105vh); opacity: 0; }
 }
-
-#status-splash.fullsize--true {
-	height: 100%;
-	width: 100%;
-	object-fit: contain;
+#scan {
+	position: absolute; left: 0; right: 0; height: 90px; top: -90px; pointer-events: none;
+	background: linear-gradient(to bottom, rgba(120, 170, 200, 0), rgba(120, 170, 200, 0.05), rgba(120, 170, 200, 0));
+	animation: scan 6s linear infinite;
 }
-
-#status-splash.use-filter--false {
-	image-rendering: pixelated;
-}
-
-#status-progress, #status-notice {
-	display: none;
-}
-
-#status-progress {
-	bottom: 10%;
-	width: 50%;
-	margin: 0 auto;
-}
-
+@keyframes scan { to { transform: translateY(calc(100vh + 90px)); } }
+#title { position: relative; text-align: center; letter-spacing: 0.08em; }
+#title .big { font-size: clamp(34px, 8vw, 64px); font-weight: 600; color: #f2e6c8; }
+#title .small { font-size: clamp(16px, 3vw, 24px); color: #e89a33; margin-top: 4px; letter-spacing: 0.3em; }
+#bar-wrap { position: relative; width: min(420px, 100%); margin-top: 36px; }
+#bar { height: 6px; background: #1a2230; border-radius: 3px; overflow: hidden; }
+#fill { height: 100%; width: 0%; background: #e89a33; transition: width 0.25s ease-out; }
+#bar.pulse #fill { width: 35%; animation: pulse 1.4s ease-in-out infinite alternate; }
+@keyframes pulse { from { transform: translateX(0); } to { transform: translateX(185%); } }
+#label { margin-top: 10px; font-size: 14px; text-align: center; color: #9fb0c3; min-height: 1.3em; }
+#tip { position: relative; margin-top: 28px; width: min(520px, 100%); text-align: center; font-size: 15px; line-height: 1.4; color: #c9bfa6; min-height: 3em; transition: opacity 0.5s; }
 #status-notice {
-	background-color: #5b3943;
-	border-radius: 0.5rem;
-	border: 1px solid #9b3943;
-	color: #e0e0e0;
-	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
-	line-height: 1.3;
-	margin: 0 2rem;
-	overflow: hidden;
-	padding: 1rem;
-	text-align: center;
-	z-index: 1;
+	display: none; position: relative; margin: 24px 0 0; max-width: 520px; background: #5b3943; border: 1px solid #9b3943;
+	border-radius: 8px; color: #e0e0e0; padding: 16px; text-align: center; line-height: 1.3;
+}
+@media (prefers-reduced-motion: reduce) {
+	.ember, #scan { animation: none; display: none; }
+	#bar.pulse #fill { animation: none; width: 100%; opacity: 0.5; }
+	#tip { transition: none; }
 }
 		</style>
-		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index-9179ff09.icon.png" />
-<link rel="apple-touch-icon" href="index-9179ff09.apple-touch-icon.png"/>
+		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index-e569469e.icon.png" />
+<link rel="apple-touch-icon" href="index-e569469e.apple-touch-icon.png"/>
 
 	</head>
 	<body>
@@ -100,25 +62,66 @@ body {
 		</canvas>
 
 		<noscript>
-			Your browser does not support JavaScript.
+			Lost Horizon needs JavaScript and WebAssembly. Please enable JavaScript or use a current desktop or mobile browser.
 		</noscript>
 
 		<div id="status">
-			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index-9179ff09.png" alt="">
-			<progress id="status-progress"></progress>
+			<div id="embers"></div>
+			<div id="scan"></div>
+			<div id="title"><div class="big">LOST HORIZON</div><div class="small">BLACK SITE</div></div>
+			<div id="bar-wrap"><div id="bar"><div id="fill"></div></div></div>
+			<div id="label">Preparing...</div>
+			<div id="tip"></div>
 			<div id="status-notice"></div>
 		</div>
 
-		<script src="index-9179ff09.js"></script>
+		<script src="index-e569469e.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index-9179ff09","experimentalVK":false,"fileSizes":{"index-9179ff09.pck":9712512,"index-9179ff09.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index-e569469e","experimentalVK":false,"fileSizes":{"index-e569469e.pck":10301160,"index-e569469e.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
 (function () {
 	const statusOverlay = document.getElementById('status');
-	const statusProgress = document.getElementById('status-progress');
 	const statusNotice = document.getElementById('status-notice');
+	const bar = document.getElementById('bar');
+	const fill = document.getElementById('fill');
+	const label = document.getElementById('label');
+	const tipEl = document.getElementById('tip');
+
+	const TIPS = [
+		'Dodge has brief invulnerability frames: roll through the swing, not away from it.',
+		'Press R to use a medkit. It will not heal you when you are already at full health.',
+		'The teleport has limited charges and recharges slowly: save it for an escape.',
+		'Heavy attacks hit harder but leave you open. Wait for the enemy to finish swinging.',
+		'Press I to open your inventory and K for your character and skills.',
+		'Terminals and documents hold clues. Not everything is marked on the map.',
+		'Armor soaks damage before your health does. A better plate changes a fight.',
+		'The signal came from Outpost 17. Someone wanted it found.'
+	];
+
+	for (let i = 0; i < 24; i++) {
+		const e = document.createElement('div');
+		e.className = 'ember';
+		e.style.left = (Math.random() * 100) + '%';
+		e.style.setProperty('--dx', ((Math.random() - 0.5) * 120) + 'px');
+		e.style.animationDuration = (6 + Math.random() * 8) + 's';
+		e.style.animationDelay = (-Math.random() * 12) + 's';
+		document.getElementById('embers').appendChild(e);
+	}
+
+	let tipIndex = Math.floor(Math.random() * TIPS.length);
+	function showTip() {
+		tipEl.style.opacity = 0;
+		setTimeout(function () {
+			tipEl.textContent = TIPS[tipIndex];
+			tipIndex = (tipIndex + 1) % TIPS.length;
+			tipEl.style.opacity = 1;
+		}, 500);
+	}
+	tipEl.textContent = TIPS[tipIndex];
+	tipIndex = (tipIndex + 1) % TIPS.length;
+	const tipTimer = setInterval(showTip, 4000);
 
 	let initializing = true;
 	let statusMode = '';
@@ -128,12 +131,12 @@ const engine = new Engine(GODOT_CONFIG);
 			return;
 		}
 		if (mode === 'hidden') {
+			clearInterval(tipTimer);
 			statusOverlay.remove();
 			initializing = false;
 			return;
 		}
 		statusOverlay.style.visibility = 'visible';
-		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
 		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
 		statusMode = mode;
 	}
@@ -142,8 +145,7 @@ const engine = new Engine(GODOT_CONFIG);
 		while (statusNotice.lastChild) {
 			statusNotice.removeChild(statusNotice.lastChild);
 		}
-		const lines = text.split('\n');
-		lines.forEach((line) => {
+		text.split('\n').forEach(function (line) {
 			statusNotice.appendChild(document.createTextNode(line));
 			statusNotice.appendChild(document.createElement('br'));
 		});
@@ -167,49 +169,24 @@ const engine = new Engine(GODOT_CONFIG);
 	});
 
 	if (missing.length !== 0) {
-		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
-			let serviceWorkerRegistrationPromise;
-			try {
-				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
-			} catch (err) {
-				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
-			}
-			// There's a chance that installing the service worker would fix the issue
-			Promise.race([
-				serviceWorkerRegistrationPromise.then((registration) => {
-					if (registration != null) {
-						return Promise.reject(new Error('Service worker already exists.'));
-					}
-					return registration;
-				}).then(() => engine.installServiceWorker()),
-				// For some reason, `getRegistration()` can stall
-				new Promise((resolve) => {
-					setTimeout(() => resolve(), 2000);
-				}),
-			]).then(() => {
-				// Reload if there was no error.
-				window.location.reload();
-			}).catch((err) => {
-				console.error('Error while registering service worker:', err);
-			});
-		} else {
-			// Display the message as usual
-			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
-			displayFailureNotice(missingMsg + missing.join('\n'));
-		}
+		const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
+		displayFailureNotice(missingMsg + missing.join('\n'));
 	} else {
 		setStatusMode('progress');
 		engine.startGame({
 			'onProgress': function (current, total) {
-				if (current > 0 && total > 0) {
-					statusProgress.value = current;
-					statusProgress.max = total;
+				if (current > 0 && total > 0 && current < total) {
+					const pct = Math.floor((current / total) * 100);
+					bar.classList.remove('pulse');
+					fill.style.width = pct + '%';
+					label.textContent = 'Downloading ' + pct + '%';
 				} else {
-					statusProgress.removeAttribute('value');
-					statusProgress.removeAttribute('max');
+					// Downloaded: the browser is compiling and starting the engine.
+					bar.classList.add('pulse');
+					label.textContent = 'Starting engine...';
 				}
 			},
-		}).then(() => {
+		}).then(function () {
 			setStatusMode('hidden');
 		}, displayFailureNotice);
 	}
