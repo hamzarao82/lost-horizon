@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_g7jcq"]
+
+[resource]
+script = ExtResource("1_g7jcq")
+key = &"rc_rc_black_site_data"
+source_id = &"rc_black_site_data"
+title = "PROJECT BLACK SITE: recovered data"
+category = &"research_record"
+region = &"research_complex"
+body = "Transfer complete. 4.2 GB of trial records, containment logs and a route table.
+The route table has one destination. It is not on any chart of the coast: the command, inland, behind the iron gate.
+The order of authority is written in one line: Black Site answers to the Director. The Director answers to no one on this island.
+The way out is below. Take the data and go."
+order = 15

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_qe7us"]
+
+[resource]
+script = ExtResource("1_qe7us")
+key = &"rc_rc_medical_evidence"
+source_id = &"rc_medical_evidence"
+title = "Trial notes, Dr. Hale"
+category = &"research_record"
+region = &"research_complex"
+body = "Subject 11 no longer answers to name or order. Subject 14 did, for four days.
+The compound does what we hoped. It does not stop. We keep adjusting the dose; the subjects keep adjusting to it.
+If the review board reads this, I want it recorded that I asked to stop at subject nineteen."
+order = 2

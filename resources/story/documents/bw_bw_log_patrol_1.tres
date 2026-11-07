@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_q7cqv"]
+
+[resource]
+script = ExtResource("1_q7cqv")
+key = &"bw_bw_log_patrol_1"
+source_id = &"bw_log_patrol_1"
+title = "Sergeant's log"
+category = &"communication"
+region = &"blackwood"
+body = "Day 6. Orders unchanged: escort the covered trucks to the perimeter and ask nothing. The drivers will not say what is in them. The radio has been dropping out since the second night."

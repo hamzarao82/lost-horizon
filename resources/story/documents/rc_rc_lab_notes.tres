@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_4aaix"]
+
+[resource]
+script = ExtResource("1_4aaix")
+key = &"rc_rc_lab_notes"
+source_id = &"rc_lab_notes"
+title = "Laboratory notes"
+category = &"research_record"
+region = &"research_complex"
+body = "The compound is stable only in the second generation. The first generation was a test of what the body can be made to endure.
+Phase two cannot be run here. Equipment is being moved to the command. We were the proof of concept.
+
+Maintenance note: the lab breakers must match the pattern on the wall display, then pull the main lever. A wrong pull trips them all off, nothing is lost."
+order = 8

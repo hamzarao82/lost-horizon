@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_o6qqd"]
+
+[resource]
+script = ExtResource("1_o6qqd")
+key = &"dc_dead_coast_radio_wreck"
+source_id = &"dead_coast_radio_wreck"
+title = "Ship radio"
+category = &"communication"
+region = &"dead_coast"
+body = "Static, then a looping voice: 'Calloway, Calloway, cargo sealed, do not board, repeat do not board.'
+A second voice cuts in, flat and tired: 'Relay Seventeen acknowledges. Proceed on schedule.'"
+order = 10

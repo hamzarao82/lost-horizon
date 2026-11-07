@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_4yoba"]
+
+[resource]
+script = ExtResource("1_4yoba")
+key = &"bw_bw_log_frequency"
+source_id = &"bw_log_frequency"
+title = "Technician's frequency log"
+category = &"communication"
+region = &"blackwood"
+body = "Station log. If the board dies, bring it back on channel 4-1-7: dial one to four, dial two to one, dial three to seven, then pull the lever. Anything else only scrambles the dials. Do not leave it on the air longer than a minute. They listen."
+order = 2

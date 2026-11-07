@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_hknhf"]
+
+[resource]
+script = ExtResource("1_hknhf")
+key = &"dc_dead_coast_checkpoint__0612"
+source_id = &"dead_coast_checkpoint_terminal"
+title = "Checkpoint terminal"
+region = &"dead_coast"
+body = "GATE 2 LOG. Last entries: 'Order 114: stand down all inspections.' 'Order 115: leave the road open.' 'Order 116: guards to the fence line, do not respond to the coast.'
+Barrier control: locked. A guard pass is required."
+order = 11

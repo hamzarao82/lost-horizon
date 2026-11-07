@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_wsbbo"]
+
+[resource]
+script = ExtResource("1_wsbbo")
+key = &"dc_dead_coast_wreck_hull"
+source_id = &"dead_coast_wreck_hull"
+title = "Freighter hull"
+region = &"dead_coast"
+body = "The name on the stern is half gone: CALLOWAY. Salt has eaten the paint but not the stencils on the crates in the hold: 'SEALED - NOT FOR INSPECTION - BS'."

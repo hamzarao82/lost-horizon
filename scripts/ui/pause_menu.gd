@@ -21,6 +21,7 @@ var _character_screen: CharacterScreen
 var _crafting_screen: CraftingScreen
 var _merchant_screen: MerchantScreen
 var _map_screen: MapScreen
+var _journal_screen: JournalScreen
 var _notifications: RpgNotifications
 var _pause_button: Button
 var _load_button: Button
@@ -89,6 +90,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_M:
 		if not _rpg_screen_open():
 			show_map()
+			get_viewport().set_input_as_handled()
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_J:
+		if not _rpg_screen_open():
+			show_journal()
 			get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("equipment") and not event.is_echo():
@@ -173,6 +179,8 @@ func _build_ui() -> void:
 	add_child(_crafting_screen)
 	_map_screen = MapScreen.new()
 	add_child(_map_screen)
+	_journal_screen = JournalScreen.new()
+	add_child(_journal_screen)
 	_merchant_screen = MerchantScreen.new()
 	add_child(_merchant_screen)
 	_notifications = RpgNotifications.new()
@@ -203,6 +211,7 @@ func _build_main_page() -> VBoxContainer:
 	page.add_child(_button("Character", show_character))
 	page.add_child(_button("Crafting", show_crafting))
 	page.add_child(_button("Map", show_map))
+	page.add_child(_button("Journal", show_journal))
 	page.add_child(_button("Gear overview", show_equipment))
 	page.add_child(_button("Save", _on_save))
 	_load_button = _button("Load", _on_load)
@@ -328,4 +337,9 @@ func show_merchant(data: MerchantData) -> void:
 
 func _rpg_screen_open() -> bool:
 	return _inventory_screen.is_open() or _character_screen.is_open() \
-			or _crafting_screen.is_open() or _merchant_screen.is_open() or _map_screen.is_open()
+			or _crafting_screen.is_open() or _merchant_screen.is_open() or _map_screen.is_open() or _journal_screen.is_open()
+
+
+func show_journal() -> void:
+	open()
+	_journal_screen.open()

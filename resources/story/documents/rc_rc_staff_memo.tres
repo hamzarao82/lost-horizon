@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_4k5bn"]
+
+[resource]
+script = ExtResource("1_4k5bn")
+key = &"rc_rc_staff_memo"
+source_id = &"rc_staff_memo"
+title = "Staff memo"
+category = &"personnel_file"
+region = &"research_complex"
+body = "TO ALL STAFF: Compartment 7 is not discussed outside Compartment 7.
+Any request for 'volunteers' is to be filed under logistics, not personnel.
+The Director has approved the next phase. Questions go to your section head, not to the Director."
+order = 1

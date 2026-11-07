@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_od080"]
+
+[resource]
+script = ExtResource("1_od080")
+key = &"rc_rc_incident_report"
+source_id = &"rc_incident_report"
+title = "Containment incident report"
+category = &"incident_report"
+region = &"research_complex"
+body = "INCIDENT 0214. The cell locks were not broken. They were released from the control level at 02:14, in sequence, one block at a time.
+Security recorded no attack. It recorded an order. The release was authorised with a command key, not forced with a tool.
+Official finding to be entered: equipment failure. The Director's office has asked that this page not be copied."
+order = 7

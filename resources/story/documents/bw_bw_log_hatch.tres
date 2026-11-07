@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_y2467"]
+
+[resource]
+script = ExtResource("1_y2467")
+key = &"bw_bw_log_hatch"
+source_id = &"bw_log_hatch"
+title = "Maintenance note"
+region = &"blackwood"
+body = "Service hatch to Sublevel 1 is under the tarp by the east wall. Keep the tarp on. If the lights come on below, do not go down."
+order = 7

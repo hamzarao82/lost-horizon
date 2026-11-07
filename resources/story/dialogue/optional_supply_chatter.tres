@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="DialogueSequence" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/dialogue_line.gd" id="1_q42m4"]
+[ext_resource type="Script" path="res://scripts/story/dialogue_sequence.gd" id="2_qm20v"]
+
+[sub_resource type="Resource" id="Resource_bq55v"]
+script = ExtResource("1_q42m4")
+speaker = "Radio"
+text = "If you found anything useful out there, keep it close."
+seconds = 3.5
+
+[sub_resource type="Resource" id="Resource_xf1ve"]
+script = ExtResource("1_q42m4")
+speaker = "You"
+text = "Understood."
+seconds = 2.0
+
+[resource]
+script = ExtResource("2_qm20v")
+id = &"optional_supply_chatter"
+lines = Array[ExtResource("1_q42m4")]([SubResource("Resource_bq55v"), SubResource("Resource_xf1ve")])
