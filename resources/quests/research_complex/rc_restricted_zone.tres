@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_saeku"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_vyu6j"]
+
+[sub_resource type="Resource" id="Resource_majbv"]
+script = ExtResource("1_saeku")
+id = &"find_entrance"
+text = "Find the facility entrance"
+type = 1
+targets = PackedStringArray("rc_entrance")
+
+[sub_resource type="Resource" id="Resource_sgo8l"]
+script = ExtResource("1_saeku")
+id = &"perimeter_guards"
+text = "Deal with the perimeter guards: defeat them or slip past"
+type = 5
+targets = PackedStringArray("research_complex_perimeter_pass")
+
+[sub_resource type="Resource" id="Resource_cqer6"]
+script = ExtResource("1_saeku")
+id = &"search_checkpoint"
+text = "Search the security checkpoint"
+targets = PackedStringArray("rc_checkpoint_log")
+
+[sub_resource type="Resource" id="Resource_dpx3i"]
+script = ExtResource("1_saeku")
+id = &"get_credential"
+text = "Take an administration keycard"
+type = 5
+targets = PackedStringArray("credential_admin")
+
+[sub_resource type="Resource" id="Resource_c6aqy"]
+script = ExtResource("1_saeku")
+id = &"unlock_admin"
+text = "Unlock the administration wing"
+type = 5
+targets = PackedStringArray("door_rc_admin_door_open")
+
+[sub_resource type="Resource" id="Resource_k2pne"]
+script = ExtResource("1_saeku")
+id = &"perimeter_cache"
+text = "Find the supply cache off the road"
+type = 5
+targets = PackedStringArray("rc_cache_perimeter_taken")
+optional = true
+
+[resource]
+script = ExtResource("2_vyu6j")
+id = &"rc_restricted_zone"
+title = "The Restricted Zone"
+description = "The route table from the experimental site ends at a fenced facility in the north of the Blackwood. Get through its perimeter and into the administration wing."
+objectives = Array[ExtResource("1_saeku")]([SubResource("Resource_majbv"), SubResource("Resource_sgo8l"), SubResource("Resource_cqer6"), SubResource("Resource_dpx3i"), SubResource("Resource_c6aqy"), SubResource("Resource_k2pne")])
+rewards = PackedStringArray("credits_medium", "bandage", "armor_patch")
+reward_text = "Credits, a bandage and an armor patch."
+next_quest = &"rc_silent_records"
+start_captions = PackedStringArray("A fence, a hut and a door that has not been opened in weeks.")
+complete_captions = PackedStringArray("The administration wing is open. It smells of old paper and dust.")
+location_hint = "Research perimeter"

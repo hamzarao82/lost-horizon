@@ -1,0 +1,80 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_k411n"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_nrvto"]
+
+[sub_resource type="Resource" id="Resource_bymqv"]
+script = ExtResource("1_k411n")
+id = &"access_lab"
+text = "Reach the central laboratory"
+type = 1
+targets = PackedStringArray("rc_lab")
+
+[sub_resource type="Resource" id="Resource_amm2d"]
+script = ExtResource("1_k411n")
+id = &"restore_lab_power"
+text = "Restore laboratory power: match the breakers"
+type = 5
+targets = PackedStringArray("research_complex_lab_power_done")
+
+[sub_resource type="Resource" id="Resource_uvknm"]
+script = ExtResource("1_k411n")
+id = &"lab_security"
+text = "Defeat the laboratory security"
+type = 5
+targets = PackedStringArray("research_complex_lab_security_cleared")
+
+[sub_resource type="Resource" id="Resource_siwcg"]
+script = ExtResource("1_k411n")
+id = &"reach_final"
+text = "Reach the final research chamber"
+type = 1
+targets = PackedStringArray("rc_final_chamber")
+
+[sub_resource type="Resource" id="Resource_ihw8e"]
+script = ExtResource("1_k411n")
+id = &"retrieve_data"
+text = "Retrieve the Project Black Site data"
+targets = PackedStringArray("rc_black_site_data")
+
+[sub_resource type="Resource" id="Resource_vfe21"]
+script = ExtResource("1_k411n")
+id = &"learn_lead"
+text = "Learn where the data leads"
+type = 5
+targets = PackedStringArray("research_complex_next_lead")
+
+[sub_resource type="Resource" id="Resource_sm8cj"]
+script = ExtResource("1_k411n")
+id = &"open_hatch"
+text = "Open the service hatch"
+type = 5
+targets = PackedStringArray("door_rc_service_hatch_open")
+
+[sub_resource type="Resource" id="Resource_yhkwv"]
+script = ExtResource("1_k411n")
+id = &"reach_exit"
+text = "Escape through the underground exit"
+type = 1
+targets = PackedStringArray("rc_sealed_exit")
+
+[sub_resource type="Resource" id="Resource_5bbgp"]
+script = ExtResource("1_k411n")
+id = &"lab_papers"
+text = "Read the laboratory papers"
+type = 5
+targets = PackedStringArray("doc_rc_lab_notes_found", "doc_rc_director_order_found")
+progress_label = "Papers"
+optional = true
+
+[resource]
+script = ExtResource("2_nrvto")
+id = &"rc_project_black_site"
+title = "Project Black Site"
+description = "The laboratory holds the data the whole operation was built around. Restore its power, reach the final chamber and get out with what you find."
+objectives = Array[ExtResource("1_k411n")]([SubResource("Resource_bymqv"), SubResource("Resource_amm2d"), SubResource("Resource_uvknm"), SubResource("Resource_siwcg"), SubResource("Resource_ihw8e"), SubResource("Resource_vfe21"), SubResource("Resource_sm8cj"), SubResource("Resource_yhkwv"), SubResource("Resource_5bbgp")])
+rewards = PackedStringArray("credits_medium", "credits_medium", "upgrade_kit_weapon", "electronics")
+reward_text = "Credits, a weapon upgrade kit and electronics."
+start_captions = PackedStringArray("The last door in the facility needs the power on.")
+complete_captions = PackedStringArray("One destination in the route table. The command, behind the iron gate.")
+location_hint = "Central laboratory"

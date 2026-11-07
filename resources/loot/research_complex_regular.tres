@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/loot_table.gd" id="1_rcreg"]
+
+[resource]
+script = ExtResource("1_rcreg")
+drop_chance = 0.5
+item_paths = PackedStringArray("res://resources/items/bandage.tres", "res://resources/items/credits_small.tres", "res://resources/items/electronics.tres", "res://resources/items/armor_patch.tres", "res://resources/items/antiseptic.tres", "res://resources/items/sharpening_oil.tres")
+weights = PackedFloat32Array(22, 24, 14, 14, 14, 12)
+source = 0
+region = "research_complex"
+rarity_weights = PackedFloat32Array(1, 1, 1.1, 1.2, 1.2)
+max_counts = PackedInt32Array(2, 1, 2, 1, 1, 1)

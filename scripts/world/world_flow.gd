@@ -281,7 +281,9 @@ func _build_caption() -> void:
 # --- wiring ------------------------------------------------------------------
 
 func _state() -> Node:
-	return get_node_or_null("/root/WorldState")
+	# Outpost 17 is detached (not freed) while the player is in another region, yet its signals stay connected:
+	# an absolute path from outside the tree is an engine error, so a detached flow simply does nothing.
+	return get_node_or_null("/root/WorldState") if is_inside_tree() else null
 
 
 func _wire_signals() -> void:

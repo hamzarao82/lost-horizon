@@ -39,6 +39,8 @@ func _run() -> void:
 	_rm = root.get_node_or_null("RegionManager")
 	_world = root.get_node_or_null("WorldState")
 	_check(_rm != null, "RegionManager autoload exists")
+	# This suite tests the framework with the generic stub region; the real Research Complex has its own suites.
+	RegionStore.load_data(&"research_complex").scene_path = "res://scenes/regions/StubRegion.tscn"
 	_rm.reset()
 	_test_data()
 	var main := await _spawn_main()
