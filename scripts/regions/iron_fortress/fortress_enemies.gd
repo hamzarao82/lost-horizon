@@ -58,5 +58,9 @@ static func make(config_name: String, parent: Node, local_pos: Vector3, spawn: F
 		parent.add_child(made)
 		return made
 	if res is EnemyConfig:
-		return (res as EnemyConfig).spawn(parent, local_pos)
+		# The region owns unique rewards (a saved claim plus a restore after a reload); the config's own
+		# one-shot unique drop would give the same item a second time, so it is cleared on this copy.
+		var own := (res as EnemyConfig).duplicate() as EnemyConfig
+		own.unique_drop_path = ""
+		return own.spawn(parent, local_pos)
 	return null
