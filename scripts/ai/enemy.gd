@@ -14,7 +14,7 @@ signal damaged(amount: float, position: Vector3, was_kill: bool)
 
 # PATROL..RETURN (Milestone 3) are appended so the existing values never change; they are only entered
 # by enemies that were given a PatrolRoute. Wave enemies and the Warden never are.
-enum State { IDLE, CHASE, ATTACK, STAGGER, DEAD, PATROL, SUSPICIOUS, SEARCH, RETURN }
+enum State { IDLE, CHASE, ATTACK, STAGGER, DEAD, PATROL, SUSPICIOUS, SEARCH, RETURN, RANGED_ATTACK }
 
 const FPS: float = 60.0
 const WINDUP_COLOR: Color = Color(1.0, 0.15, 0.1)
@@ -73,6 +73,8 @@ var damage_mult: float = 1.0
 @export var cooldown_max: float = 1.6
 @export_range(0.0, 1.0) var dodge_chance: float = 0.0
 @export var loot_table_path: String = ""
+## Optional (Milestone 8): gives the enemy ranged behaviour (see scripts/ai/ranged). null = unchanged.
+@export var ranged: RangedConfig
 
 @export var move_speed: float = 3.2
 @export var detection_range: float = 14.0
@@ -104,6 +106,7 @@ var _counted: bool = false
 var _strafe_sign: float = 1.0
 var _token_age: float = 0.0
 var _label_filled: int = -1
+var _ranged_brain: RangedBrain
 
 
 func _ready() -> void:
@@ -119,6 +122,8 @@ func _ready() -> void:
 	_mesh.material_override = _material
 	_visual_root.scale = Vector3.ONE * body_scale
 	_strafe_sign = 1.0 if get_instance_id() % 2 == 0 else -1.0
+	if ranged != null:
+		_ranged_brain = RangedBrain.new(self, ranged)
 	_health.max_health = hit_points
 	_health.health = hit_points
 	_health.died.connect(_die)
@@ -163,7 +168,15 @@ func _physics_process(delta: float) -> void:
 		State.IDLE:
 			_state_idle()
 		State.CHASE:
-			_state_chase(delta)
+			if _ranged_brain != null:
+				_ranged_brain.chase(delta)
+			else:
+				_state_chase(delta)
+		State.RANGED_ATTACK:
+			if _ranged_brain != null:
+				_ranged_brain.attack_tick(delta)
+			else:
+				state = State.CHASE
 		State.ATTACK:
 			_state_attack(delta)
 		State.STAGGER:
@@ -347,6 +360,8 @@ func _update_color(delta: float) -> void:
 		_material.albedo_color = DODGE_COLOR
 	elif state == State.ATTACK and _attack_frames < _swing.startup_frames:
 		_material.albedo_color = WINDUP_COLOR  # telegraph
+	elif state == State.RANGED_ATTACK and _ranged_brain != null and _ranged_brain.is_telegraphing():
+		_material.albedo_color = WINDUP_COLOR  # ranged telegraph
 	else:
 		_material.albedo_color = body_color
 
@@ -382,6 +397,8 @@ func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float
 			_release_token()
 			_stagger_time = attack.stagger_time * (1.0 - stagger_resist)
 			state = State.STAGGER
+			if _ranged_brain != null:
+				_ranged_brain.cancel()  # an interrupted telegraph or burst never fires
 	return true
 
 
@@ -451,6 +468,8 @@ func _die() -> void:
 	_patrol_uncount()
 	_release_token()
 	_hitbox.deactivate()
+	if _ranged_brain != null:
+		_ranged_brain.cancel()
 	remove_from_group("enemies")
 	_uncount()
 	_weapon_pivot.visible = false
