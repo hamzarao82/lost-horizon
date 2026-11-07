@@ -146,8 +146,10 @@ static func _blend(targets: Dictionary, from: Dictionary, to: Dictionary, t: flo
 	env.fog_sky_affect = v["fog_sky_affect"]
 	env.tonemap_exposure = v["tonemap_exposure"]
 	env.glow_enabled = v["glow_enabled"]
-	var sun := targets.get("sun") as DirectionalLight3D
-	if is_instance_valid(sun) and v.has("sun_color"):
+	# The sun belongs to a scene that can be freed mid-tween; casting a freed object is a script error.
+	var sun_node: Variant = targets.get("sun")
+	var sun: DirectionalLight3D = sun_node if is_instance_valid(sun_node) else null
+	if sun != null and v.has("sun_color"):
 		sun.light_color = v["sun_color"]
 		sun.light_energy = v["sun_energy"]
 		sun.rotation_degrees = Vector3(v["sun_pitch"], v["sun_yaw"], sun.rotation_degrees.z)
