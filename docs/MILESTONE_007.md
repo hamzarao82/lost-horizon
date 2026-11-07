@@ -61,3 +61,8 @@ All 69 suites pass on the merged `master`, zero script errors. **Implemented and
 **Screenshots seen through real travel:** Dead Coast arrival, Blackwood arrival, Outpost 17 return. Both regions are stylized and boxy, far from the reference images.
 
 **Not done:** Blackwood underground hatch (caption only); human playtest of either region; Android and web testing of the regions; the tracker showed the first mission's objective in a staged shot (probably a staging artifact, unconfirmed); a Dead Coast subtitle seen after travelling (probably a staging artifact, unconfirmed).
+
+## 10. Decisions and fixes after the status pass (2026-11-07)
+- **Blackwood hatch: cut, not built.** The concealed hatch at the testing site remains a caption-only interaction. There is no underground level, and none is planned before Milestone 12. It is listed as not implemented; no test or document claims otherwise.
+- **Tracker fixed.** With real progress the HUD tracker showed the old arena quest "Restore Power" in Dead Coast and Blackwood. It now lists the current region's quests first (`QuestManager._tracker_order`), covered by two checks in `campaign_bot_check` (31 checks). The Research Complex shares the same code path but has no dedicated tracker check yet.
+- **The earlier "zone banner overlap" note was wrong.** The overlapping text in the Research Complex is two 3D level signs ("HOLDING CELL 0", "LOCKDOWN ACTIVE", `research_complex_inner.gd`) that line up behind the boss bar from one camera angle. The HUD layout contract (`ui_layout_check`) is unaffected. Moving the signs lower is optional polish.
