@@ -133,6 +133,7 @@ func _play_campaign() -> void:
 	print("Walk to Dead Coast")
 	_check(await _walk_through(main, "Exit_to_dead_coast", &"dead_coast"), "walking into the beach exit travels to Dead Coast")
 	_check(_qm.is_completed(BRIDGE), "arriving completes the bridge quest")
+	print("  TRACKER dead_coast: [%s] / [%s]" % [_qm.tracker_title(), _qm.tracker_objective()])
 	var xp_in_coast := _total_xp()
 	_check(xp_in_coast > xp_after_mission, "the bridge reward arrived")
 	_check(CampaignFlow.mark_mission_complete(&"dead_coast", 1) and CampaignFlow.mark_mission_complete(&"dead_coast", 2), "Dead Coast missions 1 and 2 are marked")
@@ -150,6 +151,7 @@ func _play_campaign() -> void:
 
 	print("Walk to Blackwood")
 	_check(await _walk_through(main, "Exit_to_blackwood", &"blackwood"), "walking into the exit travels to Blackwood")
+	print("  TRACKER blackwood: [%s] / [%s]" % [_qm.tracker_title(), _qm.tracker_objective()])
 	_check(not _rm.is_unlocked(&"research_complex"), "the Research Complex is still locked")
 	CampaignFlow.mark_mission_complete(&"blackwood", 3)
 	await _frames(2)

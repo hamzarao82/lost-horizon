@@ -38,6 +38,7 @@ const QUEST_DIRS: Array[String] = [
 ]
 ## HUD pin: when this quest is active the tracker shows it before the others (set by CampaignFlow, not saved).
 var tracker_first: StringName = &""
+
 const FIRST_QUEST: StringName = &"first_signal"
 ## Completing this quest ends the Milestone 4 mission: flag, autosave, mission_completed.
 const MISSION_QUEST: StringName = &"first_signal"
@@ -93,6 +94,7 @@ func _ready() -> void:
 
 func _load_quests() -> void:
 	quests.clear()
+	_quest_region.clear()
 	for path in QUEST_PATHS:
 		_load_quest_file(path)
 	# Campaign regions drop their quests into these folders; no list to edit (Milestone 7).
@@ -111,6 +113,23 @@ func _load_quest_file(path: String) -> void:
 		push_warning("QuestManager: %s is invalid: %s" % [path, "; ".join(errors)])
 		return
 	quests[quest.id] = quest
+	_quest_region[quest.id] = _region_of_path(path)
+
+
+## Quests live in a folder named after their region; everything else (the arena chain, the first mission,
+## the campaign bridge) belongs to Outpost 17.
+func _region_of_path(path: String) -> StringName:
+	var folder := path.get_base_dir().get_file()
+	return StringName(folder) if folder in ["dead_coast", "blackwood", "research_complex"] else &"outpost_17"
+
+
+func _current_region() -> StringName:
+	var regions := get_node_or_null("/root/RegionManager")
+	if regions != null:
+		var id := StringName(regions.get("current_region_id"))
+		if id != &"":
+			return id
+	return &"outpost_17"
 
 
 ## Quest resources in a folder, sorted. Exported games list resources as "<name>.tres.remap": the suffix is
@@ -132,8 +151,13 @@ func _tracker_order() -> Array:
 	var order: Array = []
 	if tracker_first != &"" and active.has(tracker_first):
 		order.append(tracker_first)
+	# Quests of the region the player is in come first, so the arena chain never outranks a region mission.
+	var here := _current_region()
 	for quest_id in active.keys():
-		if quest_id != tracker_first:
+		if quest_id != tracker_first and _quest_region.get(quest_id, &"outpost_17") == here:
+			order.append(quest_id)
+	for quest_id in active.keys():
+		if quest_id != tracker_first and _quest_region.get(quest_id, &"outpost_17") != here:
 			order.append(quest_id)
 	return order
 
