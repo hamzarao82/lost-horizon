@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_r2e3k"]
+
+[resource]
+script = ExtResource("1_r2e3k")
+key = &"if_if_checkpoint_log"
+source_id = &"if_checkpoint_log"
+title = "Gate checkpoint log"
+category = &"classified"
+region = &"iron_fortress"
+body = "APPROACH CHECKPOINT. Inbound: supply trucks, covered. Outbound: none in nineteen days.
+Gate credentials are issued from the booth panel after the log is signed off. The sergeant signed it off and then left without his cap.
+A standing order is pinned inside: the iron gate opens for the Director's convoy, and for no one else."
+order = 7

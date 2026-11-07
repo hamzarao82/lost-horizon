@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_dvny8"]
+
+[resource]
+script = ExtResource("1_dvny8")
+key = &"if_if_control_records"
+source_id = &"if_control_records"
+title = "Control: final records"
+category = &"research_record"
+region = &"iron_fortress"
+body = "CONTROL. Project Black Site, final record. Subjects: 212. Survivors: 31. Units fielded: 4.
+The Warden was Unit 1. The subjects in the research sector were what remained when the field test was allowed to run to its end.
+The signal was a test of the last variable: whether an outsider with no orders would follow evidence all the way in."
+order = 14

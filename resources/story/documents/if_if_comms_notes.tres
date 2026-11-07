@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_0jmju"]
+
+[resource]
+script = ExtResource("1_0jmju")
+key = &"if_if_comms_notes"
+source_id = &"if_comms_notes"
+title = "Communications duty notes"
+region = &"iron_fortress"
+body = "Comms desk reminder: the relay racks must be set to the pattern on the wall display before the main switch is thrown.
+A wrong switch trips the racks off again. Nothing is lost, just do it slowly.
+
+Maintenance note: the relay racks must match the pattern on the wall display, then pull the main lever. A wrong pull trips them all off, nothing is lost."
+order = 5

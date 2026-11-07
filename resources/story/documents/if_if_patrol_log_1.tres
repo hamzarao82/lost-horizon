@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_t6340"]
+
+[resource]
+script = ExtResource("1_t6340")
+key = &"if_if_patrol_log_1"
+source_id = &"if_patrol_log_1"
+title = "Patrol log, Team Ash"
+category = &"communication"
+region = &"iron_fortress"
+body = "TEAM ASH, last radio log. Four of us, sweep of the north road.
+We found the gate closed from the inside and a note taped to it: no patrols past this point, return to quarters. Nobody here would open it.
+Whoever ordered it did not want us to see what drove in at night."

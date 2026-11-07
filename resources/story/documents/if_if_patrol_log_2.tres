@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_g5rst"]
+
+[resource]
+script = ExtResource("1_g5rst")
+key = &"if_if_patrol_log_2"
+source_id = &"if_patrol_log_2"
+title = "Patrol log, Team Ash (last page)"
+category = &"personnel_file"
+region = &"iron_fortress"
+body = "We were told to wait in the yard. That was three days ago. Nobody has come out.
+The cook says the barracks lights go out at the same hour every night, and the sentries are changed without a roster.
+If anyone reads this: they are not holding us. They are measuring us."
+order = 1

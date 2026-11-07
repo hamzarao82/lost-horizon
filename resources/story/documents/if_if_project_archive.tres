@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_me6ps"]
+
+[resource]
+script = ExtResource("1_me6ps")
+key = &"if_if_project_archive"
+source_id = &"if_project_archive"
+title = "Project archive"
+category = &"research_record"
+region = &"iron_fortress"
+body = "ARCHIVE. Compound formula and trial data, sealed. A note: destroy on completion of Manifest 9.
+Manifest 9 left the island by sea two weeks ago. The destination is not recorded here.
+Whoever reads this is the only witness not under the Director's orders."
+order = 15

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_h5nma"]
+
+[resource]
+script = ExtResource("1_h5nma")
+key = &"if_if_barracks_roster"
+source_id = &"if_barracks_roster"
+title = "Barracks duty roster"
+category = &"personnel_file"
+region = &"iron_fortress"
+body = "ROSTER. Two hundred and six names. Column three is headed FITNESS FOR PROGRAM.
+A hundred and eleven are marked yes. A hundred and eleven are also marked transferred.
+The transfers all end at the same address: Control, below the command."
+order = 2

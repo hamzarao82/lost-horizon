@@ -15,7 +15,7 @@ const MISSIONS: Dictionary = {
 	&"dead_coast": [&"dc_wreckage", &"dc_silent_checkpoint", &"dc_lost_cargo"],
 	&"blackwood": [&"into_the_blackwood", &"ghost_frequency", &"experimental_site"],
 	&"research_complex": [&"rc_restricted_zone", &"rc_silent_records", &"rc_containment_breach", &"rc_project_black_site"],
-	&"iron_fortress": [],
+	&"iron_fortress": [&"if_last_stronghold", &"if_inside_the_walls", &"if_chain_of_command", &"if_final_lockdown", &"if_black_site"],
 }
 ## Older side quests of the first region (the arena chain).
 const SIDE_QUESTS: Array[StringName] = [&"restore_power", &"broken_perimeter", &"final_transmission"]

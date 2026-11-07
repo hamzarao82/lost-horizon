@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_8ashq"]
+
+[resource]
+script = ExtResource("1_8ashq")
+key = &"if_if_end_console"
+source_id = &"if_end_console"
+title = "Final transmission"
+category = &"communication"
+region = &"iron_fortress"
+body = "STAND DOWN. Command of the island garrison has been transferred to the recovery channel. All units: cease operations, stay in position.
+The Director is down. The control network is unlocked and the compound stocks are sealed. The cells are open.
+Report sent. Manifest 9 is still out there. That is a different mission."
+order = 16
