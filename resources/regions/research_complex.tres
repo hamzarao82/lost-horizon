@@ -6,7 +6,7 @@
 script = ExtResource("1_data")
 id = &"research_complex"
 display_name = "Research Complex"
-scene_path = "res://scenes/regions/StubRegion.tscn"
+scene_path = "res://scenes/regions/ResearchComplexRegion.tscn"
 entry_points = {
 &"from_blackwood": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 30)
 }
@@ -21,4 +21,4 @@ exit_points = {
 unlock_flag = &"research_complex_unlocked"
 environment_preset = &"research_complex"
 ambience = &"research_complex"
-map_extents = Rect2(-45, -45, 90, 90)
+map_extents = Rect2(-34, -206, 68, 264)

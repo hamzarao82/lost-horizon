@@ -58,6 +58,8 @@ func _run() -> void:
 	_sm = root.get_node("SaveManager")
 	_rm = root.get_node("RegionManager")
 	_world = root.get_node("WorldState")
+	# This suite tests saving with the generic stub region (it counts visits); the real Research Complex has its own suites.
+	RegionStore.load_data(&"research_complex").scene_path = "res://scenes/regions/StubRegion.tscn"
 	_clean()
 	_test_migration_and_hostile_data()
 	await _test_save_in_region_and_reload()

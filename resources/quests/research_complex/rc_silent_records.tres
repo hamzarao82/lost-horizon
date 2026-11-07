@@ -1,0 +1,90 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_8xkgj"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_x3wei"]
+
+[sub_resource type="Resource" id="Resource_pmyti"]
+script = ExtResource("1_8xkgj")
+id = &"find_archive"
+text = "Find the research archive"
+type = 1
+targets = PackedStringArray("rc_archive")
+
+[sub_resource type="Resource" id="Resource_tg3li"]
+script = ExtResource("1_8xkgj")
+id = &"restore_security"
+text = "Restore the security network"
+type = 5
+targets = PackedStringArray("research_complex_security_online")
+
+[sub_resource type="Resource" id="Resource_afsrv"]
+script = ExtResource("1_8xkgj")
+id = &"restore_archive_power"
+text = "Restore power to the archive terminal"
+type = 5
+targets = PackedStringArray("research_complex_archive_power")
+
+[sub_resource type="Resource" id="Resource_jednn"]
+script = ExtResource("1_8xkgj")
+id = &"retrieve_records"
+text = "Retrieve the classified records"
+type = 5
+targets = PackedStringArray("research_complex_records_retrieved")
+
+[sub_resource type="Resource" id="Resource_1r48g"]
+script = ExtResource("1_8xkgj")
+id = &"medical_access"
+text = "Get a medical access credential"
+type = 5
+targets = PackedStringArray("credential_medical")
+
+[sub_resource type="Resource" id="Resource_27e30"]
+script = ExtResource("1_8xkgj")
+id = &"enter_medical"
+text = "Investigate the medical wing"
+type = 1
+targets = PackedStringArray("rc_medical_wing")
+
+[sub_resource type="Resource" id="Resource_b7u7p"]
+script = ExtResource("1_8xkgj")
+id = &"find_evidence"
+text = "Find evidence of human experimentation"
+targets = PackedStringArray("rc_medical_evidence")
+
+[sub_resource type="Resource" id="Resource_nk5dq"]
+script = ExtResource("1_8xkgj")
+id = &"survive_ambush"
+text = "Survive what is in the ward"
+type = 5
+targets = PackedStringArray("research_complex_ambush_cleared")
+optional = true
+
+[sub_resource type="Resource" id="Resource_6gnqt"]
+script = ExtResource("1_8xkgj")
+id = &"admin_cache"
+text = "Find the cache in the conference room"
+type = 5
+targets = PackedStringArray("rc_cache_admin_taken")
+optional = true
+
+[sub_resource type="Resource" id="Resource_v0a8e"]
+script = ExtResource("1_8xkgj")
+id = &"optional_docs"
+text = "Read the staff and ward papers"
+type = 5
+targets = PackedStringArray("doc_rc_staff_memo_found", "doc_rc_exam_note_found", "doc_rc_ward_notice_found")
+progress_label = "Papers"
+optional = true
+
+[resource]
+script = ExtResource("2_x3wei")
+id = &"rc_silent_records"
+title = "Silent Records"
+description = "Someone kept careful records here. Bring the security network back up, open the archive and follow the paper trail into the medical wing."
+objectives = Array[ExtResource("1_8xkgj")]([SubResource("Resource_pmyti"), SubResource("Resource_tg3li"), SubResource("Resource_afsrv"), SubResource("Resource_jednn"), SubResource("Resource_1r48g"), SubResource("Resource_27e30"), SubResource("Resource_b7u7p"), SubResource("Resource_nk5dq"), SubResource("Resource_6gnqt"), SubResource("Resource_v0a8e")])
+rewards = PackedStringArray("credits_medium", "antiseptic", "electronics")
+reward_text = "Credits, antiseptic and electronics."
+next_quest = &"rc_containment_breach"
+start_captions = PackedStringArray("The lights are dead. The records are not.")
+complete_captions = PackedStringArray("Thirty-one subjects. None of them asked to be here.")
+location_hint = "Administration and medical wings"

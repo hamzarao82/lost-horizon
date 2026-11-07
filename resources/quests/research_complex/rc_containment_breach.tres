@@ -1,0 +1,74 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_n7pto"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_v0y1o"]
+
+[sub_resource type="Resource" id="Resource_41ejf"]
+script = ExtResource("1_n7pto")
+id = &"enter_containment"
+text = "Enter the containment sector"
+type = 1
+targets = PackedStringArray("rc_containment")
+
+[sub_resource type="Resource" id="Resource_hth0k"]
+script = ExtResource("1_n7pto")
+id = &"restore_emergency"
+text = "Restore emergency access: run the containment override"
+type = 5
+targets = PackedStringArray("research_complex_containment_done")
+
+[sub_resource type="Resource" id="Resource_wtkt2"]
+script = ExtResource("1_n7pto")
+id = &"survive_subjects"
+text = "Survive the experimental subjects"
+type = 5
+targets = PackedStringArray("research_complex_subjects_cleared")
+
+[sub_resource type="Resource" id="Resource_a6yyi"]
+script = ExtResource("1_n7pto")
+id = &"enter_chamber"
+text = "Investigate the damaged holding chamber"
+type = 1
+targets = PackedStringArray("rc_elite_chamber")
+
+[sub_resource type="Resource" id="Resource_t51p4"]
+script = ExtResource("1_n7pto")
+id = &"defeat_elite"
+text = "Defeat Subject Zero"
+type = 5
+targets = PackedStringArray("research_complex_elite_down")
+
+[sub_resource type="Resource" id="Resource_l7nvg"]
+script = ExtResource("1_n7pto")
+id = &"incident_report"
+text = "Recover the containment incident report"
+targets = PackedStringArray("rc_incident_report")
+
+[sub_resource type="Resource" id="Resource_lxeux"]
+script = ExtResource("1_n7pto")
+id = &"override_notes"
+text = "Read the technician notes on the override"
+type = 5
+targets = PackedStringArray("doc_rc_override_notes_found")
+optional = true
+
+[sub_resource type="Resource" id="Resource_o8ul2"]
+script = ExtResource("1_n7pto")
+id = &"medical_cache"
+text = "Find the cache in the medical storage"
+type = 5
+targets = PackedStringArray("rc_cache_medical_taken")
+optional = true
+
+[resource]
+script = ExtResource("2_v0y1o")
+id = &"rc_containment_breach"
+title = "Containment Breach"
+description = "The cells below the medical wing were opened from inside the system, not broken. Find out who ordered it and what is still locked in."
+objectives = Array[ExtResource("1_n7pto")]([SubResource("Resource_41ejf"), SubResource("Resource_hth0k"), SubResource("Resource_wtkt2"), SubResource("Resource_a6yyi"), SubResource("Resource_t51p4"), SubResource("Resource_l7nvg"), SubResource("Resource_lxeux"), SubResource("Resource_o8ul2")])
+rewards = PackedStringArray("credits_medium", "credits_medium", "upgrade_kit_armor")
+reward_text = "Credits and an armor upgrade kit."
+next_quest = &"rc_project_black_site"
+start_captions = PackedStringArray("The cells are open. Whatever was inside did not stay inside.")
+complete_captions = PackedStringArray("Not an accident. An order, signed with a title.")
+location_hint = "Containment sector"
