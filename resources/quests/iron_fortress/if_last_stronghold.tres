@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_p4fsc"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_ynlv5"]
+
+[sub_resource type="Resource" id="Resource_2h3k4"]
+script = ExtResource("1_p4fsc")
+id = &"reach_approach"
+text = "Reach the fortress approach"
+type = 1
+targets = PackedStringArray("if_approach_reach")
+
+[sub_resource type="Resource" id="Resource_4jo0w"]
+script = ExtResource("1_p4fsc")
+id = &"investigate_perimeter"
+text = "Investigate the checkpoint booth"
+type = 1
+targets = PackedStringArray("if_checkpoint_reach")
+
+[sub_resource type="Resource" id="Resource_lqqyg"]
+script = ExtResource("1_p4fsc")
+id = &"outer_guards"
+text = "Deal with the outer guards: defeat them or slip past"
+type = 5
+targets = PackedStringArray("iron_fortress_approach_pass")
+
+[sub_resource type="Resource" id="Resource_ed02w"]
+script = ExtResource("1_p4fsc")
+id = &"search_checkpoint"
+text = "Search the checkpoint log"
+targets = PackedStringArray("if_checkpoint_log")
+
+[sub_resource type="Resource" id="Resource_sl3aj"]
+script = ExtResource("1_p4fsc")
+id = &"get_credential"
+text = "Take the fortress gate credentials"
+type = 5
+targets = PackedStringArray("credential_fortress_gate")
+
+[sub_resource type="Resource" id="Resource_iaiga"]
+script = ExtResource("1_p4fsc")
+id = &"open_gate"
+text = "Open the main gate"
+type = 5
+targets = PackedStringArray("door_if_gate_door_open")
+
+[sub_resource type="Resource" id="Resource_2sc7m"]
+script = ExtResource("1_p4fsc")
+id = &"approach_cache"
+text = "Find the supply depot cache beside the road"
+type = 5
+targets = PackedStringArray("if_cache_approach_taken")
+optional = true
+
+[resource]
+script = ExtResource("2_ynlv5")
+id = &"if_last_stronghold"
+title = "The Last Stronghold"
+description = "The route table ends at one place: a walled command inland, behind an iron gate. Get to the checkpoint, find a way past the guards and open the main gate."
+objectives = Array[ExtResource("1_p4fsc")]([SubResource("Resource_2h3k4"), SubResource("Resource_4jo0w"), SubResource("Resource_lqqyg"), SubResource("Resource_ed02w"), SubResource("Resource_sl3aj"), SubResource("Resource_iaiga"), SubResource("Resource_2sc7m")])
+rewards = PackedStringArray("credits_medium", "bandage", "armor_patch")
+reward_text = "Credits, a bandage and an armor patch."
+next_quest = &"if_inside_the_walls"
+start_captions = PackedStringArray("Walls, towers and one iron gate. Everything on this island was ordered from here.")
+complete_captions = PackedStringArray("The main gate grinds open. Nobody inside has been expecting a visitor.")
+location_hint = "Fortress approach"

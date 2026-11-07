@@ -172,7 +172,7 @@ static func underground(parent: Node3D, parts: ResearchComplexParts) -> Research
 	for zz in [-186.0, -194.0, -200.0]:
 		k.glow(Vector3(x, Z.UNDER_Y + 3.5, zz), Vector3(2.0, 0.08, 0.3), Z.LAMP_WARM)
 	k.glow(Vector3(x, Z.UNDER_Y + 0.03, -198.0), Vector3(8.0, 0.02, 0.4), Z.HAZARD)
-	k.text_sign("SUPPLY ROAD  -  SEALED", Vector3(x, Z.UNDER_Y + 2.6, Z.UNDER_END_Z + 0.5), Color(1.0, 0.4, 0.3), 0.016)
+	k.text_sign("SUPPLY ROAD  -  IRON FORTRESS", Vector3(x, Z.UNDER_Y + 2.6, Z.UNDER_END_Z + 0.5), Color(1.0, 0.4, 0.3), 0.016)
 	k.light(Vector3(x, Z.UNDER_Y + 3.0, -190.0), Color(1.0, 0.85, 0.6), 1.2, 22.0)
 	parts.doc("rc_exit_notice", Vector3(x + 3.0, Z.UNDER_Y + 1.0, -194.0), "the exit notice taped to the tunnel wall", "", 0.0)
 	parts.area_trigger("rc_sealed_exit", Vector3(x, Z.UNDER_Y + 1.5, -201.0), Vector3(9.0, 3.0, 3.0))

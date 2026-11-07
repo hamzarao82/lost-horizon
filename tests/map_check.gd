@@ -66,7 +66,7 @@ func _run() -> void:
 
 func _test_resources() -> void:
 	print("-- resources")
-	var expected := {OUTPOST: 6, COAST: 7, WOOD: 7, COMPLEX: 6}
+	var expected := {OUTPOST: 6, COAST: 7, WOOD: 7, COMPLEX: 6, &"iron_fortress": 6}
 	for id in RegionStore.IDS:
 		var map := MapData.load_for(id)
 		var data := RegionStore.load_data(id)
@@ -111,7 +111,7 @@ func _test_statuses() -> void:
 	_check(_status_of(COAST) == MapData.STATUS_LOCKED, "Dead Coast starts locked")
 	_check(_status_of(WOOD) == MapData.STATUS_LOCKED and _status_of(COMPLEX) == MapData.STATUS_LOCKED, "Blackwood and the Research Complex start locked")
 	var entries := MapData.overview_entries()
-	_check(entries.size() == 4, "the overview lists the four regions")
+	_check(entries.size() == RegionStore.IDS.size() and entries.size() == 5, "the overview lists the five regions")
 	var coast_entry: Dictionary = entries[1]
 	_check(coast_entry["id"] == COAST and coast_entry["locked"] and String(coast_entry["hint"]) != "", "a locked region shows an unlock hint (%s)" % coast_entry["hint"])
 	_check(String(entries[0]["hint"]) == "", "an open region shows no hint")
@@ -439,7 +439,7 @@ func _test_screen() -> void:
 	# switching levels
 	screen.show_overview()
 	await _frames(2)
-	_check(screen.is_overview() and screen.canvas().regions.size() == 4, "the overview shows four regions")
+	_check(screen.is_overview() and screen.canvas().regions.size() == RegionStore.IDS.size(), "the overview shows all five regions")
 	_check(screen.canvas().region_at(screen.canvas().node_position(Vector2(0.3, 0.66))) == OUTPOST, "clicking the Outpost 17 node finds it")
 	screen.canvas().region_clicked.emit(COAST)
 	_check(String(screen.status_text()).contains("Locked") and String(screen.status_text()).contains("Requires"),

@@ -5,10 +5,12 @@ extends Region
 
 const ENTRY_ALIASES: Dictionary = {
 	&"from_blackwood": &"from_blackwood", &"from_south": &"from_blackwood", &"": &"from_blackwood",
+	&"from_iron_fortress": &"from_iron_fortress",
 }
 ## Destination entry ids as the destination region names them.
 const EXIT_TARGETS: Dictionary = {
 	"to_blackwood": {"region": &"blackwood", "entry": &"from_underground"},
+	"to_iron_fortress": {"region": &"iron_fortress", "entry": &"from_research_complex"},
 }
 
 var content: ResearchComplex

@@ -5,7 +5,7 @@ extends RefCounted
 ## Called by RegionManager when a region becomes current; `outpost_17` equals the authored Main.tscn look.
 
 const DIR: String = "res://resources/regions/env/"
-const IDS: Array[StringName] = [&"outpost_17", &"dead_coast", &"blackwood", &"research_complex"]
+const IDS: Array[StringName] = [&"outpost_17", &"dead_coast", &"blackwood", &"research_complex", &"iron_fortress"]
 const DEFAULT_TWEEN: float = 1.5
 ## Web and mobile: no glow and a shorter shadow range (docs/PERFORMANCE_BUDGET.md: web sun <= 30 m).
 const LITE_SHADOW_WEB: float = 30.0

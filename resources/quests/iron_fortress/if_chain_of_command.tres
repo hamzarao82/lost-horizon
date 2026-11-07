@@ -1,0 +1,74 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_olkg0"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_1ray0"]
+
+[sub_resource type="Resource" id="Resource_2ewwd"]
+script = ExtResource("1_olkg0")
+id = &"enter_command"
+text = "Enter the command center"
+type = 1
+targets = PackedStringArray("if_command")
+
+[sub_resource type="Resource" id="Resource_4671m"]
+script = ExtResource("1_olkg0")
+id = &"find_archive"
+text = "Find the intelligence archive"
+type = 1
+targets = PackedStringArray("if_archive_reach")
+
+[sub_resource type="Resource" id="Resource_et7mc"]
+script = ExtResource("1_olkg0")
+id = &"restore_comms"
+text = "Restore the communications network"
+type = 5
+targets = PackedStringArray("iron_fortress_comms_done")
+
+[sub_resource type="Resource" id="Resource_l5qd5"]
+script = ExtResource("1_olkg0")
+id = &"retrieve_files"
+text = "Retrieve the classified operational files"
+type = 5
+targets = PackedStringArray("iron_fortress_files_retrieved")
+
+[sub_resource type="Resource" id="Resource_sroag"]
+script = ExtResource("1_olkg0")
+id = &"learn_director"
+text = "Read the Director's file"
+type = 5
+targets = PackedStringArray("iron_fortress_director_known")
+
+[sub_resource type="Resource" id="Resource_cik1q"]
+script = ExtResource("1_olkg0")
+id = &"command_guards"
+text = "Defeat the command center's guard and its commander"
+type = 5
+targets = PackedStringArray("iron_fortress_command_cleared")
+
+[sub_resource type="Resource" id="Resource_r6jnc"]
+script = ExtResource("1_olkg0")
+id = &"unlock_inner"
+text = "Unlock the inner fortress"
+type = 5
+targets = PackedStringArray("door_if_inner_door_open")
+
+[sub_resource type="Resource" id="Resource_m8mso"]
+script = ExtResource("1_olkg0")
+id = &"classified_orders"
+text = "Classified orders: find all three orders"
+targets = PackedStringArray("if_orders_1", "if_orders_2", "if_orders_3")
+progress_label = "Orders"
+optional = true
+
+[resource]
+script = ExtResource("2_1ray0")
+id = &"if_chain_of_command"
+title = "Chain of Command"
+description = "Take the command center. Bring the communications network back, read the files and learn who gave the orders."
+objectives = Array[ExtResource("1_olkg0")]([SubResource("Resource_2ewwd"), SubResource("Resource_4671m"), SubResource("Resource_et7mc"), SubResource("Resource_l5qd5"), SubResource("Resource_sroag"), SubResource("Resource_cik1q"), SubResource("Resource_r6jnc"), SubResource("Resource_m8mso")])
+rewards = PackedStringArray("credits_medium", "antiseptic", "bandage")
+reward_text = "Credits, antiseptic and a bandage."
+next_quest = &"if_final_lockdown"
+start_captions = PackedStringArray("Screens, maps and a long table. The people who ran the island worked here.")
+complete_captions = PackedStringArray("Now there is a name on the other end of every order. The inner fortress is open.")
+location_hint = "Command center"

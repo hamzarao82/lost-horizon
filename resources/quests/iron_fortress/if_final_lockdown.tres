@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_7dmrd"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_yrxsl"]
+
+[sub_resource type="Resource" id="Resource_4st3q"]
+script = ExtResource("1_7dmrd")
+id = &"enter_inner"
+text = "Enter the inner fortress"
+type = 1
+targets = PackedStringArray("if_inner")
+
+[sub_resource type="Resource" id="Resource_d5jfl"]
+script = ExtResource("1_7dmrd")
+id = &"survive_defenses"
+text = "Defeat the elite defenses"
+type = 5
+targets = PackedStringArray("iron_fortress_inner_cleared")
+
+[sub_resource type="Resource" id="Resource_cvw26"]
+script = ExtResource("1_7dmrd")
+id = &"disable_lockdown"
+text = "Disable the fortress lockdown"
+type = 5
+targets = PackedStringArray("iron_fortress_lockdown_done")
+
+[sub_resource type="Resource" id="Resource_ekkhj"]
+script = ExtResource("1_7dmrd")
+id = &"defeat_captain"
+text = "Defeat the Fortress Captain"
+type = 5
+targets = PackedStringArray("iron_fortress_captain_down")
+
+[sub_resource type="Resource" id="Resource_b8qt6"]
+script = ExtResource("1_7dmrd")
+id = &"access_control"
+text = "Enter the control facility"
+type = 1
+targets = PackedStringArray("if_control")
+
+[sub_resource type="Resource" id="Resource_ocgys"]
+script = ExtResource("1_7dmrd")
+id = &"supply_depot"
+text = "Supply depot: clear the guards and open the depot cache"
+type = 5
+targets = PackedStringArray("if_cache_depot_taken")
+optional = true
+
+[resource]
+script = ExtResource("2_yrxsl")
+id = &"if_final_lockdown"
+title = "The Final Lockdown"
+description = "The inner fortress holds the way to Control. Break its defenders, lift the lockdown at all three points and bring down the Captain."
+objectives = Array[ExtResource("1_7dmrd")]([SubResource("Resource_4st3q"), SubResource("Resource_d5jfl"), SubResource("Resource_cvw26"), SubResource("Resource_ekkhj"), SubResource("Resource_b8qt6"), SubResource("Resource_ocgys")])
+rewards = PackedStringArray("credits_medium", "armor_plate", "health_potion")
+reward_text = "Credits, an armor plate and a medkit."
+next_quest = &"if_black_site"
+start_captions = PackedStringArray("Red lamps, narrow halls and a door that does not open from this side.")
+complete_captions = PackedStringArray("The control door is open. Whatever the Director built, it is down there.")
+location_hint = "Inner fortress"

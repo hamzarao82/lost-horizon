@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_6stl4"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_ahhng"]
+
+[sub_resource type="Resource" id="Resource_awtsd"]
+script = ExtResource("1_6stl4")
+id = &"enter_control"
+text = "Enter the Project Black Site control facility"
+type = 1
+targets = PackedStringArray("if_control_reach")
+
+[sub_resource type="Resource" id="Resource_7l717"]
+script = ExtResource("1_6stl4")
+id = &"read_records"
+text = "Read the final Project Black Site records"
+targets = PackedStringArray("if_control_records")
+
+[sub_resource type="Resource" id="Resource_fqxqy"]
+script = ExtResource("1_6stl4")
+id = &"confront_director"
+text = "Confront the Director in the arena"
+type = 1
+targets = PackedStringArray("if_arena")
+
+[sub_resource type="Resource" id="Resource_nml6f"]
+script = ExtResource("1_6stl4")
+id = &"defeat_director"
+text = "Defeat the Director"
+type = 5
+targets = PackedStringArray("iron_fortress_director_defeated")
+
+[sub_resource type="Resource" id="Resource_7kwg2"]
+script = ExtResource("1_6stl4")
+id = &"send_report"
+text = "Send the final transmission"
+targets = PackedStringArray("if_end_console")
+
+[sub_resource type="Resource" id="Resource_saxk8"]
+script = ExtResource("1_6stl4")
+id = &"project_archive"
+text = "Read the sealed project archive"
+targets = PackedStringArray("if_project_archive")
+optional = true
+
+[resource]
+script = ExtResource("2_ahhng")
+id = &"if_black_site"
+title = "Black Site"
+description = "Read the final records, face the Director and end the operation."
+objectives = Array[ExtResource("1_6stl4")]([SubResource("Resource_awtsd"), SubResource("Resource_7l717"), SubResource("Resource_fqxqy"), SubResource("Resource_nml6f"), SubResource("Resource_7kwg2"), SubResource("Resource_saxk8")])
+rewards = PackedStringArray("credits_medium", "health_potion")
+reward_text = "Credits and a medkit. The campaign is complete."
+start_captions = PackedStringArray("Clean floors, quiet screens. The place where every order ended.")
+complete_captions = PackedStringArray("The operation is over. The island is quiet.")
+location_hint = "Control facility"
