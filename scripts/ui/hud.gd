@@ -173,6 +173,9 @@ func _ready() -> void:
 	if _waves:
 		_waves.wave_started.connect(_on_wave_started)
 	_refresh_wave_label()
+	var region_manager := get_node_or_null("/root/RegionManager")
+	if region_manager != null and region_manager.has_signal("region_changed"):
+		region_manager.region_changed.connect(func(_old: StringName, _new: StringName) -> void: _refresh_wave_label())
 
 	var save_manager := get_node_or_null("/root/SaveManager")
 	if save_manager:
@@ -436,6 +439,11 @@ func _cut_captions() -> void:
 
 
 func _refresh_wave_label() -> void:
+	# The five-wave arena belongs to Outpost 17; other regions have no wave counter.
+	var regions := get_node_or_null("/root/RegionManager")
+	if regions != null and String(regions.get("current_region_id")) not in ["", "outpost_17"]:
+		_wave_label.text = ""
+		return
 	var enemies := get_tree().get_nodes_in_group("enemies").size()
 	var wave := 0
 	var total := 4
