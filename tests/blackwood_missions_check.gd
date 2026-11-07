@@ -49,6 +49,7 @@ func _fresh() -> void:
 	await _frames(2)
 	_sm.reset_runtime_state()
 	_world.reset()
+	root.get_node("RegionManager").from_dict({})  # claimed ids are saved state too
 	_qm.intro_done = true
 	_qm.mission_autosave = false
 	_qm.reset()

@@ -40,6 +40,7 @@ func _fresh_region() -> Blackwood:
 		_region.queue_free()
 		await _frames(2)
 	_world.reset()
+	root.get_node("RegionManager").from_dict({})  # claimed ids are saved state too
 	var region := load("res://scenes/regions/Blackwood_content.tscn").instantiate() as Blackwood
 	root.add_child(region)
 	await _frames(3)

@@ -33,14 +33,20 @@ var _timer: Timer
 
 
 func cleared_flag() -> StringName:
-	return StringName("blackwood_%s_cleared" % String(encounter_id))
+	return RegionFlags.key(&"blackwood", StringName("%s_cleared" % String(encounter_id)))
+
+
+## Also recorded as a one-time id in the region state (saved with it), so a cleared encounter stays cleared.
+func claim_id() -> StringName:
+	return StringName("encounter_%s" % String(encounter_id))
+
 
 
 func _ready() -> void:
 	var state := get_node_or_null("/root/WorldState")
 	if state == null:
 		return
-	if state.has_flag(cleared_flag()):
+	if state.has_flag(cleared_flag()) or PersistentIds.is_claimed(&"blackwood", claim_id()):
 		is_cleared = true
 		triggered = true
 		spawned = true
@@ -108,4 +114,5 @@ func _on_defeated() -> void:
 	var state := get_node_or_null("/root/WorldState")
 	if state:
 		state.set_flag(cleared_flag(), true)
+	PersistentIds.claim(&"blackwood", claim_id())
 	cleared.emit()
