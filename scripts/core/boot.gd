@@ -116,6 +116,8 @@ func _ready() -> void:
 	_mark("boot_ready")
 	report["first_frame_ms"] = Time.get_ticks_msec()  # since engine start, includes autoloads
 	_build_ui()
+	if show_menu:
+		_show_menu_early()
 	if auto_start:
 		start()
 
@@ -125,6 +127,9 @@ func start() -> void:
 	error_text = ""
 	_error.visible = false
 	_retry.visible = false
+	if menu != null:  # a retry after a failure: the menu covers the screen again
+		menu.visible = true
+		_ui.visible = false
 	_done.clear()
 	_issued.clear()
 	_pending.clear()
@@ -253,11 +258,30 @@ func _update_ui(delta: float) -> void:
 		_tip.text = TIPS[_tip_index]
 
 
+## On web the reveal (the last 8% of the real progress) takes about 25-30 s because every frame
+## compiles shaders, while loading, warming and building take about 10 s. The percentage shown on
+## the menu follows time instead: the first stages fill the first 30%, the reveal the other 70%.
+## The real `progress` value is unchanged; desktop shows it as is.
+const WEB_SHARE_BEFORE_REVEAL: float = 0.30
+
+
+static func display_progress(raw: float, web: bool) -> float:
+	raw = clampf(raw, 0.0, 1.0)
+	if not web:
+		return raw
+	var reveal_start := W_LOAD + W_WARM + W_BUILD
+	if raw <= reveal_start:
+		return raw / reveal_start * WEB_SHARE_BEFORE_REVEAL
+	return WEB_SHARE_BEFORE_REVEAL + (raw - reveal_start) / (1.0 - reveal_start) * (1.0 - WEB_SHARE_BEFORE_REVEAL)
+
+
 func _set_progress(value: float) -> void:
 	value = clampf(value, 0.0, 1.0)
 	if value > progress:  # never moves backwards
 		progress = value
 		progress_changed.emit(progress)
+		if menu != null and menu.is_loading():
+			menu.set_loading(display_progress(progress, OS.has_feature("web")))
 
 
 # --- LOADING ------------------------------------------------------------------
@@ -531,16 +555,33 @@ func _settled() -> void:
 	phase = Phase.MENU
 	_set_progress(1.0)
 	_status.text = "Ready"
+	if menu == null:
+		_make_menu()  # the menu was not shown early (it is built here instead)
+	else:
+		menu.set_ready()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+## The title menu appears as soon as the first frame is drawn, while the world keeps loading behind
+## it. New Game and Continue stay off (with a live percentage) until `_settled` runs.
+func _show_menu_early() -> void:
+	_make_menu()
+	menu.begin_loading()
+	_ui.visible = false  # the menu shows the progress; the boot screen returns only on an error
+	_mark("menu_visible")
+
+
+func _make_menu() -> void:
 	menu = MainMenu.new()
 	menu.new_game_pressed.connect(_on_new_game)
 	menu.continue_pressed.connect(_on_continue)
 	menu.quit_pressed.connect(func() -> void: get_tree().quit())
 	add_child(menu)
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _close_menu() -> void:
 	_menu_done = true
+	_ui.visible = true  # the boot screen (hidden while the early menu was up) fades out as before
 	if menu != null and is_instance_valid(menu):
 		menu.queue_free()
 	menu = null
@@ -625,6 +666,9 @@ func _fail(message: String) -> void:
 	_error.visible = true
 	_retry.visible = true
 	_status.text = "Something went wrong"
+	if menu != null:  # show the error screen on top of the loading menu
+		menu.visible = false
+		_ui.visible = true
 	push_error("Boot: " + message)
 	failed.emit(message)
 

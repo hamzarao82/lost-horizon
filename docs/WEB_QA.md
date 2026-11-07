@@ -37,3 +37,10 @@ Method: temporary worktrees per commit, web export, `tools/webqa/serve.mjs` plus
 - The bare reveal phase takes 20 to 29 s whatever the piece count, which suggests the headless Chromium rendering path, not the project's content, dominates it.
 
 **Result.** Not reached: the best current-master runs are 31.6 s and 34.9 s against the 30 s budget. No fix produced a measurable gain, so none was kept. A trustworthy attribution needs a quiet machine and at least five runs per build, or a real GPU browser run.
+
+## Loading experience (branch `milestone-006-loadingux`)
+Real load time is unchanged (reveal done about 34-45 s on game clock, two runs, noisy machine). What changed is what the player sees:
+- **Engine phase:** `web/shell.html` (custom shell for the Web preset only) shows the game title on the same background colour as the boot screen, a real download bar from the engine's progress callback (an indeterminate pulse while the browser compiles and starts the engine), a rotating tip every 4 s and drifting embers (disabled for `prefers-reduced-motion`). Fully inline, no external files. Checked in a screenshot under a throttled network.
+- **Game phase:** `Boot` builds the main menu as soon as the first frame is drawn (`BOOT_PHASE menu_visible`, game clock 5.3 s and 6.0 s in two runs) and the world loads behind it. New Game and Continue are disabled and show `Loading world... NN%` until the world is ready; Settings and Credits work at once. Escape, Space or Enter skips the 1 s opening fade. On web the percentage follows time (the first stages fill 30%, the shader-compiling reveal fills 70%) because the raw progress sat near 92% for the last 25-30 s; the underlying `Boot.progress` is unchanged.
+- Headless runs and `-- --no-menu` start the game directly as before.
+- Not tested: phones and slow connections beyond one throttled run; Android.

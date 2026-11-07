@@ -17,6 +17,14 @@ var _settings_page: SettingsPage
 var _credits_page: VBoxContainer
 var _buttons: Dictionary = {}  # name -> Button
 var _continue_info: Label
+var _loading_label: Label
+var _loading: bool = false
+var _loading_progress: float = 0.0
+var _intro_active: bool = false
+var _intro_tween: Tween
+
+## Fade-in of the title and buttons when the menu first appears (Escape, Space or Enter skips it).
+const INTRO_SECONDS: float = 1.0
 
 
 func _init() -> void:
@@ -28,6 +36,71 @@ func _init() -> void:
 func _ready() -> void:
 	refresh()
 	_show_page(_main_page)
+	_start_intro()
+
+
+## True while the opening fade is playing.
+func is_intro_active() -> bool:
+	return _intro_active
+
+
+func _start_intro() -> void:
+	_intro_active = true
+	_main_page.modulate.a = 0.0
+	_intro_tween = create_tween()
+	_intro_tween.tween_property(_main_page, "modulate:a", 1.0, INTRO_SECONDS)
+	_intro_tween.finished.connect(func() -> void: _intro_active = false)
+
+
+## Jumps to the finished menu at once and puts focus on a button.
+func skip_intro() -> void:
+	if not _intro_active:
+		return
+	if _intro_tween != null:
+		_intro_tween.kill()
+	_intro_active = false
+	_main_page.modulate.a = 1.0
+	if _main_page.visible:
+		_focus_first()
+
+
+## The world is still loading: New Game and Continue stay off and show real progress.
+func begin_loading() -> void:
+	_loading = true
+	set_loading(_loading_progress)
+
+
+## Monotonic: a lower value than one already shown is ignored.
+func set_loading(value: float) -> void:
+	_loading = true
+	_loading_progress = maxf(_loading_progress, clampf(value, 0.0, 1.0))
+	_loading_label.text = "Loading world... %d%%" % int(round(_loading_progress * 100.0))
+	_loading_label.visible = true
+	button("new_game").disabled = true
+	button("continue").disabled = true
+
+
+func is_loading() -> bool:
+	return _loading
+
+
+func loading_text() -> String:
+	return _loading_label.text if _loading_label.visible else ""
+
+
+## The world is ready: buttons turn on with a short highlight on New Game.
+func set_ready() -> void:
+	_loading = false
+	_loading_progress = 1.0
+	_loading_label.visible = false
+	button("new_game").disabled = false
+	refresh()
+	var b := button("new_game")
+	var tween := create_tween()
+	b.modulate = Color(1.7, 1.45, 0.9)
+	tween.tween_property(b, "modulate", Color.WHITE, 0.7)
+	if _main_page.visible and not _intro_active:
+		_focus_first()
 
 
 func button(key: String) -> Button:
@@ -48,7 +121,7 @@ func refresh() -> void:
 	var data := _peek_save(saves)
 	var available: bool = saves != null and saves.has_save()
 	var continue_button := button("continue")
-	continue_button.disabled = not available
+	continue_button.disabled = not available or _loading
 	continue_button.text = "Continue" if available else "Continue (no save)"
 	_continue_info.text = describe_save(data) if available else ""
 	_continue_info.visible = _continue_info.text != ""
@@ -81,6 +154,11 @@ func _peek_save(saves: Node) -> Dictionary:
 
 
 func _input(event: InputEvent) -> void:
+	if _intro_active and event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode in [KEY_ESCAPE, KEY_SPACE, KEY_ENTER, KEY_KP_ENTER]:
+			skip_intro()
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventScreenTouch:
 		var click := InputEventMouseButton.new()
 		click.position = event.position
@@ -103,6 +181,7 @@ func _build_ui() -> void:
 	background.color = Color(0.04, 0.05, 0.07)
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(background)
+	_root.add_child(MenuEmbers.new())
 
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -130,6 +209,9 @@ func _build_main_page() -> VBoxContainer:
 	_add_button(page, "continue", "Continue", func() -> void: continue_pressed.emit())
 	_continue_info = _label("", 16, HudTheme.TEXT_DIM)
 	page.add_child(_continue_info)
+	_loading_label = _label("", 18, HudTheme.GOLD)
+	_loading_label.visible = false
+	page.add_child(_loading_label)
 	_add_button(page, "settings", "Settings", func() -> void: _show_page(_settings_page))
 	_add_button(page, "credits", "Credits", func() -> void: _show_page(_credits_page))
 	if not OS.has_feature("web") and not TouchControls.is_mobile_platform():
