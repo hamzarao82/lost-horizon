@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/loot_table.gd" id="1_rccache"]
+
+[resource]
+script = ExtResource("1_rccache")
+drop_chance = 1.0
+item_paths = PackedStringArray("res://resources/items/antiseptic.tres", "res://resources/items/credits_medium.tres", "res://resources/items/armor_plate.tres", "res://resources/items/electronics.tres", "res://resources/items/intel_drive.tres", "res://resources/items/bandage.tres")
+weights = PackedFloat32Array(20, 22, 12, 16, 10, 20)
+source = 4
+region = "iron_fortress"
+rarity_weights = PackedFloat32Array(1, 1, 1.15, 1.3, 1.3)
+max_counts = PackedInt32Array(2, 1, 1, 2, 1, 2)

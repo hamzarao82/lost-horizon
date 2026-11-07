@@ -125,7 +125,7 @@ const DOCS: Dictionary = {
 		"title": "Underground exit",
 		"pages": [
 			"Service tunnel: leads to the supply road. The gate at the far end is sealed from the other side.",
-			"Access to the Iron Fortress road is sealed. For now.",
+			"The road beyond leads to the Iron Fortress. It stays sealed until the Black Site data is recovered.",
 		],
 	},
 }

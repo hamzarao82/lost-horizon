@@ -17,5 +17,6 @@ landmarks = [
 {"id": "rc_underground", "name": "Underground Exit", "rect": Rect2(1.00, -204.00, 10.00, 32.00), "kind": "area", "flag": "research_complex_discovered_rc_underground"}
 ]
 exits = [
-{"pos": Vector2(0.00, 54.00), "target": "blackwood"}
+{"pos": Vector2(0.00, 54.00), "target": "blackwood"},
+{"pos": Vector2(6.00, -203.00), "target": "iron_fortress"}
 ]

@@ -109,8 +109,11 @@ func _build_entries_and_exits() -> void:
 	entry_points = {
 		"from_blackwood": Transform3D(Basis.IDENTITY, Vector3(0.0, 0.1, 47.0)),                 # faces north (-z)
 		"from_underground": Transform3D(Basis.IDENTITY, Vector3(Z.HATCH_X, Z.UNDER_Y + 0.1, -190.0)),
+		"from_iron_fortress": Transform3D(Basis.IDENTITY, Vector3(Z.HATCH_X, Z.UNDER_Y + 0.1, -198.0)),
 	}
 	exit_points = {
+		"to_iron_fortress": {"position": Vector3(Z.HATCH_X, Z.UNDER_Y, -202.5), "region": "iron_fortress", "entry": "from_research_complex",
+			"locked_flag": "", "locked_text": ""},
 		"to_blackwood": {"position": Vector3(0.0, 0.0, 54.0), "region": "blackwood", "entry": "from_underground",
 			"locked_flag": "", "locked_text": ""},
 	}
@@ -135,7 +138,9 @@ func _wire() -> void:
 	(parts.triggers["rc_medical_ambush"] as MissionTrigger).fired.connect(func(_event: StringName) -> void: begin_ambush())
 	(parts.triggers["rc_elite_chamber"] as AreaTrigger).entered.connect(func(_id: StringName) -> void: release_elite())
 	(parts.triggers["rc_lab"] as AreaTrigger).entered.connect(func(_id: StringName) -> void: release_commander())
-	(parts.triggers["rc_sealed_exit"] as AreaTrigger).entered.connect(func(_id: StringName) -> void: Outpost17.say(self, SEALED_TEXT, 5.0))
+	(parts.triggers["rc_sealed_exit"] as AreaTrigger).entered.connect(func(_id: StringName) -> void:
+		if not _has_flag(COMPLETE_FLAG):  # once the Black Site data is recovered the road to the Iron Fortress opens
+			Outpost17.say(self, SEALED_TEXT, 5.0))
 	var quests := get_node_or_null("/root/QuestManager")
 	if quests != null and quests.has_signal("quest_completed"):
 		quests.quest_completed.connect(_on_quest_completed)
@@ -251,3 +256,8 @@ func restore_state(raw: Variant) -> void:
 			if data is Dictionary:
 				(parts.puzzles[id] as MultiStepPuzzle).restore_state(data)
 	_refresh_groups()
+
+
+func _has_flag(flag: StringName) -> bool:
+	var state := get_node_or_null("/root/WorldState")
+	return state != null and state.has_flag(flag)

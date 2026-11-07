@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="RegionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/regions/region_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"iron_fortress"
+display_name = "Iron Fortress"
+scene_path = "res://scenes/regions/IronFortressRegion.tscn"
+entry_points = {
+&"from_research_complex": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 51)
+}
+exit_points = {
+&"to_research_complex": {
+"position": Vector3(0, 1, 58),
+"size": Vector3(10, 3, 2),
+"target_entry": &"from_iron_fortress",
+"target_region": &"research_complex"
+}
+}
+unlock_flag = &"iron_fortress_unlocked"
+environment_preset = &"iron_fortress"
+ambience = &"research_complex"
+map_extents = Rect2(-34, -216, 68, 276)

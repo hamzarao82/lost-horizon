@@ -38,17 +38,24 @@ const CHAIN: Dictionary = {
 		"aliases": [&"blackwood_region_complete", &"blackwood_research_complex_access"],
 		"caption": "Radio: Clearance code accepted. Access granted. Something is waiting at the end of the trail.",
 	},
+	&"iron_fortress": {
+		"after": &"research_complex_mission_4_complete",
+		"aliases": [&"research_complex_region_complete"],
+		"caption": "Radio: The recovered route table ends at one place. The Iron Fortress. The road is open.",
+	},
 }
 ## Said once, the first time the player arrives.
 const ARRIVAL: Dictionary = {
 	&"dead_coast": "Radio: Wreckage everywhere. Someone shipped something here and never collected it.",
 	&"blackwood": "Radio: Signal is weaker under the canopy. Keep your head down.",
 	&"research_complex": "Radio: Whatever this place was, it was built to stay hidden.",
+	&"iron_fortress": "Radio: This is the command. Everything that happened on the island was ordered from behind that gate.",
 }
 const REFUSAL: Dictionary = {
 	&"dead_coast": "The road is blocked.",
 	&"blackwood": "The trail into the Blackwood is grown shut. Finish what is on the coast first.",
 	&"research_complex": "The facility gate is sealed. It needs a clearance code.",
+	&"iron_fortress": "The road to the Iron Fortress is sealed. Recover the Black Site data first.",
 }
 const SAID_PREFIX: String = "campaign_said_"
 

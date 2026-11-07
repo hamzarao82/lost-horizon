@@ -3,7 +3,7 @@ extends RefCounted
 ## Static helpers for region data and save-section validation. Kept apart from the RegionManager autoload
 ## (an autoload and a class_name cannot share a name) so SaveManager and tests can use them without a scene.
 
-const IDS: Array[StringName] = [&"outpost_17", &"dead_coast", &"blackwood", &"research_complex"]
+const IDS: Array[StringName] = [&"outpost_17", &"dead_coast", &"blackwood", &"research_complex", &"iron_fortress"]
 const DIR: String = "res://resources/regions/"
 const OUTPOST_ID: StringName = &"outpost_17"
 const MAX_ID_LENGTH: int = 64

@@ -1,0 +1,88 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_g5h6f"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_a20ss"]
+
+[sub_resource type="Resource" id="Resource_ltgpf"]
+script = ExtResource("1_g5h6f")
+id = &"activate_gate"
+text = "Run the gate activation at the security control room"
+type = 5
+targets = PackedStringArray("iron_fortress_gate_activated")
+
+[sub_resource type="Resource" id="Resource_1q0st"]
+script = ExtResource("1_g5h6f")
+id = &"barracks_pass"
+text = "Take the barracks credentials"
+type = 5
+targets = PackedStringArray("credential_barracks")
+
+[sub_resource type="Resource" id="Resource_5b8hx"]
+script = ExtResource("1_g5h6f")
+id = &"enter_barracks"
+text = "Enter the military barracks"
+type = 1
+targets = PackedStringArray("if_barracks")
+
+[sub_resource type="Resource" id="Resource_7vb2p"]
+script = ExtResource("1_g5h6f")
+id = &"investigate_armory"
+text = "Investigate the armory"
+targets = PackedStringArray("if_armory_terminal")
+
+[sub_resource type="Resource" id="Resource_ee2kr"]
+script = ExtResource("1_g5h6f")
+id = &"disable_lockdown"
+text = "Disable the first stage of the inner lockdown"
+type = 5
+targets = PackedStringArray("iron_fortress_lockdown_step_a")
+
+[sub_resource type="Resource" id="Resource_vcbdh"]
+script = ExtResource("1_g5h6f")
+id = &"defeat_defenders"
+text = "Defeat the security forces in the barracks"
+type = 5
+targets = PackedStringArray("iron_fortress_barracks_cleared")
+
+[sub_resource type="Resource" id="Resource_s1pwy"]
+script = ExtResource("1_g5h6f")
+id = &"command_key"
+text = "Retrieve the command access key"
+type = 5
+targets = PackedStringArray("credential_command_key")
+
+[sub_resource type="Resource" id="Resource_ogily"]
+script = ExtResource("1_g5h6f")
+id = &"unlock_command"
+text = "Unlock the command center"
+type = 5
+targets = PackedStringArray("door_if_command_door_open")
+
+[sub_resource type="Resource" id="Resource_e0agh"]
+script = ExtResource("1_g5h6f")
+id = &"armory_cache"
+text = "Armory recovery: open the armory cache"
+type = 5
+targets = PackedStringArray("if_cache_armory_taken")
+optional = true
+
+[sub_resource type="Resource" id="Resource_3vmmf"]
+script = ExtResource("1_g5h6f")
+id = &"missing_patrol"
+text = "Missing patrol: read both Team Ash logs"
+targets = PackedStringArray("if_patrol_log_1", "if_patrol_log_2")
+progress_label = "Logs"
+optional = true
+
+[resource]
+script = ExtResource("2_a20ss")
+id = &"if_inside_the_walls"
+title = "Inside the Walls"
+description = "Break through the outer perimeter: start the gate sequence, win a pass for the barracks, and take the command key from the defenders."
+objectives = Array[ExtResource("1_g5h6f")]([SubResource("Resource_ltgpf"), SubResource("Resource_1q0st"), SubResource("Resource_5b8hx"), SubResource("Resource_7vb2p"), SubResource("Resource_ee2kr"), SubResource("Resource_vcbdh"), SubResource("Resource_s1pwy"), SubResource("Resource_ogily"), SubResource("Resource_e0agh"), SubResource("Resource_3vmmf")])
+rewards = PackedStringArray("credits_medium", "armor_plate")
+reward_text = "Credits and an armor plate."
+next_quest = &"if_chain_of_command"
+start_captions = PackedStringArray("Past the gate: guard posts, a barracks and a lockdown written to cascade inward.")
+complete_captions = PackedStringArray("The command center door is open. The barracks behind you are quiet.")
+location_hint = "Perimeter and barracks"

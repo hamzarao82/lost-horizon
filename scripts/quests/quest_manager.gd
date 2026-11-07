@@ -35,6 +35,7 @@ const QUEST_DIRS: Array[String] = [
 	"res://resources/quests/dead_coast/",
 	"res://resources/quests/blackwood/",
 	"res://resources/quests/research_complex/",
+	"res://resources/quests/iron_fortress/",
 ]
 ## HUD pin: when this quest is active the tracker shows it before the others (set by CampaignFlow, not saved).
 var tracker_first: StringName = &""
@@ -122,7 +123,7 @@ func _load_quest_file(path: String) -> void:
 ## the campaign bridge) belongs to Outpost 17.
 func _region_of_path(path: String) -> StringName:
 	var folder := path.get_base_dir().get_file()
-	return StringName(folder) if folder in ["dead_coast", "blackwood", "research_complex"] else &"outpost_17"
+	return StringName(folder) if folder in ["dead_coast", "blackwood", "research_complex", "iron_fortress"] else &"outpost_17"
 
 
 func _current_region() -> StringName:
