@@ -248,6 +248,7 @@ func _apply_presets(data: RegionData) -> void:
 	var audio := get_node_or_null("/root/AudioManager")
 	if audio != null and audio.has_method("set_region_ambience"):
 		audio.call("set_region_ambience", data.ambience)
+	EnvironmentPresets.apply(data.environment_preset if data.environment_preset != &"" else data.id)
 
 
 func _fade(target_alpha: float) -> void:

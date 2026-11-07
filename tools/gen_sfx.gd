@@ -38,6 +38,12 @@ func _initialize() -> void:
 	_write("ambience_loop", _ambience())
 	_write("radio_static", _radio_static())
 	_write("radio_beep", _blips([1500.0], 0.09, 0.1))
+	# Milestone 7 region ambience and one-shots: appended last so every earlier sound keeps its exact bytes.
+	_write("ambience_coast", _ambience_coast())
+	_write("ambience_jungle", _ambience_jungle())
+	_write("ambience_facility", _ambience_facility())
+	_write("bird_flush", _bird_flush())
+	_write("metal_creak", _metal_creak())
 	quit()
 
 
@@ -340,3 +346,110 @@ func _ambience() -> PackedFloat32Array:
 		var swell := 0.6 + 0.4 * sin(TAU * t / seconds * 2.0)
 		out[i] = out[i] * swell + sin(TAU * 44.0 * t) * 0.04 + sin(TAU * 73.0 * t) * 0.03
 	return _normalize(out, 0.5)
+
+
+## Folds the `fade` samples after the loop end into the head, so the loop point has no seam.
+func _loop_fold(buf: PackedFloat32Array, n: int, fade: int) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	out.resize(n)
+	for i in n:
+		out[i] = buf[i]
+	for i in fade:
+		var w := float(i) / fade
+		out[i] = buf[i] * w + buf[n + i] * (1.0 - w)
+	return out
+
+
+func _gull(duration: float, f0: float, f1: float) -> PackedFloat32Array:
+	return _bell(_sweep(duration, f0, f1, 18.0, 0.05))
+
+
+## 8 s surf, wind and two distant gulls. Swell and gust periods divide the loop length; the gulls sit
+## fully inside it, so the loop is seamless.
+func _ambience_coast() -> PackedFloat32Array:
+	var seconds := 8.0
+	var n := _samples(seconds)
+	var fade := _samples(0.6)
+	var surf := _loop_fold(_lowpass(_noise(seconds + 0.6), 900.0, 700.0), n, fade)
+	var foam := _loop_fold(_lowpass(_highpass(_noise(seconds + 0.6), 2500.0), 5200.0, 4200.0), n, fade)
+	var wind := _loop_fold(_lowpass(_noise(seconds + 0.6), 380.0, 300.0), n, fade)
+	var bed := PackedFloat32Array()
+	bed.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		var swell := pow(0.5 + 0.5 * sin(TAU * t / 4.0 - 1.2), 2.0)
+		var gust := 0.6 + 0.4 * sin(TAU * t / 8.0 + 0.7)
+		bed[i] = surf[i] * (0.25 + 0.9 * swell) + foam[i] * 0.35 * swell + wind[i] * 0.5 * gust
+	var out := _normalize(bed, 0.5)
+	out = _mix(out, _gull(0.4, 1500.0, 950.0), 0.15, 2.3)
+	out = _mix(out, _gull(0.32, 1300.0, 1000.0), 0.11, 5.6)
+	return _normalize(out, 0.5)
+
+
+func _jungle_call(duration: float, f0: float, f1: float) -> PackedFloat32Array:
+	return _lowpass(_bell(_sweep(duration, f0, f1, 6.0, 0.03)), 2600.0, 2600.0)
+
+
+## 8 s rustle bed, two insect trills and a low drone, with distant calls. Every tone frequency is a whole
+## number of Hz, so it completes whole cycles per loop.
+func _ambience_jungle() -> PackedFloat32Array:
+	var seconds := 8.0
+	var n := _samples(seconds)
+	var fade := _samples(0.6)
+	var rustle := _loop_fold(_lowpass(_noise(seconds + 0.6), 1300.0, 900.0), n, fade)
+	var bed := PackedFloat32Array()
+	bed.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		var gate_a := maxf(0.0, sin(TAU * 22.0 * t)) * (0.5 + 0.5 * sin(TAU * 0.5 * t + 1.0))
+		var gate_b := maxf(0.0, sin(TAU * 17.0 * t)) * (0.5 + 0.5 * sin(TAU * 0.25 * t + 2.5))
+		var insects := sin(TAU * 3600.0 * t) * gate_a * 0.10 + sin(TAU * 4300.0 * t) * gate_b * 0.07
+		var swell := 0.5 + 0.5 * (0.5 + 0.5 * sin(TAU * t / 4.0 + 0.3))
+		bed[i] = rustle[i] * swell + insects + sin(TAU * 55.0 * t) * 0.03
+	var out := _normalize(bed, 0.5)
+	out = _mix(out, _jungle_call(0.5, 900.0, 1500.0), 0.16, 1.4)
+	out = _mix(out, _jungle_call(0.6, 700.0, 450.0), 0.12, 4.1)
+	out = _mix(out, _jungle_call(0.45, 1100.0, 1700.0), 0.14, 6.4)
+	return _normalize(out, 0.5)
+
+
+## 6 s mains hum with harmonics, a vent bed and two relay ticks. 50 Hz and 0.5 Hz divide the loop length.
+func _ambience_facility() -> PackedFloat32Array:
+	var seconds := 6.0
+	var n := _samples(seconds)
+	var fade := _samples(0.5)
+	var vent := _loop_fold(_lowpass(_highpass(_noise(seconds + 0.5), 180.0), 900.0, 700.0), n, fade)
+	var bed := PackedFloat32Array()
+	bed.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		var hum := sin(TAU * 50.0 * t) * 0.5 + sin(TAU * 100.0 * t) * 0.25 + sin(TAU * 150.0 * t) * 0.12 + sin(TAU * 250.0 * t) * 0.05
+		hum *= 0.85 + 0.15 * sin(TAU * 0.5 * t)
+		var swell := 0.5 + 0.5 * (0.5 + 0.5 * sin(TAU * t / 3.0))
+		bed[i] = hum * 0.5 + vent[i] * swell * 0.9
+	var out := _normalize(bed, 0.5)
+	var tick := _env(_sweep(0.03, 2200.0, 1800.0), 0.001, 90.0)
+	out = _mix(out, tick, 0.15, 2.2)
+	out = _mix(out, tick, 0.12, 4.7)
+	return _normalize(out, 0.5)
+
+
+## Wing flutter and three chirps: birds bursting out of cover (Blackwood ambush warning cue).
+func _bird_flush() -> PackedFloat32Array:
+	var flutter := _lowpass(_highpass(_noise(0.9), 600.0), 4500.0, 2500.0)
+	for i in flutter.size():
+		var t := float(i) / RATE
+		flutter[i] *= (0.5 + 0.5 * sin(TAU * 14.0 * t)) * exp(-t * 2.8) * minf(t / 0.03, 1.0)
+	var out := _normalize(flutter, 0.5)
+	for chirp_at in [0.05, 0.28, 0.5]:
+		out = _mix(out, _env(_sweep(0.09, 2400.0, 3400.0, 30.0, 0.02), 0.005, 25.0), 0.35, chirp_at)
+	return _normalize(out, 0.6)
+
+
+## Slow pitch-dropping groan with a scrape: stressed metal.
+func _metal_creak() -> PackedFloat32Array:
+	var tone := _bell(_lowpass(_saw(1.4, 95.0, 58.0), 700.0, 450.0))
+	for i in tone.size():
+		tone[i] *= 0.75 + 0.25 * sin(TAU * 9.0 * float(i) / RATE)
+	var scrape := _env(_lowpass(_highpass(_noise(1.4), 900.0), 3200.0, 1800.0), 0.1, 2.0)
+	return _normalize(_mix(_normalize(tone, 0.6), _normalize(scrape, 0.3), 0.6), 0.6)
