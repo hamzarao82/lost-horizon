@@ -1,0 +1,78 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_tp1x0"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_6ug7p"]
+
+[sub_resource type="Resource" id="Resource_ov1ue"]
+script = ExtResource("1_tp1x0")
+id = &"reach_perimeter"
+text = "Reach the research perimeter"
+type = 1
+targets = PackedStringArray("blackwood_research_perimeter")
+
+[sub_resource type="Resource" id="Resource_gkxh8"]
+script = ExtResource("1_tp1x0")
+id = &"open_gate"
+text = "Open the concealed gate"
+targets = PackedStringArray("bw_gate_panel")
+
+[sub_resource type="Resource" id="Resource_u4q0n"]
+script = ExtResource("1_tp1x0")
+id = &"find_site"
+text = "Find the experimental testing site"
+type = 1
+targets = PackedStringArray("blackwood_testing_site")
+
+[sub_resource type="Resource" id="Resource_bpmqd"]
+script = ExtResource("1_tp1x0")
+id = &"examine_equipment"
+text = "Investigate the experimental equipment"
+targets = PackedStringArray("bw_test_equipment_1", "bw_test_equipment_2")
+progress_label = "Equipment"
+
+[sub_resource type="Resource" id="Resource_bnymt"]
+script = ExtResource("1_tp1x0")
+id = &"find_evidence"
+text = "Find evidence of human experimentation"
+targets = PackedStringArray("bw_log_experiment_1")
+
+[sub_resource type="Resource" id="Resource_28nso"]
+script = ExtResource("1_tp1x0")
+id = &"defeat_defenders"
+text = "Defeat the site defenders"
+type = 5
+targets = PackedStringArray("blackwood_site_defenders_cleared")
+
+[sub_resource type="Resource" id="Resource_wrdix"]
+script = ExtResource("1_tp1x0")
+id = &"unlock_access"
+text = "Unlock the way to the Research Complex"
+type = 5
+targets = PackedStringArray("blackwood_research_complex_access")
+
+[sub_resource type="Resource" id="Resource_6a4m3"]
+script = ExtResource("1_tp1x0")
+id = &"find_hatch"
+text = "Find the concealed underground hatch"
+targets = PackedStringArray("bw_hatch")
+optional = true
+
+[sub_resource type="Resource" id="Resource_rgs35"]
+script = ExtResource("1_tp1x0")
+id = &"subject_list"
+text = "Read the subject list"
+type = 5
+targets = PackedStringArray("doc_bw_log_subject_list_found")
+optional = true
+
+[resource]
+script = ExtResource("2_6ug7p")
+id = &"experimental_site"
+title = "The Experimental Site"
+description = "The recovered data points to a testing site behind the research perimeter. Get in, find out what they did there and open the way on."
+objectives = Array[ExtResource("1_tp1x0")]([SubResource("Resource_ov1ue"), SubResource("Resource_gkxh8"), SubResource("Resource_u4q0n"), SubResource("Resource_bpmqd"), SubResource("Resource_bnymt"), SubResource("Resource_28nso"), SubResource("Resource_wrdix"), SubResource("Resource_6a4m3"), SubResource("Resource_rgs35")])
+rewards = PackedStringArray("credits_medium", "credits_medium", "upgrade_kit_weapon", "blackwood_ghost_charm")
+reward_text = "Credits, a weapon upgrade kit and the Ghost Charm."
+start_captions = PackedStringArray("Fresh tire tracks. Somebody still drives to the testing site.")
+complete_captions = PackedStringArray("The research facility is open. Whatever they did here, it started below.")
+location_hint = "Experimental site"
