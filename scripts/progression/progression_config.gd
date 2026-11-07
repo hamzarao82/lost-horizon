@@ -18,7 +18,7 @@ extends Resource
 @export var farm_halving: float = 40.0
 @export var farm_floor: float = 0.3
 
-@export var quest_xp: Dictionary = {&"first_signal": 400}
+@export var quest_xp: Dictionary = {&"first_signal": 400, &"leave_outpost": 60}
 @export var default_quest_xp: int = 200
 @export var discovery_xp: int = 25
 
