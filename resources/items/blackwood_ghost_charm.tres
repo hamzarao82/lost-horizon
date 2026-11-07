@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_45ilu"]
+
+[resource]
+script = ExtResource("1_45ilu")
+item_id = &"blackwood_ghost_charm"
+display_name = "Ghost Charm"
+kind = 1
+rarity = 3
+description = "A strip of oilcloth with a tuning mark burned into it. Whoever wore it listened to the Blackwood and lived."
+slot = 7
+base_stats = {
+"damage_reduction": 0.03,
+"max_health": 4.0
+}
+value = 90
+unique = true
+region = "blackwood"

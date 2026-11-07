@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_4lc4u"]
+
+[resource]
+script = ExtResource("1_4lc4u")
+item_id = &"coastal_alloy"
+display_name = "Coastal Alloy"
+kind = 4
+rarity = 1
+description = "Salt-cured steel scrap from the wrecks. Crafting material."
+max_stack = 99
+value = 18
+region = "dead_coast"
