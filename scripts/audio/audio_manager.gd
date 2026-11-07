@@ -33,6 +33,7 @@ var _ambience: AudioStreamPlayer
 var _ambience_b: AudioStreamPlayer  ## second slot: the incoming loop of a region crossfade
 var _slot_streams: Array[StringName] = [AMBIENCE_NAME, &""]
 var _slot_gain: Array[float] = [1.0, 0.0]  ## linear, 1.0 = AMBIENCE_DB
+var _duck: float = 1.0
 var _active_slot: int = 0
 var _region_ambience: StringName = &"outpost"
 var _amb_tween: Tween
@@ -336,7 +337,7 @@ func _slot_player(slot: int) -> AudioStreamPlayer:
 
 
 func _apply_slot_volume(slot: int) -> void:
-	_slot_player(slot).volume_db = AMBIENCE_DB + linear_to_db(maxf(_slot_gain[slot], 0.0001))
+	_slot_player(slot).volume_db = AMBIENCE_DB + linear_to_db(maxf(_slot_gain[slot] * _duck, 0.0001))
 
 
 ## For tests and tools: which loop is in which slot and at what gain (linear, 1.0 = normal ambience level).
@@ -355,3 +356,12 @@ func ambience_state() -> Dictionary:
 ## the 12 s music). get_length() is right for every format.
 func _loop_end_frames(wav: AudioStreamWAV) -> int:
 	return int(round(wav.get_length() * float(wav.mix_rate)))
+
+
+## 0..1 multiplier on region ambience and music (the ending silences both, then restores them).
+func set_ambience_duck(linear: float) -> void:
+	_duck = clampf(linear, 0.0, 1.0)
+	_apply_slot_volume(0)
+	_apply_slot_volume(1)
+	if _music:
+		_music.volume_db = MUSIC_DB + linear_to_db(maxf(_duck, 0.0001))

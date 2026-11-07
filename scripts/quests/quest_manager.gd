@@ -403,6 +403,7 @@ func _bind_world_state() -> void:
 	if world == null or world == _world:
 		return
 	_world = world
+	CampaignEnding.watch(world)
 	if world.has_signal("interacted"):
 		world.interacted.connect(_on_interacted)
 	if world.has_signal("area_entered"):
@@ -527,7 +528,7 @@ func tracker_title() -> String:
 		var quest := get_quest(quest_id)
 		if quest:
 			return quest.title
-	return ""
+	return "After the signal" if _campaign_done() else ""
 
 
 ## The first unfinished objective of the current quest, with progress ("... (Switches 1/3)").
@@ -542,7 +543,12 @@ func tracker_objective() -> String:
 			if state["done"][index] or objective.optional:
 				continue
 			return _objective_text(objective, int(state["progress"][index]))
-	return ""
+	return "Explore freely: every region is open" if _campaign_done() else ""
+
+
+## Post-campaign: the story is finished, so an empty tracker shows a closing line instead of nothing.
+func _campaign_done() -> bool:
+	return _world != null and _world.has_method("has_flag") and _world.has_flag(&"campaign_complete")
 
 
 ## The first unfinished OPTIONAL objective that is visible (its hidden_until flag, if any, is set).
@@ -610,23 +616,11 @@ func _run_intro(player: Player) -> void:
 
 # --- ending ----------------------------------------------------------------
 
-func _begin_ending(quest: QuestData) -> void:
-	ending_started.emit()
-	if DisplayServer.get_name() == "headless":
-		return
-	var seconds := 0.0
-	if quest:
-		seconds = quest.complete_captions.size() * quest.caption_seconds
-	await get_tree().create_timer(seconds + 1.0, true, false, true).timeout
-	if _ending != null:
-		return
-	var scene := load(ENDING_SCENE) as PackedScene
-	if scene == null:
-		return
-	ending_shown = true
-	_ending = scene.instantiate()
-	_ending.tree_exited.connect(func() -> void: _ending = null)
-	get_tree().root.add_child(_ending)
+## Finishing the optional arena chain keeps its reward and its "mission complete" notice, but it no longer
+## launches the old "Thanks for playing" screen: that could fire halfway through the campaign. The only
+## ending is CampaignEnding, started by the `campaign_complete` flag (see CampaignEnding.watch).
+func _begin_ending(_quest: QuestData) -> void:
+	ending_started.emit()  # kept for listeners and tests: the arena chain's last quest was completed
 
 
 # --- save / load / reset ---------------------------------------------------
