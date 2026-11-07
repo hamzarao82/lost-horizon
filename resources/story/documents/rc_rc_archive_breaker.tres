@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_gih2i"]
+
+[resource]
+script = ExtResource("1_gih2i")
+key = &"rc_rc_archive_breaker"
+source_id = &"rc_archive_breaker"
+title = "Archive power panel"
+region = &"research_complex"
+body = "Breaker bank 3: archive and records. Restoring the feed to the archive terminal."
+order = 13

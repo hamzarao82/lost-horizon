@@ -21,5 +21,12 @@ func _on_interact(_player: Node3D) -> void:
 	var state := get_node_or_null("/root/WorldState")
 	if state:
 		state.set_flag(found_flag(), true)
+	_collect_for_journal()
 	var text := "%s: %s" % [title, body_text]
 	Outpost17.say(self, text, clampf(3.5 + text.length() * 0.05, 5.0, 10.0))
+
+
+## Marks this document collected in the journal and shows the discovery toast once.
+func _collect_for_journal() -> void:
+	for doc_title in DocumentIndex.mark_collected(interaction_id):
+		get_tree().call_group("rpg_notifications", "notify_document", doc_title)

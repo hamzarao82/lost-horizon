@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_q4cdj"]
+
+[resource]
+script = ExtResource("1_q4cdj")
+key = &"rc_rc_director_order"
+source_id = &"rc_director_order"
+title = "Order, Director's office"
+category = &"incident_report"
+region = &"research_complex"
+body = "The containment failure is to be reported as an accident. No inquiry. No survivors' statements.
+All research data is to be copied to the command and the originals sealed. The island's command has what it needs.
+Signed with a title, not a name."
+order = 9

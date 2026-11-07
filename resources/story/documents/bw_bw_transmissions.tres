@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_v38xt"]
+
+[resource]
+script = ExtResource("1_v38xt")
+key = &"bw_bw_transmissions"
+source_id = &"bw_transmissions"
+title = "Receiver"
+category = &"research_record"
+region = &"blackwood"
+body = "Decoded: 'Shipment received at the perimeter. Subjects stable. The coast route stays closed.'
+Decoded: 'Gate panel code is the grid square of the covered truck: B-7. Do not repeat on open channels.'"
+order = 8

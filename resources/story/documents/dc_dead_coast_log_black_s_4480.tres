@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_c1mc5"]
+
+[resource]
+script = ExtResource("1_c1mc5")
+key = &"dc_dead_coast_log_black_s_4480"
+source_id = &"dead_coast_log_black_site_link"
+title = "Consignment sheet"
+category = &"classified"
+region = &"dead_coast"
+body = "BS 4 / 9. Contents: LIVE FEED, RESTRAINTS, SEDATIVES. Destination: Outpost 17, then inland. Authorised: The Director. Note in the margin: 'Project Black Site cannot lose another batch.'"
+order = 7

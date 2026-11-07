@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_r5am3"]
+
+[resource]
+script = ExtResource("1_r5am3")
+key = &"bw_bw_data_recorder"
+source_id = &"bw_data_recorder"
+title = "Data recorder"
+category = &"classified"
+region = &"blackwood"
+body = "Recovered file header: PROJECT BLACK SITE, Field Programme, Blackwood annex.
+Summary: 'Phase two selection complete. Transfers from the coast hospital arrive by truck. The annex is not on any map.'"
+order = 9

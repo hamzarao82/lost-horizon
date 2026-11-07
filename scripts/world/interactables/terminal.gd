@@ -35,6 +35,8 @@ func _on_flag_changed(id: StringName, _value: bool) -> void:
 
 
 func _on_interact(_player: Node3D) -> void:
+	for doc_title in DocumentIndex.mark_collected(interaction_id):
+		get_tree().call_group("rpg_notifications", "notify_document", doc_title)
 	var text := "\n".join(pages)
 	Outpost17.say(self, text, clampf(3.0 + text.length() * 0.05, 4.0, 9.0))
 	if finish_flag != &"":

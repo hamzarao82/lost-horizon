@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_angp3"]
+
+[resource]
+script = ExtResource("1_angp3")
+key = &"bw_bw_log_subject_list"
+source_id = &"bw_log_subject_list"
+title = "Subject list"
+category = &"research_record"
+region = &"blackwood"
+body = "Fourteen names crossed out, then numbers. Under 14 someone has written: 'Moved down to Sublevel 1.' Under 15: 'Not yet.'"
+order = 6

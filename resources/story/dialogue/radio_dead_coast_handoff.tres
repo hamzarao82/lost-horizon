@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="DialogueSequence" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/dialogue_line.gd" id="1_l8ecy"]
+[ext_resource type="Script" path="res://scripts/story/dialogue_sequence.gd" id="2_oee0q"]
+
+[sub_resource type="Resource" id="Resource_pgv8f"]
+script = ExtResource("1_l8ecy")
+speaker = "Radio"
+text = "The signal keeps repeating from the south, past the beach gate."
+
+[sub_resource type="Resource" id="Resource_y65ds"]
+script = ExtResource("1_l8ecy")
+speaker = "You"
+text = "Then that is where it starts. I am going."
+seconds = 3.0
+
+[sub_resource type="Resource" id="Resource_15bao"]
+script = ExtResource("1_l8ecy")
+speaker = "Radio"
+text = "Copy. Stay off the open road, and keep the channel clear."
+
+[resource]
+script = ExtResource("2_oee0q")
+id = &"radio_dead_coast_handoff"
+lines = Array[ExtResource("1_l8ecy")]([SubResource("Resource_pgv8f"), SubResource("Resource_y65ds"), SubResource("Resource_15bao")])

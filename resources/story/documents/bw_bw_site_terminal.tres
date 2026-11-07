@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_l0cld"]
+
+[resource]
+script = ExtResource("1_l0cld")
+key = &"bw_bw_site_terminal"
+source_id = &"bw_site_terminal"
+title = "Site terminal"
+category = &"research_record"
+region = &"blackwood"
+body = "Lockdown released. Transport route to the research facility entrance is open."
+order = 11

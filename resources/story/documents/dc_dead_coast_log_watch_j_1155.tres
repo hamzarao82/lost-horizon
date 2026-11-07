@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="DocumentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/story/document_data.gd" id="1_wrqjw"]
+
+[resource]
+script = ExtResource("1_wrqjw")
+key = &"dc_dead_coast_log_watch_j_1155"
+source_id = &"dead_coast_log_watch_journal"
+title = "Watch sergeant's journal"
+region = &"dead_coast"
+body = "Third night this week: lights in the Blackwood, then a sound I won't write down. Command says it is wind. I am sending the boys home before I tell them what wind sounds like."
+order = 8

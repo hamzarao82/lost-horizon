@@ -23,6 +23,7 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	add_to_group("rpg_notifications")
 	_toasts = VBoxContainer.new()
 	_toasts.anchor_left = 1.0
 	_toasts.anchor_right = 1.0
@@ -166,3 +167,8 @@ func _toast(text: String, color: Color, emphasis: bool, icon: Texture2D = null) 
 	tween.tween_interval(TOAST_SECONDS)
 	tween.tween_property(panel, "modulate:a", 0.0, 0.5)
 	tween.tween_callback(panel.queue_free)
+
+
+## Discovery toast for a newly collected journal document (called through the "rpg_notifications" group).
+func notify_document(title: String) -> void:
+	_toast("Document found: %s" % title, HudTheme.GOLD, false)
