@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MapData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/regions/map_data.gd" id="1_map"]
+
+[resource]
+script = ExtResource("1_map")
+region_id = &"outpost_17"
+overview_pos = Vector2(0.3, 0.66)
+unlock_hint = ""
+landmarks = [
+{"id": "area_a_perimeter", "name": "Outer Perimeter", "rect": Rect2(-42, 30, 84, 50), "kind": "area", "flag": ""},
+{"id": "checkpoint_gate", "name": "Beach Checkpoint", "rect": Rect2(0, 38, 0, 0), "kind": "checkpoint", "flag": "outpost_17_discovered_area_a_perimeter"},
+{"id": "area_b_compound", "name": "Military Compound", "rect": Rect2(-30, -30, 60, 60), "kind": "area", "flag": "outpost_17_discovered_area_b_compound"},
+{"id": "area_c_research", "name": "Research Access Facility", "rect": Rect2(-22.5, -62, 45, 32), "kind": "area", "flag": "outpost_17_discovered_area_c_research"},
+{"id": "area_d_command", "name": "Command Center", "rect": Rect2(-22.5, -92, 45, 30), "kind": "area", "flag": "outpost_17_discovered_area_d_command"},
+{"id": "warden_arena", "name": "Warden's Arena", "rect": Rect2(-12, -90, 24, 18), "kind": "arena", "flag": "outpost_17_discovered_area_d_command"}
+]

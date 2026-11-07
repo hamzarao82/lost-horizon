@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MapData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/regions/map_data.gd" id="1_map"]
+
+[resource]
+script = ExtResource("1_map")
+region_id = &"dead_coast"
+overview_pos = Vector2(0.16, 0.3)
+unlock_hint = "Complete The First Signal at Outpost 17"
+; PROVISIONAL layout: replace the rects with the real level positions when the Dead Coast builder lands.
+landmarks = [
+{"id": "wreckage_beach", "name": "Wreckage Beach", "rect": Rect2(-42, 24, 84, 18), "kind": "area", "flag": ""},
+{"id": "coastal_trail", "name": "Coastal Trail", "rect": Rect2(-8, -4, 16, 28), "kind": "area", "flag": "dead_coast_discovered_coastal_trail"},
+{"id": "abandoned_checkpoint", "name": "Abandoned Checkpoint", "rect": Rect2(-42, -14, 32, 20), "kind": "area", "flag": "dead_coast_discovered_abandoned_checkpoint"},
+{"id": "smugglers_cove", "name": "Smuggler's Cove", "rect": Rect2(10, -20, 32, 28), "kind": "area", "flag": "dead_coast_discovered_smugglers_cove"},
+{"id": "cliffside_watchpoint", "name": "Cliffside Watchpoint", "rect": Rect2(-42, -42, 26, 24), "kind": "area", "flag": "dead_coast_discovered_cliffside_watchpoint"},
+{"id": "hidden_supply_depot", "name": "Hidden Supply Depot", "rect": Rect2(-12, -42, 18, 20), "kind": "area", "flag": "dead_coast_discovered_hidden_supply_depot"},
+{"id": "exit_blackwood", "name": "Exit toward Blackwood", "rect": Rect2(10, -42, 32, 18), "kind": "area", "flag": "dead_coast_discovered_exit_blackwood"}
+]

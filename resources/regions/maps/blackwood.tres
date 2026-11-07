@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MapData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/regions/map_data.gd" id="1_map"]
+
+[resource]
+script = ExtResource("1_map")
+region_id = &"blackwood"
+overview_pos = Vector2(0.55, 0.3)
+unlock_hint = "Complete Dead Coast"
+; PROVISIONAL layout: replace the rects with the real level positions when the Blackwood builder lands.
+landmarks = [
+{"id": "jungle_entrance", "name": "Jungle Entrance", "rect": Rect2(-20, 26, 40, 16), "kind": "area", "flag": ""},
+{"id": "overgrown_trail", "name": "Overgrown Military Trail", "rect": Rect2(-6, 2, 12, 24), "kind": "area", "flag": "blackwood_discovered_overgrown_trail"},
+{"id": "patrol_camp", "name": "Abandoned Patrol Camp", "rect": Rect2(-40, -8, 30, 26), "kind": "area", "flag": "blackwood_discovered_patrol_camp"},
+{"id": "research_perimeter", "name": "Research Perimeter", "rect": Rect2(10, -14, 32, 28), "kind": "area", "flag": "blackwood_discovered_research_perimeter"},
+{"id": "comms_station", "name": "Hidden Communications Station", "rect": Rect2(-42, -40, 28, 24), "kind": "area", "flag": "blackwood_discovered_comms_station"},
+{"id": "testing_site", "name": "Experimental Testing Site", "rect": Rect2(-10, -42, 26, 26), "kind": "area", "flag": "blackwood_discovered_testing_site"},
+{"id": "facility_entrance", "name": "Research Facility Entrance", "rect": Rect2(20, -42, 22, 20), "kind": "area", "flag": "blackwood_discovered_facility_entrance"}
+]
