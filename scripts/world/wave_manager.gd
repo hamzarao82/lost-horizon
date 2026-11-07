@@ -1,10 +1,26 @@
 class_name WaveManager
 extends Node
 ## Spawns enemy waves around the player; advances when the arena is clear.
+## The arena is an explicit state machine (see State). Only enemies this node spawned count as active,
+## so a patrolling guard elsewhere in the world can never hold a wave open, and the arena is claimed
+## once per playthrough (`arena_complete`, `arena_reward_claimed` WorldState flags, saved with the world).
 
 signal wave_started(index: int, total: int)
 signal wave_cleared(index: int)
 signal all_cleared
+signal state_changed(new_state: int)
+signal arena_failed
+signal reward_granted(xp: int, credits: int)
+
+enum State { IDLE, SPAWNING, ACTIVE, CLEARED, TRANSITION, COMPLETE, FAILED }
+
+const WAVE_DATA_PATH: String = "res://resources/arena/waves.tres"
+const COMPLETE_FLAG: StringName = &"arena_complete"
+const REWARD_FLAG: StringName = &"arena_reward_claimed"
+const REWARD_XP: int = 100
+const REWARD_CREDITS: int = 120
+## An arena enemy that falls out of the world is removed instead of holding the wave open.
+const FALL_LIMIT: float = -30.0
 
 const SOLDIER: String = "res://scenes/enemies/PatrolSoldier.tscn"
 const HEAVY: String = "res://scenes/enemies/HeavySoldier.tscn"
@@ -39,19 +55,35 @@ const SPAWN_STAGGER: float = 0.12
 @export var between_waves_delay: float = 3.0
 
 var current_wave: int = 0
+var state: State = State.IDLE
 
 var _finished: bool = false
 var _running: bool = false
 var _wave_spawned: bool = false
 var _poll_time: float = 0.0
 var _next_wave_in: float = -1.0
+var _arena_enemies: Array = []
+var _wave_set: ArenaWaveSet
+var _player_bound: bool = false
 
 
 func _ready() -> void:
 	add_to_group("wave_manager")
+	_wave_set = load(WAVE_DATA_PATH) as ArenaWaveSet
 	_warm_up()
 	if autostart:
 		start()
+
+
+func _set_state(value: State) -> void:
+	if state == value:
+		return
+	state = value
+	state_changed.emit(int(value))
+
+
+func state_name() -> String:
+	return State.keys()[state]
 
 
 ## The Boot screen has normally loaded all of this already, so each load() is a cache hit and costs
@@ -76,8 +108,15 @@ func _warm_up() -> void:
 			await get_tree().process_frame
 
 
-## Begin at the wave a queued Load / death checkpoint asks for, otherwise wave 1.
+## Begin at the wave a queued Load / death checkpoint asks for, otherwise wave 1. A completed arena stays
+## completed (no waves, no second reward) until `replay()` is called.
 func start() -> void:
+	if _world_flag(COMPLETE_FLAG):
+		_finished = true
+		_running = false
+		current_wave = WAVES.size()
+		_set_state(State.COMPLETE)
+		return
 	var save_manager := _save_manager()
 	start_wave_at(save_manager.consume_start_wave(WAVES.size()) if save_manager else 1)
 
@@ -88,7 +127,14 @@ func start_wave_at(index: int) -> void:
 	_finished = false
 	_running = true
 	_wave_spawned = false
+	_arena_enemies.clear()
 	_next_wave_in = start_delay
+	_set_state(State.TRANSITION)
+
+
+## A deliberate second run of an arena that is already complete: starts at wave 1, grants no reward.
+func replay() -> void:
+	start_wave_at(1)
 
 
 func is_finished() -> bool:
@@ -118,7 +164,57 @@ func total_waves() -> int:
 	return WAVES.size()
 
 
+## Enemies of this arena that are still a threat: spawned here, alive, in the world.
+func active_enemy_count() -> int:
+	var count := 0
+	for enemy in _arena_enemies.duplicate():
+		if not is_instance_valid(enemy) or (enemy as Node).is_queued_for_deletion():
+			_arena_enemies.erase(enemy)
+			continue
+		if enemy.has_method("is_dead") and enemy.is_dead():
+			continue
+		if enemy is Node3D and (enemy as Node3D).global_position.y < FALL_LIMIT:
+			(enemy as Node).queue_free()
+			_arena_enemies.erase(enemy)
+			continue
+		count += 1
+	return count
+
+
+func _world_flag(flag: StringName) -> bool:
+	var world := get_node_or_null("/root/WorldState")
+	return world != null and world.has_flag(flag)
+
+
+func _set_world_flag(flag: StringName) -> void:
+	var world := get_node_or_null("/root/WorldState")
+	if world != null:
+		world.set_flag(flag)
+
+
+## The player dying stops the arena: no new spawns, no clear, no reward. The scene reload that follows
+## brings a clean arena back at the saved wave.
+func _bind_player() -> void:
+	if _player_bound:
+		return
+	var player := get_tree().get_first_node_in_group("player") as Player
+	if player == null or player.health == null:
+		return
+	_player_bound = true
+	player.health.died.connect(_on_player_died)
+
+
+func _on_player_died() -> void:
+	if state == State.COMPLETE or state == State.IDLE:
+		return
+	_running = false
+	_next_wave_in = -1.0
+	_set_state(State.FAILED)
+	arena_failed.emit()
+
+
 func _process(delta: float) -> void:
+	_bind_player()
 	if not _running or _finished:
 		return
 	if _next_wave_in >= 0.0:
@@ -130,23 +226,55 @@ func _process(delta: float) -> void:
 	if _poll_time < POLL_SECONDS:
 		return
 	_poll_time = 0.0
-	if _wave_spawned and get_tree().get_nodes_in_group("enemies").is_empty():
-		_wave_spawned = false
-		var save_manager := _save_manager()
-		if save_manager and WAVES[current_wave - 1].has(WARDEN):
-			save_manager.mark_boss_defeated("warden")
-		wave_cleared.emit(current_wave)
-		if current_wave >= WAVES.size():
-			_finished = true
-			_running = false
-			if save_manager:
-				save_manager.autosave("complete")
-				save_manager.clear_checkpoint()
-			all_cleared.emit()
-		else:
-			_next_wave_in = between_waves_delay
-			if save_manager:
-				save_manager.autosave("wave")
+	if _wave_spawned and state == State.ACTIVE and active_enemy_count() == 0:
+		_clear_wave()
+
+
+func _clear_wave() -> void:
+	_wave_spawned = false
+	_arena_enemies.clear()
+	_set_state(State.CLEARED)
+	var save_manager := _save_manager()
+	if save_manager and WAVES[current_wave - 1].has(WARDEN):
+		save_manager.mark_boss_defeated("warden")
+	wave_cleared.emit(current_wave)
+	if current_wave >= WAVES.size():
+		_finished = true
+		_running = false
+		_set_world_flag(COMPLETE_FLAG)
+		_grant_completion_reward()
+		_set_state(State.COMPLETE)
+		if save_manager:
+			save_manager.autosave("complete")
+			save_manager.clear_checkpoint()
+		all_cleared.emit()
+	else:
+		_next_wave_in = _rest_after(current_wave - 1)
+		_set_state(State.TRANSITION)
+		if save_manager:
+			save_manager.autosave("wave")
+
+
+func _rest_after(index: int) -> float:
+	return _wave_set.rest_of(index, between_waves_delay) if _wave_set != null else between_waves_delay
+
+
+## Once per playthrough: the claim flag is saved with the world, so a reload or a replay pays nothing.
+func _grant_completion_reward() -> void:
+	if _world_flag(REWARD_FLAG):
+		return
+	_set_world_flag(REWARD_FLAG)
+	var progression := get_node_or_null("/root/Progression")
+	if progression != null:
+		progression.award_xp(REWARD_XP, "arena")
+		progression.add_currency(REWARD_CREDITS, false)
+	reward_granted.emit(REWARD_XP, REWARD_CREDITS)
+
+
+func _wave_paths(index: int) -> Array:
+	if _wave_set != null and _wave_set.enemies_of(index).size() > 0:
+		return _wave_set.enemies_of(index)
+	return WAVES[index]
 
 
 func _spawn_wave() -> void:
@@ -154,13 +282,15 @@ func _spawn_wave() -> void:
 	_poll_time = 0.0
 	var wave_number := current_wave + 1
 	_wave_spawned = false  # stays false while the wave is still arriving
+	_set_state(State.SPAWNING)
 	var parent := get_parent()
+	var spacing := _wave_set.spacing_of(wave_number - 1, SPAWN_STAGGER) if _wave_set != null else SPAWN_STAGGER
 	var first := true
-	for path in WAVES[wave_number - 1]:
+	for path in _wave_paths(wave_number - 1):
 		if not first:
 			# One enemy per short interval: spawning a whole wave in one frame is a visible hitch.
-			await get_tree().create_timer(SPAWN_STAGGER).timeout
-			if not is_instance_valid(parent) or not is_inside_tree():
+			await get_tree().create_timer(spacing).timeout
+			if not is_instance_valid(parent) or not is_inside_tree() or state == State.FAILED:
 				return
 		first = false
 		var scene := load(path) as PackedScene
@@ -172,10 +302,14 @@ func _spawn_wave() -> void:
 		# origin would push them on top of it and carry them along when it is moved.
 		enemy.position = _pick_spawn_point()
 		parent.add_child(enemy)
+		_arena_enemies.append(enemy)
 		if enemy.has_method("aggro"):
 			enemy.call("aggro")
+	if state == State.FAILED:
+		return
 	current_wave = wave_number
 	_wave_spawned = true
+	_set_state(State.ACTIVE)
 	var save_manager := _save_manager()
 	if save_manager:
 		save_manager.set_checkpoint(current_wave)  # where a death restart resumes

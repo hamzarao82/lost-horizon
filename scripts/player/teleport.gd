@@ -27,6 +27,11 @@ const STRICT_TRIES: int = 20
 const MAX_TRIES: int = 40
 const SAFE_SPOTS: Array[Vector2] = [Vector2(22, 22), Vector2(-22, 22), Vector2(22, -22), Vector2(-22, -22)]
 const PLAYER_MASK: int = 1 | 4  # world + enemies
+## Outside Outpost 17 the landing spot is searched around the player instead of in the arena rectangle.
+const LOCAL_MIN: float = 8.0
+const LOCAL_MAX: float = 18.0
+const GROUND_MAX_STEP: float = 3.0
+const GROUND_PROBE: float = 6.0
 
 # While the south gate is locked, a player on the beach may only teleport along the beach, so
 # teleporting cannot skip the power puzzle. (Matches the beach colliders in WorldFlow.)
@@ -196,6 +201,9 @@ func try_teleport() -> bool:
 		return false
 	var origin := player.global_position
 	var destination := pick_destination(player)
+	if destination == Vector3.INF:
+		_show_message("No safe landing here")  # nothing valid nearby: refuse, keep the charge
+		return false
 	if not use_charge():
 		return false
 	if _fx:
@@ -224,6 +232,9 @@ func pick_destination(player: Player) -> Vector3:
 		var enemy := node as Node3D
 		if enemy and not (enemy.has_method("is_dead") and enemy.is_dead()):
 			enemy_positions.append(enemy.global_position)
+
+	if _in_other_region():
+		return _pick_local_destination(player, enemy_positions)
 
 	var on_locked_beach := _on_locked_beach(origin)
 	var best := Vector3.INF
@@ -254,6 +265,52 @@ func pick_destination(player: Player) -> Vector3:
 			best_score = score
 			best = corner
 	return best
+
+
+## The arena rectangle and its obstacles describe Outpost 17 only. Anywhere else the landing spot
+## comes from the player's own surroundings (see _pick_local_destination).
+func _in_other_region() -> bool:
+	var regions := get_node_or_null("/root/RegionManager")
+	if regions == null:
+		return false
+	return not String(regions.get("current_region_id")) in ["", "outpost_17"]
+
+
+## A spot 8 to 18 m from the player that has solid ground within a step of their height, room for
+## the capsule and no enemy close by. Returns Vector3.INF when there is none: the teleport is then
+## refused and no charge is spent, instead of dropping the player into the sea or the void.
+func _pick_local_destination(player: Player, enemies: Array[Vector3]) -> Vector3:
+	var origin := player.global_position
+	var best := Vector3.INF
+	var best_score := -INF
+	for attempt in MAX_TRIES:
+		var angle := rng.randf() * TAU
+		var distance := rng.randf_range(LOCAL_MIN, LOCAL_MAX)
+		var flat := Vector2(origin.x, origin.z) + Vector2(cos(angle), sin(angle)) * distance
+		var ground := _ground_height(player, flat, origin.y)
+		if is_nan(ground) or absf(ground - origin.y) > GROUND_MAX_STEP:
+			continue
+		var candidate := Vector3(flat.x, ground + 0.1, flat.y)
+		if not _is_free(player, candidate):
+			continue
+		var score := _score(candidate, origin, enemies)
+		if score > best_score:
+			best_score = score
+			best = candidate
+		if _meets_rules(candidate, origin, enemies):
+			return candidate
+	return best if best_score >= 0.5 else Vector3.INF
+
+
+## Height of the solid ground under (x, z) near `reference_y`, or NAN if there is none.
+func _ground_height(player: Player, flat: Vector2, reference_y: float) -> float:
+	var world := player.get_world_3d()
+	if world == null:
+		return NAN
+	var query := PhysicsRayQueryParameters3D.create(
+			Vector3(flat.x, reference_y + GROUND_PROBE, flat.y), Vector3(flat.x, reference_y - GROUND_PROBE, flat.y), 1)
+	var hit := world.direct_space_state.intersect_ray(query)
+	return NAN if hit.is_empty() else float((hit["position"] as Vector3).y)
 
 
 func _on_locked_beach(origin: Vector3) -> bool:
@@ -346,6 +403,14 @@ func _refresh_ui() -> void:
 	_label.modulate.a = 0.5 if charges == 0 else 1.0
 	_label.position = Vector2(_label_x(), 140.0)
 	_toast.position = Vector2(_label_x(), 166.0)
+
+
+func _show_message(text: String) -> void:
+	if _toast == null:
+		return
+	_toast.text = text
+	_toast.visible = true
+	_toast_time = 2.0
 
 
 func _show_denied(seconds_left: float) -> void:
