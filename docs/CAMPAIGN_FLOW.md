@@ -39,7 +39,7 @@ Accepted aliases that also earn the next unlock: `dead_coast_region_complete`, `
 - The gate is built once per `Main`, only while Outpost 17 is the current region, and travels with its nodes.
 - The bridge quest pays its small XP once (60, from `progression_config.gd` `quest_xp`).
 
-## What connecting the real content needs (not done)
+## What connecting the real content needed (DONE in milestone-007-wiring: see docs/REGION_WIRING.md)
 1. **Scene paths:** `resources/regions/dead_coast.tres` and `blackwood.tres` still point at `StubRegion.tscn`. The real scenes are `scenes/regions/DeadCoast_content.tscn` and `Blackwood_content.tscn` (both exist; a test checks).
 2. **Region interface:** the content roots (`DeadCoast`, `Blackwood`) extend `Node3D`, not `Region`. `RegionManager.travel` instantiates the scene as `Region` and calls `enter`, `restore_state`; a thin `Region` wrapper (or making the roots extend `Region`) is needed. Their `enter()` already returns a `Transform3D`, which differs from `Region.enter(entry_id)`.
 3. **Entry ids differ:** the framework data uses `from_outpost` / `beach_arrival` / `from_blackwood` (Dead Coast) and `from_coast` / `from_complex` (Blackwood); the content uses `beach_arrival` / `from_blackwood` and `from_dead_coast` / `from_underground`. The data files and the content must agree. The content's Dead Coast exit to Outpost 17 asks for entry `from_dead_coast`, which Outpost 17's data does not have (`start`, `from_south`).

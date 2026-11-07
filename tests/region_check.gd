@@ -88,22 +88,23 @@ func _test_travel(main: Node) -> void:
 	_rm.region_changed.connect(func(old: StringName, new: StringName) -> void: seen.append([old, new]))
 	var outpost_node := main.get_node_or_null("Outpost17")
 	_check(outpost_node != null, "Outpost17 node exists before leaving")
-	_check(await _rm.travel(&"dead_coast", &"from_outpost"), "travel to unlocked Dead Coast succeeds")
-	_check(_rm.current_region_id == &"dead_coast", "current region is dead_coast")
-	_check(seen.size() == 1 and seen[0][0] == &"outpost_17" and seen[0][1] == &"dead_coast", "region_changed fired once with old and new ids")
+	_rm.unlock(&"research_complex")  # Dead Coast and Blackwood are real scenes now; the Research Complex is still the stub region
+	_check(await _rm.travel(&"research_complex", &"from_blackwood"), "travel to the unlocked Research Complex succeeds")
+	_check(_rm.current_region_id == &"research_complex", "current region is research_complex")
+	_check(seen.size() == 1 and seen[0][0] == &"outpost_17" and seen[0][1] == &"research_complex", "region_changed fired once with old and new ids")
 	_check(main.get_node_or_null("Outpost17") == null and not outpost_node.is_inside_tree(), "Outpost 17 is out of the tree while away")
 	_check(main.get_node_or_null("Player") == player and is_instance_valid(main.get_node_or_null("Hud")), "player and HUD stay in Main")
-	var entry := RegionStore.load_data(&"dead_coast").entry_transform(&"from_outpost").origin
+	var entry := RegionStore.load_data(&"research_complex").entry_transform(&"from_blackwood").origin
 	_check(player.global_position.distance_to(entry) < 0.5, "player stands at the arrival entry (%s)" % str(player.global_position))
-	_check(main.get_node_or_null("Exit_to_outpost") is RegionExit and main.get_node_or_null("Exit_to_dead_coast") == null,
+	_check(main.get_node_or_null("Exit_to_blackwood") is RegionExit and main.get_node_or_null("Exit_to_dead_coast") == null,
 			"the exits of the old region are replaced by the new region's")
 	var stub := _find_stub(main)
 	_check(stub != null and stub.visits == 1, "the stub region was entered once")
-	_check(not await _rm.travel(&"blackwood"), "Blackwood is still locked from Dead Coast")
+	_check(not await _rm.travel(&"blackwood"), "Blackwood is still locked from the Research Complex")
 	_check(await _rm.travel(&"outpost_17", &"from_south"), "travel back to Outpost 17 succeeds")
 	_check(main.get_node_or_null("Outpost17") == outpost_node and outpost_node.is_inside_tree(), "the same Outpost 17 nodes are back")
 	_check(_find_stub(main) == null, "the stub region was freed on leaving")
-	_check(await _rm.travel(&"dead_coast", &"from_outpost"), "second visit to Dead Coast")
+	_check(await _rm.travel(&"research_complex", &"from_blackwood"), "second visit to the Research Complex")
 	stub = _find_stub(main)
 	_check(stub != null and stub.visits == 2, "its saved state came back: visit count 2 (got %s)" % str(stub.visits if stub else null))
 	_check(await _rm.travel(&"outpost_17", &"start"), "back to Outpost 17 at the start entry")
@@ -126,7 +127,8 @@ func _test_walk_into_exit(main: Node) -> void:
 		await physics_frame
 		guard += 1
 	_check(_rm.current_region_id == &"dead_coast", "stepping into the exit area travels (%d frames)" % guard)
-	var back := main.get_node_or_null("Exit_to_outpost") as RegionExit
+	var back := main.get_node_or_null("Exit_to_outpost_17") as RegionExit
+	_check(back != null, "the real Dead Coast has a return exit")
 	if back != null:
 		player.global_position = back.global_position
 		guard = 0

@@ -6,7 +6,7 @@
 script = ExtResource("1_data")
 id = &"dead_coast"
 display_name = "Dead Coast"
-scene_path = "res://scenes/regions/StubRegion.tscn"
+scene_path = "res://scenes/regions/DeadCoastRegion.tscn"
 entry_points = {
 &"from_outpost": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 30),
 &"beach_arrival": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 30),

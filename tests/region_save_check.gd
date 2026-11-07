@@ -109,38 +109,39 @@ func _test_migration_and_hostile_data() -> void:
 
 
 func _test_save_in_region_and_reload() -> void:
-	print("Saving inside Dead Coast and loading")
+	print("Saving inside the Research Complex and loading")
 	_clean()
 	_rm.reset()
 	var main := await _spawn_main()
 	var player := main.get_node("Player") as Player
 	_world.set_flag(&"mission_first_signal_complete")
-	_check(await _rm.travel(&"dead_coast", &"from_outpost"), "travelled to Dead Coast")
+	_rm.unlock(&"research_complex")  # the real Dead Coast has no `visits`; this save test needs the stub region
+	_check(await _rm.travel(&"research_complex", &"from_blackwood"), "travelled to the Research Complex")
 	var stub := _stub_of(main)
 	stub.visits = 7
 	player.global_position = Vector3(5.0, 0.1, 12.0)
 	await _frames(3)
-	_check(_sm.save_game("manual"), "saving inside Dead Coast works")
+	_check(_sm.save_game("manual"), "saving inside the Research Complex works")
 	var raw: Variant = JSON.parse_string(FileAccess.get_file_as_string(_sm.save_path()))
-	_check(raw is Dictionary and raw["regions"]["current"] == "dead_coast", "the file records the current region")
-	_check(raw["regions"]["states"]["dead_coast"]["custom"]["visits"] == 7, "the file records the region's own state")
-	_check(raw["regions"]["unlocked"].has("dead_coast") and raw.has("version") and int(raw["version"]) == 4, "it records the unlock and version 4")
+	_check(raw is Dictionary and raw["regions"]["current"] == "research_complex", "the file records the current region")
+	_check(raw["regions"]["states"]["research_complex"]["custom"]["visits"] == 7, "the file records the region's own state")
+	_check(raw["regions"]["unlocked"].has("research_complex") and raw.has("version") and int(raw["version"]) == 4, "it records the unlock and version 4")
 	var saved_pos: Array = raw["regions"]["position"]
 	main.queue_free()
 	await _frames(4)
 	_rm.reset()
 	_world.reset()
 	_check(_sm.load_game(), "loading the saved game succeeds")
-	_check(_rm.pending_restore.get("current", "") == "dead_coast", "a switch to Dead Coast is queued")
+	_check(_rm.pending_restore.get("current", "") == "research_complex", "a switch to the Research Complex is queued")
 	var main2 := await _spawn_main()
 	await _frames(14)
-	_check(_rm.current_region_id == &"dead_coast", "the new game starts in Dead Coast")
+	_check(_rm.current_region_id == &"research_complex", "the new game starts in the Research Complex")
 	var player2 := main2.get_node("Player") as Player
 	_check(player2.global_position.distance_to(Vector3(float(saved_pos[0]), float(saved_pos[1]), float(saved_pos[2]))) < 1.0,
 			"the player is where they saved (%s)" % str(player2.global_position))
 	var stub2 := _stub_of(main2)
 	_check(stub2 != null and stub2.visits == 8, "the region state came back (visits 7 plus this entry: %s)" % str(stub2.visits if stub2 else null))
-	_check(main2.get_node_or_null("Outpost17") == null, "Outpost 17 is not in the tree while in Dead Coast")
+	_check(main2.get_node_or_null("Outpost17") == null, "Outpost 17 is not in the tree while in the Research Complex")
 	_check(await _rm.travel(&"outpost_17", &"from_south"), "travelling back to Outpost 17 works after loading")
 	_check(main2.get_node_or_null("Outpost17") != null, "Outpost 17 is built and present")
 	main2.queue_free()

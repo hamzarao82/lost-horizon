@@ -6,7 +6,7 @@
 script = ExtResource("1_data")
 id = &"blackwood"
 display_name = "Blackwood"
-scene_path = "res://scenes/regions/StubRegion.tscn"
+scene_path = "res://scenes/regions/BlackwoodRegion.tscn"
 entry_points = {
 &"from_coast": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 30),
 &"from_complex": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -30)

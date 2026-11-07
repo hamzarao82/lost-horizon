@@ -194,6 +194,8 @@ func _load_scene(path: String) -> PackedScene:
 
 func _place_player(player: Player, data: RegionData, entry_id: StringName, position_override: Variant) -> void:
 	var target: Transform3D = data.entry_transform(entry_id)
+	if _stub != null and is_instance_valid(_stub) and _stub.has_method("entry_transform"):
+		target = _stub.call("entry_transform", entry_id)  # the region content is the single source of its entry points
 	if position_override is Vector3:
 		target.origin = position_override
 	player.global_transform = target
@@ -233,8 +235,11 @@ func _spawn_exits(region_id: StringName) -> void:
 	var data := RegionStore.load_data(region_id)
 	if data == null or _container == null:
 		return
-	for exit_id in data.exit_points:
-		var spec: Variant = data.exit_points[exit_id]
+	var specs: Dictionary = data.exit_points
+	if _stub != null and is_instance_valid(_stub) and _stub.has_method("exit_specs"):
+		specs = _stub.call("exit_specs")  # the region content knows where its own exits are
+	for exit_id in specs:
+		var spec: Variant = specs[exit_id]
 		if not spec is Dictionary:
 			continue
 		var exit := RegionExit.new()
