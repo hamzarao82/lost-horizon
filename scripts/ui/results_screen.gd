@@ -78,7 +78,9 @@ func show_results(quest_id: StringName) -> void:
 	var saved: bool = saves != null and saves.autosave("mission")
 	_put("saved", "Progress saved" if saved else "Progress could not be saved",
 			HudTheme.STAMINA if saved else HudTheme.HEALTH)
-	if quest_id == &"first_signal":
+	var next_label := _labels["next"] as Label
+	next_label.visible = quest_id == &"first_signal"
+	if next_label.visible:
 		_put("next", "Next: Dead Coast", HudTheme.GOLD)  # the road south opens after this mission (CampaignFlow)
 	_open = true
 	_was_paused = get_tree().paused
@@ -178,6 +180,8 @@ func _build_ui() -> void:
 	_row(box, "secrets", 20)
 	_row(box, "reward", 22)
 	_row(box, "saved", 18, true)
+	_row(box, "next", 18, true)  # "Next: Dead Coast", shown only after The First Signal
+	(_labels["next"] as Label).visible = false
 
 	var buttons := VBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 10)

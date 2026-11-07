@@ -96,12 +96,13 @@ func _run() -> void:
 	_qm.caption_requested.connect(func(text: String, _seconds: float) -> void: _captions.append(text))
 	await _frames(3)
 	_test_contract()
-	_test_flag_persistence()
+	await _test_flag_persistence()
 	await _test_locked_state()
 	await _test_unlock_and_bridge()
 	await _test_travel_rewards_and_returns()
 	await _test_gate_not_duplicated()
 	_test_chain()
+	await _test_results_hint()
 	await _test_no_softlock()
 	_fresh()
 	_qm.mission_autosave = true
@@ -120,6 +121,10 @@ func _test_contract() -> void:
 		_check(data != null and data.unlock_flag == CampaignFlow.unlock_flag(id), "%s unlocks through %s" % [id, CampaignFlow.unlock_flag(id)])
 	var dead_coast := RegionStore.load_data(&"dead_coast")
 	_check(dead_coast.entry_points.has(&"beach_arrival"), "Dead Coast has the beach_arrival entry the gate travels to")
+	for id in [&"dead_coast", &"blackwood"]:
+		var d := RegionStore.load_data(id)
+		_check(d != null and d.scene_path != "" and load(d.scene_path) is PackedScene, "%s scene path loads (%s)" % [id, d.scene_path if d else ""])
+	_check(FileAccess.file_exists("res://scenes/regions/DeadCoast_content.tscn") and FileAccess.file_exists("res://scenes/regions/Blackwood_content.tscn"), "the real content scenes exist (not wired to RegionData yet)")
 	var bridge := _qm.get_quest(BRIDGE) as QuestData
 	_check(bridge != null and bridge.validate().is_empty(), "the bridge quest is registered from resources/quests/campaign/ and validates")
 	_check(bridge != null and bridge.prerequisites.has("first_signal"), "the bridge quest requires The First Signal")
@@ -131,7 +136,7 @@ func _test_contract() -> void:
 	_check(CampaignFlow.refusal_text(&"somewhere") == "", "unknown regions fall back to the generic refusal")
 
 
-func _test_flag_persistence() -> void:
+func _test_flag_persistence() -> void:  # async: drains the hand-off timers its flags schedule
 	print("Every flag the campaign uses survives WorldState.to_dict / from_dict")
 	_fresh()
 	var regions: Array[StringName] = [&"outpost_17", &"dead_coast", &"blackwood", &"research_complex"]
@@ -163,6 +168,7 @@ func _test_flag_persistence() -> void:
 		if not _world.has_flag(id):
 			lost.append(String(id))
 	_check(lost.is_empty(), "none is lost through the real round trip %s" % str(lost))
+	await create_timer(7.0).timeout  # the unlocks above scheduled spoken hand-off lines: let them fire before the next test
 	_fresh()
 
 
@@ -219,6 +225,8 @@ func _test_travel_rewards_and_returns() -> void:
 	var main := await _spawn_main()
 	_complete_first_signal()
 	await _frames(3)
+	_world.set_flag(&"power_on", true)  # state that must survive leaving and coming back
+	_check(PersistentIds.claim(&"outpost_17", &"cache_revisit_01"), "a cache in Outpost 17 is claimed once")
 	var xp_events: Array = []
 	var on_xp := func(amount: int, source: String) -> void: xp_events.append([amount, source])
 	_prog.xp_gained.connect(on_xp)
@@ -248,6 +256,9 @@ func _test_travel_rewards_and_returns() -> void:
 	_prog.xp_gained.disconnect(on_xp)
 	_check(await _rm.travel(&"outpost_17", &"from_south"), "back in Outpost 17")
 	_check(_qm.is_completed(FIRST) and _qm.is_completed(BRIDGE), "completed quests stay completed on return")
+	_check(_world.has_flag(&"power_on"), "the power puzzle stays solved on return")
+	_check(PersistentIds.is_claimed(&"outpost_17", &"cache_revisit_01") and not PersistentIds.claim(&"outpost_17", &"cache_revisit_01"), "the claimed cache stays claimed and cannot pay twice")
+	_check(main.get_node_or_null("Outpost17") != null, "Outpost 17 is back in the tree with its own nodes")
 	_check(_world.has_flag(&"boss_warden_defeated") and get_nodes_in_group("boss").filter(func(n: Node) -> bool: return not (n as Enemy).is_dead()).is_empty(), "no living Warden after the return")
 	await _free_main(main)
 
@@ -288,6 +299,11 @@ func _test_chain() -> void:
 	_fresh()
 	_world.set_flag(&"dead_coast_region_complete", true)
 	_check(_world.has_flag(&"blackwood_unlocked"), "the region_complete alias also unlocks the next region")
+	_fresh()
+	_world.set_flag(&"dead_coast_cargo_complete", true)  # the Dead Coast content's own finish flag
+	_check(_world.has_flag(&"blackwood_unlocked") and not _world.has_flag(&"research_complex_unlocked"), "the Dead Coast content's finish flag unlocks Blackwood only")
+	_world.set_flag(&"blackwood_research_complex_access", true)  # the Blackwood content's own finish flag
+	_check(_world.has_flag(&"research_complex_unlocked"), "the Blackwood content's access flag unlocks the Research Complex")
 
 
 func _test_no_softlock() -> void:
@@ -310,3 +326,20 @@ func _test_no_softlock() -> void:
 	_check(done[0] and done[1], "objectives completed before and during the absence both count")
 	_check(_qm.is_active(FIRST), "the mission is still open")
 	await _free_main(main)
+
+
+func _test_results_hint() -> void:
+	print("Results screen hint")
+	_fresh()
+	var screen := ResultsScreen.new()
+	root.add_child(screen)
+	await _frames(2)
+	screen.show_results(FIRST)
+	_check(screen.label_text("next") == "Next: Dead Coast" and (screen._labels["next"] as Label).visible, "the First Signal results show 'Next: Dead Coast'")
+	screen.close()
+	screen.show_results(BRIDGE)
+	_check(not (screen._labels["next"] as Label).visible, "other missions do not show the hint")
+	screen.close()
+	_check(not paused, "closing the results screen leaves the game unpaused")
+	screen.queue_free()
+	await _frames(2)

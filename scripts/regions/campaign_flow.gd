@@ -10,7 +10,8 @@ extends Node
 ##   blackwood_mission_3_complete    set by the Blackwood content                             -> unlocks the Research Complex
 ##   <region>_unlocked               derived here; RegionData.unlock_flag points at it
 ##   dead_coast_arrived              set on the first arrival; completes the bridge quest
-## `<region>_region_complete` is accepted as an alias of `<region>_mission_3_complete`.
+## `<region>_region_complete` is accepted as an alias of `<region>_mission_3_complete`, and so are the content's
+## own finish flags: `dead_coast_cargo_complete` (Dead Coast) and `blackwood_research_complex_access` (Blackwood).
 ## All ids use [a-z0-9_] and stay within 48 characters: WorldState drops anything else when it loads a save.
 
 const OUTPOST: StringName = &"outpost_17"
@@ -20,21 +21,21 @@ const GATE_NAME: String = "CampaignGate"
 const GATE_Z: float = 80.6  # just beyond the Outpost 17 exit trigger (z 77 to 79): the barricade shows why it is shut
 const SYNC_DELAYS: Array[int] = [2, 40]  # frames after Main appears: a loaded save restores flags a little later
 
-## region -> {after: flag that earns the unlock, alias: second accepted flag, caption: said once when it unlocks}
+## region -> {after: flag that earns the unlock, aliases: other flags that count (the content's own finish flags), caption: said once when it unlocks}
 const CHAIN: Dictionary = {
 	&"dead_coast": {
 		"after": &"mission_first_signal_complete",
-		"alias": &"",
+		"aliases": [],
 		"caption": "Radio: The signal repeats from the south, past the beach gate. The Dead Coast. The road is open.",
 	},
 	&"blackwood": {
 		"after": &"dead_coast_mission_3_complete",
-		"alias": &"dead_coast_region_complete",
+		"aliases": [&"dead_coast_region_complete", &"dead_coast_cargo_complete"],
 		"caption": "Radio: The shipment's trail runs inland. Blackwood. Stay off the open road.",
 	},
 	&"research_complex": {
 		"after": &"blackwood_mission_3_complete",
-		"alias": &"blackwood_region_complete",
+		"aliases": [&"blackwood_region_complete", &"blackwood_research_complex_access"],
 		"caption": "Radio: Clearance code accepted. Access granted. Something is waiting at the end of the trail.",
 	},
 }
@@ -111,7 +112,9 @@ func sync() -> void:
 		return
 	for region in CHAIN:
 		var rule: Dictionary = CHAIN[region]
-		var earned: bool = _world.has_flag(rule["after"]) or (rule["alias"] != &"" and _world.has_flag(rule["alias"]))
+		var earned: bool = _world.has_flag(rule["after"])
+		for alias in rule["aliases"]:
+			earned = earned or _world.has_flag(alias)
 		if earned:
 			_unlock(region)
 	_update_bridge()
