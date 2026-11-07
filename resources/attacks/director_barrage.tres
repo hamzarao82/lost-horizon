@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"director_barrage"
+damage = 8.0
+stamina_cost = 0.0
+startup_frames = 60
+active_frames = 1
+recovery_frames = 60
+knockback = 2.5
+stagger_time = 0.2
+lunge_speed = 0.0
+hit_stop = 0.05
+shake = 0.3
+swing_arc = 0.0
+swing_flip = false

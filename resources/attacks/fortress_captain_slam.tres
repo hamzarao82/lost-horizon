@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"fortress_captain_slam"
+damage = 20.0
+stamina_cost = 0.0
+startup_frames = 40
+active_frames = 6
+recovery_frames = 52
+knockback = 5.0
+stagger_time = 0.5
+lunge_speed = 0.0
+hit_stop = 0.05
+shake = 0.3
+swing_arc = 0.0
+swing_flip = false

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"director_signet"
+display_name = "The Director's Signet"
+kind = 1
+rarity = 4
+description = "A heavy signet ring that once opened every door on the island. It is warm, as if it still expects its owner."
+slot = 7
+base_stats = {
+"damage_reduction": 0.05,
+"max_health": 10.0,
+"damage_mult": 1.04
+}
+value = 300
+unique = true
+region = "iron_fortress"

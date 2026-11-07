@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/loot_table.gd" id="1_table"]
+
+[resource]
+script = ExtResource("1_table")
+drop_chance = 1.00
+item_paths = PackedStringArray("res://resources/items/credits_medium.tres", "res://resources/items/health_potion.tres", "res://resources/items/scrap_metal.tres", "res://resources/items/armor_patch.tres", "res://resources/items/electronics.tres")
+source = 2
+region = "iron_fortress"
+guaranteed_paths = PackedStringArray("res://resources/items/upgrade_kit_armor.tres")
