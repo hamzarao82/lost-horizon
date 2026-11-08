@@ -53,7 +53,10 @@ func current_objective() -> ObjectiveData:
 	var quests := get_node_or_null("/root/QuestManager")
 	if quests == null:
 		return null
-	for quest_id in quests.active.keys():
+	# Same order as the HUD tracker (pinned bridge quest, then this region's quests), so the arrow and the
+	# tracker text always talk about the same mission.
+	var order: Array = quests._tracker_order() if quests.has_method("_tracker_order") else quests.active.keys()
+	for quest_id in order:
 		var quest: QuestData = quests.get_quest(quest_id)
 		if quest == null:
 			continue
@@ -108,6 +111,21 @@ func _resolve_flag_target(objective: ObjectiveData) -> void:
 				_point_at_nearest_enemy()
 			"next_location_unlocked":
 				_point_at_interactable(&"military_terminal")
+			"dead_coast_arrived":
+				# The way on is the south road gate; the exit trigger sits just north of the barricade.
+				# Two ways out lead there: the south gate and the service road behind the Warden room.
+				var player_node := get_tree().get_first_node_in_group("player") as Node3D
+				var best := INF
+				for exit_name in ["Exit_to_dead_coast", "Exit_to_dead_coast_north"]:
+					var exit_node := get_tree().root.find_child(exit_name, true, false) as Node3D
+					if exit_node == null:
+						continue
+					var spot := Vector3(exit_node.global_position.x, 0.0, exit_node.global_position.z)
+					var distance := spot.distance_to(player_node.global_position) if player_node != null else 0.0
+					if distance < best:
+						best = distance
+						target = spot
+						label = "Service road" if exit_name.ends_with("north") else "Road south"
 			_:
 				continue
 		return

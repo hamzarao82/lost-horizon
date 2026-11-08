@@ -430,8 +430,15 @@ func _test_screen() -> void:
 	_check(not screen.is_overview() and screen.detail_region == OUTPOST, "it opens on the current region")
 	var detail_count := screen.canvas().landmarks.size()
 	_check(detail_count == 6, "the canvas holds the Outpost 17 landmarks (%d)" % detail_count)
-	_check(screen.canvas().exits.size() == 1 and String(screen.canvas().exits[0]["label"]) == "To Dead Coast" and screen.canvas().exits[0]["locked"],
-			"the exit to Dead Coast is drawn and locked")
+	# Two ways lead to Dead Coast now: the south beach gate and the service road behind the Warden room.
+	var coast_exits := 0
+	var all_locked := true
+	for exit_entry: Dictionary in screen.canvas().exits:
+		if String(exit_entry["label"]) == "To Dead Coast":
+			coast_exits += 1
+			all_locked = all_locked and bool(exit_entry["locked"])
+	_check(screen.canvas().exits.size() == 2 and coast_exits == 2 and all_locked,
+			"both exits to Dead Coast (beach gate and service road) are drawn and locked")
 	_check(screen.canvas().player_pos is Vector2 and screen.canvas().objective_pos is Vector2, "player and objective markers reach the canvas")
 	_check(String(screen.status_text()).contains("places explored"), "the status line reports exploration (%s)" % screen.status_text())
 	var inside := Rect2(Vector2.ZERO, screen.canvas().size).has_point(screen.canvas().world_to_canvas(pm))

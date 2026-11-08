@@ -17,6 +17,12 @@ exit_points = {
 "size": Vector3(10, 3, 2),
 "target_entry": &"from_outpost",
 "target_region": &"dead_coast"
+},
+&"to_dead_coast_north": {
+"position": Vector3(0, 1, -90.8),
+"size": Vector3(10, 3, 2.4),
+"target_entry": &"from_outpost",
+"target_region": &"dead_coast"
 }
 }
 unlock_flag = &""

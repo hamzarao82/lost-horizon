@@ -128,6 +128,14 @@ func _play_campaign() -> void:
 	_complete_first_signal()
 	await _frames(3)
 	_check(_qm.is_completed(FIRST) and _qm.is_active(BRIDGE), "the mission is done and the bridge quest is active")
+	# The player must be able to find the way on: the arrow and the tracker both lead to the road south.
+	var pointers := main.find_children("*", "ObjectivePointer", true, false)
+	_check(pointers.size() == 1, "the HUD has one objective pointer")
+	if pointers.size() == 1 and exit != null:
+		(pointers[0] as ObjectivePointer)._resolve_target()
+		var aim: Variant = (pointers[0] as ObjectivePointer).target
+		_check(aim is Vector3 and Vector2(aim.x - exit.global_position.x, aim.z - exit.global_position.z).length() < 2.0, "the arrow points at the road south (%s)" % str(aim))
+		_check(_qm.tracker_title() == "The Road South", "the tracker says The Road South (%s)" % _qm.tracker_title())
 	var xp_after_mission := _total_xp()
 
 	print("Walk to Dead Coast")

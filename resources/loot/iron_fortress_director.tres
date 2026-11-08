@@ -6,6 +6,7 @@
 script = ExtResource("1_table")
 drop_chance = 1.00
 item_paths = PackedStringArray("res://resources/items/credits_medium.tres", "res://resources/items/health_potion.tres", "res://resources/items/upgrade_kit_armor.tres", "res://resources/items/scrap_metal.tres")
+weights = PackedFloat32Array(1, 1, 1, 1)
 source = 3
 region = "iron_fortress"
 guaranteed_paths = PackedStringArray("res://resources/items/upgrade_kit_weapon.tres")

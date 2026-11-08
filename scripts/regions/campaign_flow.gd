@@ -19,6 +19,8 @@ const BRIDGE_QUEST: StringName = &"leave_outpost"
 const MISSION_FLAG: StringName = &"mission_first_signal_complete"
 const GATE_NAME: String = "CampaignGate"
 const GATE_Z: float = 80.6  # just beyond the Outpost 17 exit trigger (z 77 to 79): the barricade shows why it is shut
+const DOOR_NAME: String = "ServiceRoadDoor"
+const DOOR_Z: float = -91.6  # in front of Area D's north wall (z -93 to -92) and of the north exit trigger
 const SYNC_DELAYS: Array[int] = [2, 40]  # frames after Main appears: a loaded save restores flags a little later
 
 ## region -> {after: flag that earns the unlock, aliases: other flags that count (the content's own finish flags), caption: said once when it unlocks}
@@ -63,6 +65,7 @@ var _world: Node
 var _quests: Node
 var _manager: Node
 var _gate: Node3D
+var _door: Node3D  # the service road door behind the Warden room, built once the road is open
 
 
 func _ready() -> void:
@@ -220,7 +223,11 @@ func _update_gate() -> void:
 		if _gate != null and is_instance_valid(_gate):
 			_gate.queue_free()
 		_gate = null
+		_ensure_service_door()
 		return
+	if _door != null and is_instance_valid(_door):
+		_door.queue_free()
+	_door = null
 	# One gate per Main. It travels with the Outpost 17 nodes (detached while the player is away), so an
 	# existing gate, attached or not, is never replaced, and none is built while another region is loaded.
 	if _gate != null and is_instance_valid(_gate):
@@ -275,6 +282,45 @@ func _build_gate() -> Node3D:
 	sign_label.rotation = Vector3(0.0, PI, 0.0)  # faces north, towards the player walking south
 	gate.add_child(sign_label)
 	return gate
+
+
+## The way out behind the Warden room, so nobody has to walk the whole map back to the beach: a lit service
+## door in Area D's north wall, in front of the `to_dead_coast_north` exit. Built once the road is open.
+func _ensure_service_door() -> void:
+	if _door != null and is_instance_valid(_door):
+		return
+	var main := _main()
+	if main == null or _manager == null or _manager.get("current_region_id") != OUTPOST:
+		return
+	if main.has_node(NodePath(DOOR_NAME)):
+		_door = main.get_node(NodePath(DOOR_NAME)) as Node3D
+		return
+	var door := Node3D.new()
+	door.name = DOOR_NAME
+	door.position = Vector3(0.0, 0.0, DOOR_Z)  # set before add_child
+	var mesh := MeshInstance3D.new()
+	var visual := BoxMesh.new()
+	visual.size = Vector3(5.0, 3.4, 0.25)
+	mesh.mesh = visual
+	mesh.position = Vector3(0.0, 1.7, 0.0)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.12, 0.35, 0.2)
+	material.emission_enabled = true
+	material.emission = Color(0.2, 0.9, 0.45)
+	material.emission_energy_multiplier = 0.8
+	mesh.material_override = material
+	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	door.add_child(mesh)
+	var sign_label := Label3D.new()
+	sign_label.text = "SERVICE ROAD"
+	sign_label.font_size = 96
+	sign_label.pixel_size = 0.012
+	sign_label.modulate = Color(0.75, 1.0, 0.8)
+	sign_label.outline_modulate = Color(0.0, 0.1, 0.03)
+	sign_label.position = Vector3(0.0, 3.9, 0.2)  # faces south, towards the player walking north
+	door.add_child(sign_label)
+	main.add_child(door)
+	_door = door
 
 
 static func _world_node() -> Node:
