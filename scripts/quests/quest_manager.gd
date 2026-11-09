@@ -149,20 +149,132 @@ static func quest_files_in(dir: String) -> PackedStringArray:
 	return found
 
 
-## Quests to show first in the HUD tracker: the pinned one (the campaign bridge), then the rest in start order.
+## Quests of the current stage (region) for the HUD tracker and the arrow: the pinned one (the campaign
+## bridge) first, then the rest in start order. Quests of other regions never show, so a later stage never
+## displays or points at Outpost 17's arena quests or at another region's mission.
 func _tracker_order() -> Array:
 	var order: Array = []
-	if tracker_first != &"" and active.has(tracker_first):
-		order.append(tracker_first)
-	# Quests of the region the player is in come first, so the arena chain never outranks a region mission.
 	var here := _current_region()
+	if tracker_first != &"" and active.has(tracker_first) and _quest_region.get(tracker_first, &"outpost_17") == here:
+		order.append(tracker_first)
 	for quest_id in active.keys():
 		if quest_id != tracker_first and _quest_region.get(quest_id, &"outpost_17") == here:
 			order.append(quest_id)
-	for quest_id in active.keys():
-		if quest_id != tracker_first and _quest_region.get(quest_id, &"outpost_17") != here:
-			order.append(quest_id)
 	return order
+
+
+# --- strict order inside a stage -----------------------------------------------------
+# The quests of the later regions complete step by step. An objective is unlocked when every REQUIRED
+# objective before it is done; optional objectives are always unlocked and never block. An event that
+# arrives before its turn is not lost: set-type events live in `_history` (and flags in WorldState) and are
+# replayed in order the moment the step before completes, so nothing can soft-lock. Kill and wave counters
+# are not replayable events, so they keep counting whatever the order and are simply already full when
+# their turn comes.
+
+const STRICT_REGIONS: Array[StringName] = [&"dead_coast", &"blackwood", &"research_complex", &"iron_fortress"]
+var _advancing: bool = false
+
+
+func is_strict(quest_id: StringName) -> bool:
+	var quest := get_quest(quest_id)
+	return quest != null and (quest.strict_order or STRICT_REGIONS.has(_quest_region.get(quest_id, &"outpost_17")))
+
+
+func _unlocked(quest_id: StringName, index: int) -> bool:
+	if not is_strict(quest_id):
+		return true
+	var quest := get_quest(quest_id)
+	if quest == null or index >= quest.objectives.size() or quest.objectives[index].optional:
+		return true
+	var done: Array = active[quest_id]["done"]
+	for earlier in index:
+		if not quest.objectives[earlier].optional and not done[earlier]:
+			return false
+	return true
+
+
+## Applies remembered events to every step that has just become current, to a fixed point.
+func _advance_strict(quest_id: StringName) -> void:
+	if _advancing or not active.has(quest_id):
+		return
+	_advancing = true
+	var changed := true
+	while changed and active.has(quest_id):
+		changed = false
+		var quest := get_quest(quest_id)
+		var done_before := (active[quest_id]["done"] as Array).count(true)
+		for index in quest.objectives.size():
+			if not active[quest_id]["done"][index] and _unlocked(quest_id, index):
+				_replay_objective(quest_id, index)
+		if (active[quest_id]["done"] as Array).count(true) != done_before:
+			changed = true
+	_advancing = false
+
+
+# --- the stage line ------------------------------------------------------------------
+
+## The quests of a region in play order: a quest comes after the ones it names as prerequisite and after any
+## quest whose `next_quest` it is; ties keep id order.
+func _region_chain(region: StringName) -> Array[StringName]:
+	var ids: Array[StringName] = []
+	for quest_id: StringName in quests.keys():
+		if _quest_region.get(quest_id, &"outpost_17") == region:
+			ids.append(quest_id)
+	var depth: Dictionary = {}
+	for quest_id in ids:
+		depth[quest_id] = _chain_depth(quest_id, ids, [])
+	ids.sort_custom(func(a: StringName, b: StringName) -> bool:
+		if depth[a] != depth[b]:
+			return depth[a] < depth[b]
+		return String(a) < String(b))
+	return ids
+
+
+func _chain_depth(quest_id: StringName, ids: Array[StringName], visiting: Array) -> int:
+	if visiting.has(quest_id):
+		return 0
+	var quest := get_quest(quest_id)
+	var best := 0
+	var before: Array[StringName] = []
+	for prerequisite in quest.prerequisites:
+		if ids.has(StringName(prerequisite)):
+			before.append(StringName(prerequisite))
+	for other in ids:
+		var other_quest := get_quest(other)
+		if other_quest != null and other_quest.next_quest == quest_id and not before.has(other):
+			before.append(other)
+	visiting.append(quest_id)
+	for earlier in before:
+		best = maxi(best, 1 + _chain_depth(earlier, ids, visiting))
+	visiting.erase(quest_id)
+	return best
+
+
+## "Dead Coast: step 3 of 8": the current required step across the whole stage, empty in Outpost 17 (which
+## keeps its own tracker) and when the stage has nothing in progress.
+func tracker_stage_line() -> String:
+	var region := _current_region()
+	if not STRICT_REGIONS.has(region):
+		return ""
+	var total := 0
+	var finished := 0
+	var started := false
+	for quest_id in _region_chain(region):
+		var quest := get_quest(quest_id)
+		var is_done := completed.has(quest_id)
+		if is_done or active.has(quest_id):
+			started = true
+		for index in quest.objectives.size():
+			if quest.objectives[index].optional:
+				continue
+			total += 1
+			if is_done or (active.has(quest_id) and active[quest_id]["done"][index]):
+				finished += 1
+	if not started or total == 0:
+		return ""
+	var data := RegionStore.load_data(region)
+	var region_name := data.display_name if data != null and data.display_name != "" else String(region).capitalize()
+	return "%s: step %d of %d" % [region_name, mini(finished + 1, total), total]
 
 
 func get_quest(quest_id: StringName) -> QuestData:
@@ -229,22 +341,27 @@ func start_quest(quest_id: StringName) -> bool:
 
 
 func _replay_history(quest_id: StringName) -> void:
+	if is_strict(quest_id):
+		_advance_strict(quest_id)  # only the steps whose turn has come are replayed, in order
+		return
 	var quest := get_quest(quest_id)
 	for index in quest.objectives.size():
-		var objective: ObjectiveData = quest.objectives[index]
-		if not objective.is_set_type():
-			continue
-		for target in objective.targets:
-			if _history.has(_history_key(objective.type, StringName(target))):
-				_credit(quest_id, index, objective, StringName(target), false)
+		_replay_objective(quest_id, index)
+
+
+## Credits one objective from the remembered events (and from flags already set in WorldState).
+func _replay_objective(quest_id: StringName, index: int) -> void:
+	var objective: ObjectiveData = get_quest(quest_id).objectives[index]
+	if not objective.is_set_type():
+		return
+	for target in objective.targets:
+		if _history.has(_history_key(objective.type, StringName(target))):
+			_credit(quest_id, index, objective, StringName(target), false)
 	# A flag that is already set counts too (WorldState may have been restored from a save).
-	if _world != null and _world.has_method("has_flag"):
-		for index in quest.objectives.size():
-			var objective: ObjectiveData = quest.objectives[index]
-			if objective.type == ObjectiveData.Type.FLAG:
-				for target in objective.targets:
-					if _world.has_flag(StringName(target)):
-						_credit(quest_id, index, objective, StringName(target), false)
+	if objective.type == ObjectiveData.Type.FLAG and _world != null and _world.has_method("has_flag"):
+		for target in objective.targets:
+			if _world.has_flag(StringName(target)):
+				_credit(quest_id, index, objective, StringName(target), false)
 
 
 func _check_complete(quest_id: StringName) -> void:
@@ -334,6 +451,9 @@ func notify(type: ObjectiveData.Type, target: StringName = &"", amount: int = 1,
 			var objective: ObjectiveData = quest.objectives[index]
 			if objective.type != type or active[quest_id]["done"][index]:
 				continue
+			# Strict quests: a set-type event before its turn stays in the history and is replayed in order.
+			if objective.is_set_type() and not _unlocked(quest_id, index):
+				continue
 			_apply(quest_id, index, objective, target, amount, instance_id)
 		_check_complete(quest_id)
 
@@ -376,6 +496,8 @@ func _set_progress(quest_id: StringName, index: int, objective: ObjectiveData, v
 	if announce:
 		objective_updated.emit(quest_id, index, clamped, needed)
 	tracker_changed.emit()
+	if clamped >= needed and is_strict(quest_id):
+		_advance_strict(quest_id)  # the next step may already have its events waiting
 
 
 # --- signal wiring ---------------------------------------------------------

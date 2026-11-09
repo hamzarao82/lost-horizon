@@ -225,7 +225,9 @@ func _test_out_of_order() -> void:
 	_world.emit_area_entered(&"blackwood_patrol_camp")
 	_world.emit_area_entered(&"blackwood_jungle_entrance")
 	await _frames(3)
-	_check(_qm.is_active(Q1) and _done(Q1, &"find_camp"), "visiting the camp first still counts once the quest begins")
+	# Strict stage order: the camp is the last step, so the early visit is remembered and applied in turn
+	# (the completion check below proves it was not lost).
+	_check(_qm.is_active(Q1) and not _done(Q1, &"find_camp") and _qm._history.has("1:blackwood_patrol_camp"), "visiting the camp first is remembered and waits for its turn")
 	_check(_use(&"bw_log_patrol_1") and _use(&"bw_log_patrol_2"), "the optional patrol logs are readable")
 	await _frames(2)
 	var data := _qm.get_quest(Q1) as QuestData
@@ -254,7 +256,8 @@ func _test_out_of_order() -> void:
 	_check(_terminal(&"bw_transmissions").interact(_player), "then the receiver")
 	await _frames(3)
 	_check(_qm.is_completed(Q2), "Ghost Frequency completes with the terminals read the other way round")
-	_check(_qm.is_active(Q3) and _done(Q3, &"reach_perimeter") and _done(Q3, &"find_site"), "perimeter and site visited early were remembered")
+	# Strict stage order: the perimeter is the first step and counts at once; the site visit waits for its turn.
+	_check(_qm.is_active(Q3) and _done(Q3, &"reach_perimeter") and not _done(Q3, &"find_site") and _qm._history.has("1:blackwood_testing_site"), "the early perimeter visit counted and the early site visit is remembered")
 
 
 func _test_reload_no_repeat() -> void:

@@ -146,6 +146,8 @@ func _scenario_in_order() -> void:
 	await _fresh()
 	_f.enter()
 	_check(_qm.is_active(&"if_last_stronghold") and not _qm.is_active(&"if_inside_the_walls"), "entering starts The Last Stronghold only")
+	# The tracker only shows the stage the player is in; this test enters the region directly, so say so.
+	root.get_node("RegionManager").current_region_id = &"iron_fortress"
 	_check(_qm.tracker_title() == "The Last Stronghold", "the HUD tracker shows the mission title (%s)" % _qm.tracker_title())
 
 	# Mission 1: The Last Stronghold

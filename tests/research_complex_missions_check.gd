@@ -137,6 +137,8 @@ func _scenario_in_order() -> void:
 	await _fresh()
 	_rc.enter()
 	_check(_qm.is_active(&"rc_restricted_zone") and not _qm.is_active(&"rc_silent_records"), "entering starts The Restricted Zone only")
+	# The tracker only shows the stage the player is in; this test enters the region directly, so say so.
+	root.get_node("RegionManager").current_region_id = &"research_complex"
 	_check(_qm.tracker_title() == "The Restricted Zone", "the HUD tracker shows the mission title (%s)" % _qm.tracker_title())
 
 	# Mission 1: The Restricted Zone
@@ -250,6 +252,7 @@ func _scenario_other_order() -> void:
 	await _fresh()
 	_rc.enter()
 	# credentials and doors reached through their panels and terminals, but guards avoided
+	_fire("rc_entrance")  # strict stage order: the entrance is the first step, so it comes first
 	_fire("rc_checkpoint_reach")
 	_check(_has("research_complex_perimeter_pass") and _done(&"rc_restricted_zone", "perimeter_guards"), "reaching the checkpoint counts as slipping past the guards")
 	_check(_use("rc_checkpoint_log"), "searching works")

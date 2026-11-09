@@ -86,7 +86,7 @@ func _resolve_for(objective: ObjectiveData) -> void:
 				var trigger := get_tree().root.find_child("Trigger_" + String(area_id), true, false) as Node3D
 				if trigger != null:
 					target = Vector3(trigger.global_position.x, 0.0, trigger.global_position.z)
-					label = LABELS.get(StringName(area_id), "Area")
+					label = LABELS.get(StringName(area_id), String(_region_landmark(StringName(area_id)).get("name", "Area")))
 					return
 				var rect := _area_rect(StringName(area_id))
 				if rect.size != Vector2.ZERO:
@@ -186,7 +186,7 @@ func _point_at_interactable(id: StringName) -> bool:
 	if best == null:
 		return false
 	target = best.global_position
-	label = LABELS.get(id, String(id).capitalize())
+	label = LABELS.get(id, short_label(id))
 	return true
 
 
@@ -336,3 +336,18 @@ func _draw_pointer() -> void:
 	var text_pos := _screen_pos + Vector2(-70.0, 34.0 if dir.y < 0.5 else -26.0)
 	_control.draw_string_outline(font, text_pos, text, HORIZONTAL_ALIGNMENT_CENTER, 140.0, 16, 4, Color.BLACK)
 	_control.draw_string(font, text_pos, text, HORIZONTAL_ALIGNMENT_CENTER, 140.0, 16, Color(1.0, 0.95, 0.75))
+
+
+const REGION_PREFIXES: Array[String] = ["dead_coast_", "blackwood_", "research_complex_", "iron_fortress_", "dc_", "bw_", "rc_", "if_"]
+
+
+## "dead_coast_wreck_hull" -> "Wreck Hull": the region prefix and a leading "log" are noise to the player.
+static func short_label(id: StringName) -> String:
+	var text := String(id)
+	for prefix in REGION_PREFIXES:
+		if text.begins_with(prefix):
+			text = text.substr(prefix.length())
+			break
+	if text.begins_with("log_"):
+		text = text.substr(4)
+	return text.capitalize() if text != "" else String(id).capitalize()

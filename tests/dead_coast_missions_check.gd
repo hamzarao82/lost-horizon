@@ -115,6 +115,8 @@ func _scenario_in_order() -> void:
 	_region.enter()
 	_check(_qm.is_active(&"dc_wreckage"), "entering the region starts Wreckage")
 	_check(not _qm.is_active(&"dc_silent_checkpoint") and not _qm.is_active(&"dc_lost_cargo"), "only the first mission is active")
+	# The tracker only shows the stage the player is in; this test enters the region directly, so say so.
+	root.get_node("RegionManager").current_region_id = &"dead_coast"
 	_check(_qm.tracker_title() == "Wreckage", "the HUD tracker shows the mission title (%s)" % _qm.tracker_title())
 	_check(_qm.tracker_objective().length() > 0, "the tracker shows the current objective (%s)" % _qm.tracker_objective())
 
@@ -235,7 +237,11 @@ func _scenario_save_round_trip() -> void:
 	_region.restore_state(region_state)
 	await _frames(3)
 	_check(_qm.is_active(&"dc_wreckage"), "the mission is still active after a reload")
-	_check(_done(&"dc_wreckage", "investigate_wreckage") and _done(&"dc_wreckage", "find_shipment_evidence"), "finished objectives are still finished")
+	# Strict stage order: the manifest was read before the radio step, so it was remembered, not applied.
+	_check(_done(&"dc_wreckage", "investigate_wreckage"), "finished objectives are still finished")
+	_check(not _done(&"dc_wreckage", "find_shipment_evidence"), "the manifest read out of turn still waits for the radio step")
+	_qm.notify(ObjectiveData.Type.INTERACT, &"dead_coast_radio_wreck")
+	_check(_done(&"dc_wreckage", "find_comm_equipment") and _done(&"dc_wreckage", "find_shipment_evidence"), "the saved, remembered manifest is applied once the radio is found")
 	_check(not _done(&"dc_wreckage", "recover_data_device"), "unfinished objectives are still open")
 	_check(_world.has_flag(&"doc_dead_coast_log_wreck_manifest_found"), "the read flag survived")
 	# the region can be re-entered without restarting or resetting the mission

@@ -24,6 +24,9 @@ enum Category { MAIN, SIDE, EXPLORATION }
 @export var location_hint: String
 ## Completing this quest shows the MISSION COMPLETE banner instead of QUEST COMPLETE.
 @export var show_mission_banner: bool = false
+## Objectives complete strictly in list order (events that arrive early are remembered and applied in turn).
+## Quests of the later regions are strict whatever this says (QuestManager.STRICT_REGIONS).
+@export var strict_order: bool = false
 
 
 ## Objectives that have to be done for the quest to complete (optional ones are excluded).

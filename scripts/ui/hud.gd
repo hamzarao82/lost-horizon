@@ -591,7 +591,9 @@ static func split_caption(text: String) -> Array[String]:
 func _refresh_tracker() -> void:
 	if _quests == null or _tracker_title == null:
 		return
-	_tracker_title.text = _quests.tracker_title()
+	var title: String = _quests.tracker_title()
+	var stage: String = _quests.tracker_stage_line() if _quests.has_method("tracker_stage_line") else ""
+	_tracker_title.text = title if stage == "" or title == "" else "%s  -  %s" % [title, stage]
 	_tracker_objective.text = _quests.tracker_objective()
 	var optional_text: String = _quests.tracker_optional() if _quests.has_method("tracker_optional") else ""
 	_optional_line.text = optional_text
