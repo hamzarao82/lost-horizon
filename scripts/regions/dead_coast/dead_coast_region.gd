@@ -23,6 +23,15 @@ func _ready() -> void:
 	content.vegetation_density = 0.4 if OS.has_feature("web") or OS.has_feature("mobile") else 1.0
 	add_child(content)
 	StageWaves.attach(self, &"dead_coast")  # one wave encounter in the stage's middle section
+	# Two bosses (checkpoint, cove) and the gate to Blackwood (docs/STAGE_BOSSES.md).
+	StageBoss.attach(self, &"dead_coast", 1, "res://resources/enemies/dc_harbor_commander.tres", DeadCoastTerrain.ground(8.5, -121.0),
+			"res://resources/items/dc_harbor_cap.tres", "Harbor Commander: This road is closed. It has been closed for a long time.",
+			"The Harbor Commander is down. His checkpoint log is still open.")
+	StageBoss.attach(self, &"dead_coast", 2, "res://resources/enemies/dc_cove_boss.tres", DeadCoastTerrain.ground(18.0, -170.0),
+			"res://resources/items/dc_cove_gloves.tres", "Cove Boss: You found the cargo. Now you carry it out in pieces.",
+			"The Cove Boss falls. The shipment answered to someone above him.")
+	var forward: Vector3 = (content.exit_points["to_blackwood"] as Dictionary)["position"]
+	RegionGate.attach(self, &"blackwood", "Blackwood", forward + Vector3(0.0, 0.0, -2.8))
 
 
 func enter(entry_id: StringName) -> void:

@@ -37,6 +37,13 @@ text = "Find the abandoned patrol camp"
 type = 1
 targets = PackedStringArray("blackwood_patrol_camp")
 
+[sub_resource type="Resource" id="Resource_eel55"]
+script = ExtResource("1_eel55")
+id = &"blackwood_boss_1_defeated"
+text = "Defeat the Patrol Chief at the abandoned camp"
+type = 5
+targets = PackedStringArray("blackwood_boss_1_defeated")
+
 [sub_resource type="Resource" id="Resource_dlva3"]
 script = ExtResource("1_eel55")
 id = &"camp_logs"
@@ -51,7 +58,7 @@ script = ExtResource("2_wuwxo")
 id = &"into_the_blackwood"
 title = "Into the Blackwood"
 description = "The coast trail ends at a wall of jungle. A military track leads in. Follow it and find out what happened to the patrol that took it."
-objectives = Array[ExtResource("1_eel55")]([SubResource("Resource_cqkwb"), SubResource("Resource_rpvvs"), SubResource("Resource_6omu8"), SubResource("Resource_hc4pw"), SubResource("Resource_n4pwp"), SubResource("Resource_dlva3")])
+objectives = Array[ExtResource("1_eel55")]([SubResource("Resource_cqkwb"), SubResource("Resource_rpvvs"), SubResource("Resource_6omu8"), SubResource("Resource_hc4pw"), SubResource("Resource_n4pwp"), SubResource("Resource_eel55"), SubResource("Resource_dlva3")])
 rewards = PackedStringArray("credits_medium", "bandage", "bandage")
 reward_text = "Credits and field dressings."
 next_quest = &"ghost_frequency"

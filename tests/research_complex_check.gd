@@ -117,6 +117,7 @@ func _load_quests() -> Array[QuestData]:
 func _produced_flags() -> Array[String]:
 	var out: Array[String] = []
 	out.append(String(RegionFlags.key(&"research_complex", &"waves_cleared")))  # produced by the stage's StageWaves encounter
+	out.append(String(StageBoss.flag_for(&"research_complex", 2)))  # the commander boss: set by the stage's StageBoss helper
 	for level in FacilityIds.LEVELS:
 		out.append(String(FacilityIds.credential_flag(level)))
 	for id: String in _rc.parts.doors:

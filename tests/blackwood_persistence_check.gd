@@ -213,6 +213,7 @@ func _play_region() -> void:
 	_check(_world.has_flag(&"blackwood_ambush_cleared"), "the ambush is cleared (flag)")
 	_check(PersistentIds.is_claimed(&"blackwood", &"encounter_ambush"), "the ambush is claimed as a one-time id")
 	_world.emit_area_entered(&"blackwood_patrol_camp")
+	_world.set_flag(&"blackwood_boss_1_defeated")  # the patrol chief step (stage_bosses_check plays the real fight)
 	await _frames(3)
 	_check(_qm.is_completed(&"into_the_blackwood"), "mission one is complete")
 	_world.emit_area_entered(&"blackwood_comms_station")

@@ -24,6 +24,9 @@ extends Resource
 @export var ranged: RangedConfig
 ## A unique item (resource path) dropped once per save: skipped when the player already owns the claim.
 @export var unique_drop_path: String = ""
+## Extra exports of the enemy class, applied by name when the enemy has the property (for example a stage
+## boss's attack weights). Unknown names are ignored, so a config can never break an enemy that lacks them.
+@export var extras: Dictionary = {}
 
 
 ## Writes the overrides onto an enemy that is not in the tree yet.
@@ -43,6 +46,9 @@ func apply(enemy: Enemy) -> void:
 	enemy.cooldown_max = cooldown_max
 	enemy.coordinate_alarm = coordinate_alarm
 	enemy.ranged = ranged
+	for key: Variant in extras:
+		if enemy.get(String(key)) != null:
+			enemy.set(String(key), extras[key])
 
 
 ## Builds the enemy at `at` (position is set before it joins the tree so it never overlaps the player

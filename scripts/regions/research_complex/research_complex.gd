@@ -15,7 +15,7 @@ const COMMANDER_CLAIM: StringName = &"commander_cleared"
 const SEALED_TEXT: String = "Access to the Iron Fortress road is sealed. For now."
 const AMBUSH_WARNING: String = "Something is moving behind the glass."
 const WARNING_SECONDS: float = 1.5
-const COMMANDER_CONFIG: String = "res://resources/enemies/facility_commander.tres"
+const COMMANDER_CONFIG: String = "res://resources/enemies/rc_facility_commander_boss.tres"
 const COMMANDER_POS: Vector3 = Vector3(0.0, 0.0, -146.0)
 
 ## world flag -> spawn ids that must all be cleared (the commander counts as `commander_cleared`).
@@ -216,6 +216,10 @@ func release_commander() -> Enemy:
 	if config == null:
 		return null
 	commander = config.spawn(self, COMMANDER_POS)
+	for helper in get_tree().get_nodes_in_group("stage_boss_spawns"):  # the stage's second boss: bar, flag, reward
+		var stage_boss := helper as StageBoss
+		if stage_boss != null and stage_boss.region_id == REGION_ID and stage_boss.index == 2:
+			stage_boss.adopt(commander)
 	commander.defeated.connect(func() -> void:
 		PersistentIds.claim(REGION_ID, COMMANDER_CLAIM)
 		_refresh_groups())

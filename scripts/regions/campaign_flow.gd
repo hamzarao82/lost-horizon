@@ -145,8 +145,10 @@ func _on_quest_completed(quest_id: StringName) -> void:
 
 
 func _on_region_changed(_old: StringName, new_id: StringName) -> void:
-	if new_id == &"dead_coast" and _world != null:
-		_world.set_flag(&"dead_coast_arrived", true)  # completes the bridge quest through the normal flag event
+	if _world != null and new_id != OUTPOST:
+		# `<region>_arrived`: completes the bridge quests ("The Road South", "The Road to Blackwood", ...)
+		# through the normal flag event.
+		_world.set_flag(StringName("%s_arrived" % new_id), true)
 	_say_once(new_id, ARRIVAL.get(new_id, ""))
 	_update_gate()
 

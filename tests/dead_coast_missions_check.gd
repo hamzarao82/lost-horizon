@@ -142,6 +142,7 @@ func _scenario_in_order() -> void:
 
 	# Mission 2: The Silent Checkpoint, in a different order than the quest text
 	_world.set_flag(&"dead_coast_waves_cleared")  # the stage's wave step (stage_waves_check plays the real fight)
+	_world.set_flag(&"dead_coast_boss_1_defeated")  # the harbor commander step
 	var gate := _region.content.nodes["dc_gate"] as Door
 	_check(gate.locked, "the barrier is locked before the pass")
 	_check(_use("dead_coast_checkpoint_terminal"), "the checkpoint terminal can be read")
@@ -161,6 +162,7 @@ func _scenario_in_order() -> void:
 	# Mission 3: Lost Cargo
 	var exit_locked: bool = not _world.has_flag(DeadCoast.COMPLETE_FLAG)
 	_check(exit_locked, "the way to Blackwood is still sealed")
+	_world.set_flag(&"dead_coast_boss_2_defeated")  # the cove boss step (stage_bosses_check plays the real fight)
 	_check(_use("dead_coast_trail_markers"), "the drag marks can be followed")
 	_enter(&"dc_cove")
 	_check(_use("dead_coast_cargo_a") and _use("dead_coast_cargo_b"), "two hidden containers opened")
@@ -197,11 +199,13 @@ func _scenario_out_of_order() -> void:
 	_region.enter()
 	# Everything the later missions need happens first, as flags and interactions.
 	_world.set_flag(&"dead_coast_waves_cleared")  # the stage's wave step (stage_waves_check plays the real fight)
+	_world.set_flag(&"dead_coast_boss_1_defeated")  # the harbor commander step
 	_use("dead_coast_guard_pass")
 	_use("dead_coast_log_checkpoint_orders")
 	_use("dead_coast_checkpoint_terminal")
 	_enter(&"dc_checkpoint")
 	_world.set_flag(&"patrol_dead_coast_checkpoint_cleared", true)
+	_world.set_flag(&"dead_coast_boss_2_defeated")  # the cove boss step (stage_bosses_check plays the real fight)
 	_use("dead_coast_trail_markers")
 	_enter(&"dc_cove")
 	for id in ["dead_coast_cargo_a", "dead_coast_cargo_b", "dead_coast_cargo_c", "dead_coast_cargo_gear", "dead_coast_log_black_site_link"]:

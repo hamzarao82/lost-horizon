@@ -167,6 +167,8 @@ func _play_and_collect_flags() -> void:
 				await physics_frame
 	await _frames(4)
 	_world.set_flag(&"dead_coast_waves_cleared")  # the stage's wave step (stage_waves_check plays the real fight)
+	_world.set_flag(&"dead_coast_boss_1_defeated")  # the boss steps (stage_bosses_check plays the real fights)
+	_world.set_flag(&"dead_coast_boss_2_defeated")
 	_world.set_flag(&"patrol_dead_coast_checkpoint_cleared", true)
 	(_region.triggers[&"dc_checkpoint"] as AreaTrigger).report_entered()
 	(_region.triggers[&"dc_cove"] as AreaTrigger).report_entered()

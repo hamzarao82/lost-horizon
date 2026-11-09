@@ -30,6 +30,13 @@ id = &"recover_equipment"
 text = "Recover the sealed equipment case"
 targets = PackedStringArray("dead_coast_cargo_gear")
 
+[sub_resource type="Resource" id="Resource_pw6ra"]
+script = ExtResource("1_pw6ra")
+id = &"dead_coast_boss_2_defeated"
+text = "Defeat the Cove Boss who guards the cargo"
+type = 5
+targets = PackedStringArray("dead_coast_boss_2_defeated")
+
 [sub_resource type="Resource" id="Resource_5nx5a"]
 script = ExtResource("1_pw6ra")
 id = &"discover_black_site"
@@ -66,9 +73,10 @@ id = &"dc_lost_cargo"
 title = "Lost Cargo"
 description = "The shipment never reached Outpost 17. Follow it to Smuggler's Cove."
 prerequisites = PackedStringArray("dc_silent_checkpoint")
-objectives = Array[ExtResource("1_pw6ra")]([SubResource("Resource_dbanm"), SubResource("Resource_e8msw"), SubResource("Resource_giky3"), SubResource("Resource_o40wg"), SubResource("Resource_5nx5a"), SubResource("Resource_eoxeb"), SubResource("Resource_6kch5"), SubResource("Resource_ppkch")])
+objectives = Array[ExtResource("1_pw6ra")]([SubResource("Resource_dbanm"), SubResource("Resource_e8msw"), SubResource("Resource_giky3"), SubResource("Resource_o40wg"), SubResource("Resource_pw6ra"), SubResource("Resource_5nx5a"), SubResource("Resource_eoxeb"), SubResource("Resource_6kch5"), SubResource("Resource_ppkch")])
 rewards = PackedStringArray("coastal_weapon_part", "credits_medium")
 reward_text = "Coastal weapon part and credits"
+next_quest = &"dc_road_to_blackwood"
 start_captions = PackedStringArray("The cargo left the beach in sealed crates. Find where they were hidden.")
 complete_captions = PackedStringArray("Lost Cargo: complete.", "The trail goes on into the Blackwood. The way north is open.")
 caption_seconds = 4.5

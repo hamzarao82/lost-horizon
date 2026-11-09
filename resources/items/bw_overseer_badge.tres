@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_x3d73"]
+
+[resource]
+script = ExtResource("1_x3d73")
+item_id = &"bw_overseer_badge"
+display_name = "Site Overseer's Badge"
+kind = 1
+rarity = 3
+description = "A testing-site access badge with every clearance box ticked. The photograph has been scratched out."
+slot = 7
+base_stats = {
+"damage_reduction": 0.04,
+"max_health": 10.0
+}
+unique = true
+value = 130
+region = "blackwood"

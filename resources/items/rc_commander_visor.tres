@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_35c1c"]
+
+[resource]
+script = ExtResource("1_35c1c")
+item_id = &"rc_commander_visor"
+display_name = "Facility Commander's Visor"
+kind = 1
+rarity = 3
+description = "A tactical visor tuned to the laboratory's camera network. It still shows the last room it watched."
+slot = 3
+base_stats = {
+"damage_reduction": 0.04,
+"max_health": 8.0
+}
+unique = true
+value = 130
+region = "research_complex"

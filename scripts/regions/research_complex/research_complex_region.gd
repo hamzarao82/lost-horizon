@@ -21,6 +21,11 @@ func _ready() -> void:
 	content.name = "ResearchComplex"
 	add_child(content)
 	StageWaves.attach(self, &"research_complex")  # one wave encounter in the stage's middle section
+	# The laboratory's Facility Commander is the stage's second boss (Subject Zero is the first): this helper
+	# owns its defeat flag and its reward; the content adopts the spawned commander into it.
+	StageBoss.attach(self, &"research_complex", 2, "", ResearchComplex.COMMANDER_POS,
+			"res://resources/items/rc_commander_visor.tres", "Facility Commander: Stay on the floor. Nobody leaves the laboratory.",
+			"The Facility Commander is down. The laboratory is quiet.")
 
 
 func enter(entry_id: StringName) -> void:

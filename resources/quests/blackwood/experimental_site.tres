@@ -43,6 +43,13 @@ text = "Defeat the site defenders"
 type = 5
 targets = PackedStringArray("blackwood_site_defenders_cleared")
 
+[sub_resource type="Resource" id="Resource_tp1x0"]
+script = ExtResource("1_tp1x0")
+id = &"blackwood_boss_2_defeated"
+text = "Defeat the Site Overseer"
+type = 5
+targets = PackedStringArray("blackwood_boss_2_defeated")
+
 [sub_resource type="Resource" id="Resource_wrdix"]
 script = ExtResource("1_tp1x0")
 id = &"unlock_access"
@@ -70,9 +77,10 @@ script = ExtResource("2_6ug7p")
 id = &"experimental_site"
 title = "The Experimental Site"
 description = "The recovered data points to a testing site behind the research perimeter. Get in, find out what they did there and open the way on."
-objectives = Array[ExtResource("1_tp1x0")]([SubResource("Resource_ov1ue"), SubResource("Resource_gkxh8"), SubResource("Resource_u4q0n"), SubResource("Resource_bpmqd"), SubResource("Resource_bnymt"), SubResource("Resource_28nso"), SubResource("Resource_wrdix"), SubResource("Resource_6a4m3"), SubResource("Resource_rgs35")])
+objectives = Array[ExtResource("1_tp1x0")]([SubResource("Resource_ov1ue"), SubResource("Resource_gkxh8"), SubResource("Resource_u4q0n"), SubResource("Resource_bpmqd"), SubResource("Resource_bnymt"), SubResource("Resource_28nso"), SubResource("Resource_tp1x0"), SubResource("Resource_wrdix"), SubResource("Resource_6a4m3"), SubResource("Resource_rgs35")])
 rewards = PackedStringArray("credits_medium", "credits_medium", "upgrade_kit_weapon", "blackwood_ghost_charm")
 reward_text = "Credits, a weapon upgrade kit and the Ghost Charm."
+next_quest = &"bw_road_to_research_complex"
 start_captions = PackedStringArray("Fresh tire tracks. Somebody still drives to the testing site.")
 complete_captions = PackedStringArray("The research facility is open. Whatever they did here, it started below.")
 location_hint = "Experimental site"

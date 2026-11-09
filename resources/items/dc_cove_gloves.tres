@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_3cvpo"]
+
+[resource]
+script = ExtResource("1_3cvpo")
+item_id = &"dc_cove_gloves"
+display_name = "Cove Boss's Gloves"
+kind = 1
+rarity = 3
+description = "Scarred hauling gloves with a smuggler's tally stitched inside. They grip a blade as hard as a crate."
+slot = 5
+base_stats = {
+"damage_mult": 1.04
+}
+unique = true
+value = 120
+region = "dead_coast"
