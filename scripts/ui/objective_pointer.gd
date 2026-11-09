@@ -288,8 +288,7 @@ func _update_screen() -> void:
 	if on_screen and _distance < HIDE_WITHIN:
 		_set_visible(false)
 		return
-	var local := camera.global_transform.affine_inverse() * world_target
-	_direction = Vector2(local.x, local.z)  # camera forward (-z) is screen up
+	_direction = screen_direction(camera.global_transform.basis, flat)
 	_screen_pos = place(_direction, viewport, TouchControls.touch_active)
 	_set_visible(true)
 
@@ -303,6 +302,24 @@ func _set_visible(value: bool) -> void:
 
 ## Pure placement: where the pointer sits for a direction (screen y grows downward) so that it keeps off
 ## the HUD bands and the touch buttons. Public so a test can check it.
+## Screen direction (x right, y down, so up is negative) of a flat world offset (x, z) as the player sees it.
+## Uses the camera's heading only: the downward tilt of a third-person camera and the height of the target must
+## not bend the arrow, which they did when the offset was taken in the camera's own tilted frame.
+static func screen_direction(camera_basis: Basis, flat_offset: Vector2) -> Vector2:
+	var forward := -camera_basis.z
+	forward.y = 0.0
+	var right := camera_basis.x
+	right.y = 0.0
+	if forward.length() < 0.001:
+		forward = Vector3.FORWARD  # looking straight down: fall back to the world heading
+	if right.length() < 0.001:
+		right = Vector3.RIGHT
+	forward = forward.normalized()
+	right = right.normalized()
+	var offset := Vector3(flat_offset.x, 0.0, flat_offset.y)
+	return Vector2(offset.dot(right), -offset.dot(forward))
+
+
 static func place(direction: Vector2, viewport: Vector2, touch: bool) -> Vector2:
 	var center := viewport * 0.5
 	var dir := direction.normalized() if direction.length() > 0.001 else Vector2.UP
