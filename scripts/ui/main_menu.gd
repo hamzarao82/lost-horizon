@@ -183,6 +183,16 @@ func _build_ui() -> void:
 	_root.add_child(background)
 	_root.add_child(MenuEmbers.new())
 
+	# Which build is this? Dim text in the bottom-left corner (stamped by tools/stamp_build.ps1 at export).
+	var build_label := Label.new()
+	build_label.name = "BuildLabel"
+	build_label.text = BuildInfo.LABEL
+	build_label.add_theme_font_size_override("font_size", 14)
+	build_label.add_theme_color_override("font_color", Color(0.6, 0.62, 0.68, 0.7))
+	build_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	build_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 14)
+	_root.add_child(build_label)
+
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(center)
