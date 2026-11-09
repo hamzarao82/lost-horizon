@@ -69,9 +69,13 @@ func current_objective() -> ObjectiveData:
 
 
 func _resolve_target() -> void:
+	_resolve_for(current_objective())
+
+
+## Aims at one objective. Public so a test can ask whether every objective of a region can be found.
+func _resolve_for(objective: ObjectiveData) -> void:
 	target = null
 	label = ""
-	var objective := current_objective()
 	if objective == null:
 		return
 	match objective.type:
@@ -88,6 +92,19 @@ func _resolve_target() -> void:
 				if rect.size != Vector2.ZERO:
 					target = Vector3(rect.get_center().x, 0.0, rect.get_center().y)
 					label = LABELS.get(StringName(area_id), "Area")
+					return
+				# Mission triggers (Research Complex, Iron Fortress): matched by their trigger or event id.
+				var mission_trigger := _find_mission_trigger(StringName(area_id))
+				if mission_trigger != null:
+					target = Vector3(mission_trigger.global_position.x, 0.0, mission_trigger.global_position.z)
+					label = "Objective"
+					return
+				# Later regions: the map knows where each area is (same ids as the quest targets).
+				var landmark := _region_landmark(StringName(area_id))
+				if not landmark.is_empty():
+					var area_rect: Rect2 = landmark.get("rect", Rect2())
+					target = Vector3(area_rect.get_center().x, 0.0, area_rect.get_center().y)
+					label = String(landmark.get("name", "Area"))
 					return
 		ObjectiveData.Type.INTERACT, ObjectiveData.Type.DISCOVER:
 			for id in objective.targets:
@@ -127,7 +144,13 @@ func _resolve_flag_target(objective: ObjectiveData) -> void:
 						target = spot
 						label = "Service road" if exit_name.ends_with("north") else "Road south"
 			_:
-				continue
+				var flag_name := String(flag)
+				if flag_name.begins_with("patrol_") and flag_name.ends_with("_cleared"):
+					_point_at_nearest_enemy()  # a patrol group has to be defeated
+				elif not _point_at_interactable(StringName(flag_name)):
+					_point_at_next_area()  # no object carries this flag: lead on through the region
+				if target == null:
+					continue
 		return
 
 
@@ -143,14 +166,28 @@ func _point_at_power_step() -> void:
 			_point_at_interactable(StringName(puzzle.data.order[step]))
 
 
+## Prefers an available match (nearest first). A match that is locked for now is still the right place to
+## head for while its objective is open, so it is used when nothing else matches.
 func _point_at_interactable(id: StringName) -> bool:
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	var best: Interactable = null
+	var best_available := false
+	var best_distance := INF
 	for node in get_tree().get_nodes_in_group("interactables"):
 		var item := node as Interactable
-		if item != null and item.interaction_id == id and item.is_available():
-			target = item.global_position
-			label = LABELS.get(id, String(id).capitalize())
-			return true
-	return false
+		if item == null or item.interaction_id != id:
+			continue
+		var available := item.is_available()
+		var distance := player.global_position.distance_to(item.global_position) if player != null else 0.0
+		if (available and not best_available) or (available == best_available and distance < best_distance):
+			best = item
+			best_available = available
+			best_distance = distance
+	if best == null:
+		return false
+	target = best.global_position
+	label = LABELS.get(id, String(id).capitalize())
+	return true
 
 
 func _point_at_pickup(class_name_to_find: String, text: String) -> bool:
@@ -175,6 +212,43 @@ func _point_at_nearest_enemy() -> void:
 			best = d
 			target = enemy.global_position
 			label = "Enemy"
+
+
+func _find_mission_trigger(id: StringName) -> Node3D:
+	for node in get_tree().root.find_children("*", "MissionTrigger", true, false):
+		var trigger := node as MissionTrigger
+		if trigger != null and (trigger.trigger_id == id or trigger.event_id == id):
+			return trigger
+	return null
+
+
+## The current region's map landmark with this id (an area), or an empty dictionary.
+func _region_landmark(area_id: StringName) -> Dictionary:
+	var data := MapData.load_for(MapData.current_region())
+	if data == null:
+		return {}
+	for raw in data.landmarks:
+		if raw is Dictionary and String((raw as Dictionary).get("id", "")) == String(area_id):
+			return raw
+	return {}
+
+
+## No specific object to aim at: lead the player on to the first area of this region not yet discovered.
+func _point_at_next_area() -> bool:
+	var data := MapData.load_for(MapData.current_region())
+	if data == null:
+		return false
+	for raw in data.landmarks:
+		if not (raw is Dictionary):
+			continue
+		var item: Dictionary = raw
+		if String(item.get("kind", "area")) != "area" or MapData.is_flag_set(String(item.get("flag", ""))):
+			continue
+		var rect: Rect2 = item.get("rect", Rect2())
+		target = Vector3(rect.get_center().x, 0.0, rect.get_center().y)
+		label = "Explore ahead"
+		return true
+	return false
 
 
 func _area_rect(area_id: StringName) -> Rect2:
