@@ -60,6 +60,7 @@ func _run() -> void:
 		await _frames(30)
 		_check(ok and _rm.current_region_id == region, "%s: reached by real travel" % region)
 		var total := 0
+		var waves_checked := 0
 		var missing: Array[String] = []
 		for quest_id: StringName in _qm.quests.keys():
 			if _qm._quest_region.get(quest_id, &"outpost_17") != region:
@@ -72,7 +73,12 @@ func _run() -> void:
 				pointer._resolve_for(objective)
 				if pointer.target == null:
 					missing.append("%s/%s" % [quest_id, objective.id])
+				for flag in objective.targets:
+					if String(flag).ends_with("_waves_cleared"):
+						waves_checked += 1
+						_check(pointer.label == "Hold point", "%s: the wave step '%s' aims at the hold point (%s)" % [region, objective.id, pointer.label])
 		_check(total > 0, "%s: has required objectives (%d)" % [region, total])
+		_check(waves_checked == 1, "%s: has exactly one wave step (%d)" % [region, waves_checked])
 		_check(missing.is_empty(), "%s: the arrow finds every required objective (missing: %s)" % [region, ", ".join(missing)])
 	_sm.reset_runtime_state()
 	_sm.delete_save()

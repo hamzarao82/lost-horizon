@@ -145,7 +145,9 @@ func _resolve_flag_target(objective: ObjectiveData) -> void:
 						label = "Service road" if exit_name.ends_with("north") else "Road south"
 			_:
 				var flag_name := String(flag)
-				if flag_name.begins_with("patrol_") and flag_name.ends_with("_cleared"):
+				if flag_name.ends_with("_waves_cleared"):
+					_point_at_wave_hold()  # a stage wave fight: head for its hold area
+				elif flag_name.begins_with("patrol_") and flag_name.ends_with("_cleared"):
 					_point_at_nearest_enemy()  # a patrol group has to be defeated
 				elif not _point_at_interactable(StringName(flag_name)):
 					_point_at_next_area()  # no object carries this flag: lead on through the region
@@ -220,6 +222,17 @@ func _find_mission_trigger(id: StringName) -> Node3D:
 		if trigger != null and (trigger.trigger_id == id or trigger.event_id == id):
 			return trigger
 	return null
+
+
+## The hold area of this stage's wave encounter (a StageWaves node joins the group "stage_waves").
+func _point_at_wave_hold() -> bool:
+	for node in get_tree().get_nodes_in_group("stage_waves"):
+		var stage := node as Node3D
+		if stage != null:
+			target = Vector3(stage.global_position.x, 0.0, stage.global_position.z)
+			label = "Hold point"
+			return true
+	return false
 
 
 ## The current region's map landmark with this id (an area), or an empty dictionary.
