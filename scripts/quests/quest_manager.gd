@@ -320,9 +320,13 @@ func prerequisites_met(quest_id: StringName) -> bool:
 	return true
 
 
-func start_quest(quest_id: StringName) -> bool:
+## `ignore_prerequisites` is for the road steps: the way on opens when a stage's bosses fall, whether or not
+## every mission of the stage was finished.
+func start_quest(quest_id: StringName, ignore_prerequisites: bool = false) -> bool:
 	var quest := get_quest(quest_id)
-	if quest == null or active.has(quest_id) or completed.has(quest_id) or not prerequisites_met(quest_id):
+	if quest == null or active.has(quest_id) or completed.has(quest_id):
+		return false
+	if not ignore_prerequisites and not prerequisites_met(quest_id):
 		return false
 	var progress: Array = []
 	var seen: Array = []

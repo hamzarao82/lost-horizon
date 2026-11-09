@@ -46,6 +46,19 @@ const CHAIN: Dictionary = {
 		"caption": "Radio: The recovered route table ends at one place. The Iron Fortress. The road is open.",
 	},
 }
+## The way on opens when a stage's bosses are down: no need to finish every mission or clear every enemy.
+## region -> the flags that must all be set, the road quest that then leads the player to the gate, and the stage
+## it opens. The mission-based rules in CHAIN still work too (whichever comes first opens the road).
+const BOSS_ROADS: Dictionary = {
+	&"outpost_17": {"bosses": [&"boss_warden_defeated"], "road": &"leave_outpost", "next": &"dead_coast"},
+	&"dead_coast": {"bosses": [&"dead_coast_boss_1_defeated", &"dead_coast_boss_2_defeated"],
+			"road": &"dc_road_to_blackwood", "next": &"blackwood"},
+	&"blackwood": {"bosses": [&"blackwood_boss_1_defeated", &"blackwood_boss_2_defeated"],
+			"road": &"bw_road_to_research_complex", "next": &"research_complex"},
+	&"research_complex": {"bosses": [&"research_complex_elite_down", &"research_complex_boss_2_defeated"],
+			"road": &"rc_road_to_iron_fortress", "next": &"iron_fortress"},
+}
+
 ## Said once, the first time the player arrives.
 const ARRIVAL: Dictionary = {
 	&"dead_coast": "Radio: Wreckage everywhere. Someone shipped something here and never collected it.",
@@ -127,8 +140,37 @@ func sync() -> void:
 			earned = earned or _world.has_flag(alias)
 		if earned:
 			_unlock(region)
+	_apply_boss_roads()
 	_update_bridge()
 	_update_gate()
+
+
+func _bosses_down(source: StringName) -> bool:
+	var rule: Dictionary = BOSS_ROADS.get(source, {})
+	if rule.is_empty():
+		return false
+	for flag in rule["bosses"]:
+		if not _world.has_flag(flag):
+			return false
+	return true
+
+
+## A stage whose bosses are down opens the road to the next one and starts the "take the road" step, pinned
+## at the top of the tracker while the player is in that stage (the arrow then leads to the gate).
+func _apply_boss_roads() -> void:
+	for source: StringName in BOSS_ROADS:
+		if not _bosses_down(source):
+			continue
+		var rule: Dictionary = BOSS_ROADS[source]
+		_unlock(rule["next"])
+		if _quests == null or source == OUTPOST:
+			continue  # Outpost 17's road quest is handled by _update_bridge
+		var road: StringName = rule["road"]
+		_quests.start_quest(road, true)  # refused if it already started or finished
+		var here: Variant = _manager.get("current_region_id") if _manager != null else null
+		if _quests.is_active(road) and here == source and _quests.tracker_first != road:
+			_quests.tracker_first = road
+			_quests.tracker_changed.emit()
 
 
 # --- reactions ---------------------------------------------------------------
@@ -139,9 +181,16 @@ func _on_flag_changed(id: StringName, value: bool) -> void:
 
 
 func _on_quest_completed(quest_id: StringName) -> void:
-	if quest_id == BRIDGE_QUEST and _quests != null:
+	if _quests != null and (quest_id == BRIDGE_QUEST or _is_road_quest(quest_id)) and _quests.tracker_first == quest_id:
 		_quests.tracker_first = &""
 	_update_bridge()
+
+
+func _is_road_quest(quest_id: StringName) -> bool:
+	for source: StringName in BOSS_ROADS:
+		if BOSS_ROADS[source]["road"] == quest_id:
+			return true
+	return false
 
 
 func _on_region_changed(_old: StringName, new_id: StringName) -> void:
@@ -150,6 +199,7 @@ func _on_region_changed(_old: StringName, new_id: StringName) -> void:
 		# through the normal flag event.
 		_world.set_flag(StringName("%s_arrived" % new_id), true)
 	_say_once(new_id, ARRIVAL.get(new_id, ""))
+	_apply_boss_roads()
 	_update_gate()
 
 
@@ -189,8 +239,9 @@ func _say_once(key: StringName, text: String) -> void:
 func _update_bridge() -> void:
 	if _quests == null or _world == null:
 		return
-	if _world.has_flag(MISSION_FLAG) and _quests.is_completed(&"first_signal"):
-		_quests.start_quest(BRIDGE_QUEST)  # refused by the manager if already started or finished
+	# The road south opens when the Warden falls, or when the first mission is complete (whichever comes first).
+	if _bosses_down(OUTPOST) or (_world.has_flag(MISSION_FLAG) and _quests.is_completed(&"first_signal")):
+		_quests.start_quest(BRIDGE_QUEST, true)  # refused by the manager if already started or finished
 	if _quests.is_active(BRIDGE_QUEST):
 		if _quests.tracker_first != BRIDGE_QUEST:
 			_quests.tracker_first = BRIDGE_QUEST
