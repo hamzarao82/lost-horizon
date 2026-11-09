@@ -218,6 +218,24 @@ func _point_at_nearest_enemy() -> void:
 			best = d
 			target = enemy.global_position
 			label = "Enemy"
+	if target == null:
+		_point_at_waiting_squad()  # nobody alive: the rest of the patrol is still to come
+
+
+## A patrol squad that has not appeared yet (it wakes when the player nears its area): head for its start.
+func _point_at_waiting_squad() -> void:
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	var best := INF
+	for node in get_tree().root.find_children("*", "PatrolGroup", true, false):
+		var squad := node as PatrolGroup
+		if squad == null or squad.spawned or squad.route_points.is_empty():
+			continue
+		var start := squad.to_global(squad.route_points[0])
+		var d := player.global_position.distance_to(start) if player else 0.0
+		if d < best:
+			best = d
+			target = Vector3(start.x, 0.0, start.z)
+			label = "Patrol"
 
 
 func _find_mission_trigger(id: StringName) -> Node3D:

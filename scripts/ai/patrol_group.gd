@@ -4,6 +4,9 @@ extends Node3D
 ## is dead it sets the flag `patrol_<id>_cleared` (saved with the world flags), so they stay dead.
 
 const MAX_ACTIVE_PATROLLERS: int = 4
+## A squad held back by the cap keeps trying while the player is this close, so it can never be lost for good.
+const RETRY_SECONDS: float = 1.0
+const RETRY_RADIUS: float = 90.0
 
 @export var group_id: StringName
 ## WorldState.area_entered id that wakes the squad.
@@ -17,6 +20,8 @@ const MAX_ACTIVE_PATROLLERS: int = 4
 var route: PatrolRoute
 var enemies: Array[Enemy] = []
 var spawned: bool = false
+var _blocked: bool = false  # woken by its area but held back by the patroller cap
+var _retry_left: float = 0.0
 
 
 func cleared_flag() -> StringName:
@@ -44,7 +49,11 @@ func spawn() -> int:
 	if spawned or scene_paths.is_empty() or route_points.is_empty():
 		return 0
 	if Enemy.active_patrollers + scene_paths.size() > MAX_ACTIVE_PATROLLERS:
-		return 0  # try again on the next entry rather than flooding the level
+		# Held back so the level is not flooded, but never forgotten: it was blocked once and used to wait for
+		# another entry that might never come, which left an unseen "last enemy" and a stage that could not finish.
+		_blocked = true
+		return 0
+	_blocked = false
 	spawned = true
 	route = PatrolRoute.new()
 	route.name = "Route"
@@ -68,6 +77,22 @@ func spawn() -> int:
 		enemy.defeated.connect(_on_member_defeated)
 		enemies.append(enemy)
 	return enemies.size()
+
+
+## Retries a squad that the cap held back, while the player is within reach of its route.
+func _process(delta: float) -> void:
+	if not _blocked or spawned:
+		return
+	_retry_left -= delta
+	if _retry_left > 0.0:
+		return
+	_retry_left = RETRY_SECONDS
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	if player == null or route_points.is_empty():
+		return
+	if player.global_position.distance_to(to_global(route_points[0])) > RETRY_RADIUS:
+		return
+	spawn()
 
 
 func _on_member_defeated() -> void:
