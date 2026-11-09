@@ -17,6 +17,7 @@ func _ready() -> void:
 	content = Blackwood.new()
 	content.density = 0.4 if OS.has_feature("web") or OS.has_feature("mobile") else 1.0
 	add_child(content)
+	StageWaves.attach(self, &"blackwood")  # one wave encounter in the stage's middle section
 
 
 func entry_transform(entry_id: StringName) -> Transform3D:

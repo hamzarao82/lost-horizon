@@ -16,6 +16,13 @@ id = &"read_frequency"
 text = "Read the technician's frequency log"
 targets = PackedStringArray("bw_log_frequency")
 
+[sub_resource type="Resource" id="Resource_tvsyj"]
+script = ExtResource("1_tvsyj")
+id = &"blackwood_waves_cleared"
+text = "Hold the trail against the jungle patrol"
+type = 5
+targets = PackedStringArray("blackwood_waves_cleared")
+
 [sub_resource type="Resource" id="Resource_askpc"]
 script = ExtResource("1_tvsyj")
 id = &"restore_station"
@@ -56,7 +63,7 @@ script = ExtResource("2_kxwe3")
 id = &"ghost_frequency"
 title = "Ghost Frequency"
 description = "A transmitter is still sending from somewhere in the trees. Tune the hidden station and listen."
-objectives = Array[ExtResource("1_tvsyj")]([SubResource("Resource_kkctu"), SubResource("Resource_jm0lb"), SubResource("Resource_askpc"), SubResource("Resource_50py6"), SubResource("Resource_tncf4"), SubResource("Resource_rntt0"), SubResource("Resource_71x64")])
+objectives = Array[ExtResource("1_tvsyj")]([SubResource("Resource_kkctu"), SubResource("Resource_jm0lb"), SubResource("Resource_tvsyj"), SubResource("Resource_askpc"), SubResource("Resource_50py6"), SubResource("Resource_tncf4"), SubResource("Resource_rntt0"), SubResource("Resource_71x64")])
 rewards = PackedStringArray("credits_medium", "armor_plate", "electronics")
 reward_text = "Credits, an armor plate and electronics."
 next_quest = &"experimental_site"

@@ -158,6 +158,7 @@ func _test_full_chain() -> void:
 	_check(_qm.is_active(Q2), "Ghost Frequency starts next")
 	_check(_prog.progress.xp - xp_start >= 260, "quest XP was awarded (%d)" % (_prog.progress.xp - xp_start))
 	# Ghost Frequency.
+	_world.set_flag(&"blackwood_waves_cleared")  # the stage's wave step (stage_waves_check plays the real fight)
 	_world.emit_area_entered(&"blackwood_comms_station")
 	_check(_done(Q2, &"find_station"), "the hidden station is found")
 	var receiver := _terminal(&"bw_transmissions")
@@ -218,6 +219,7 @@ func _test_full_chain() -> void:
 func _test_out_of_order() -> void:
 	print("Out of order and optional")
 	await _fresh()
+	_world.set_flag(&"blackwood_waves_cleared")  # the stage's wave step (stage_waves_check plays the real fight)
 	# Do things from later missions before the chain even starts: they are remembered.
 	_world.emit_area_entered(&"blackwood_research_perimeter")
 	_world.emit_area_entered(&"blackwood_testing_site")

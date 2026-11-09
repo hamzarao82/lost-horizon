@@ -17,6 +17,13 @@ text = "Restore the security network"
 type = 5
 targets = PackedStringArray("research_complex_security_online")
 
+[sub_resource type="Resource" id="Resource_8xkgj"]
+script = ExtResource("1_8xkgj")
+id = &"research_complex_waves_cleared"
+text = "Hold the wing against facility security"
+type = 5
+targets = PackedStringArray("research_complex_waves_cleared")
+
 [sub_resource type="Resource" id="Resource_afsrv"]
 script = ExtResource("1_8xkgj")
 id = &"restore_archive_power"
@@ -81,7 +88,7 @@ script = ExtResource("2_x3wei")
 id = &"rc_silent_records"
 title = "Silent Records"
 description = "Someone kept careful records here. Bring the security network back up, open the archive and follow the paper trail into the medical wing."
-objectives = Array[ExtResource("1_8xkgj")]([SubResource("Resource_pmyti"), SubResource("Resource_tg3li"), SubResource("Resource_afsrv"), SubResource("Resource_jednn"), SubResource("Resource_1r48g"), SubResource("Resource_27e30"), SubResource("Resource_b7u7p"), SubResource("Resource_nk5dq"), SubResource("Resource_6gnqt"), SubResource("Resource_v0a8e")])
+objectives = Array[ExtResource("1_8xkgj")]([SubResource("Resource_pmyti"), SubResource("Resource_tg3li"), SubResource("Resource_8xkgj"), SubResource("Resource_afsrv"), SubResource("Resource_jednn"), SubResource("Resource_1r48g"), SubResource("Resource_27e30"), SubResource("Resource_b7u7p"), SubResource("Resource_nk5dq"), SubResource("Resource_6gnqt"), SubResource("Resource_v0a8e")])
 rewards = PackedStringArray("credits_medium", "antiseptic", "electronics")
 reward_text = "Credits, antiseptic and electronics."
 next_quest = &"rc_containment_breach"

@@ -75,6 +75,7 @@ func _test_builder() -> void:
 ## Flags that the world really produces, taken from the built objects.
 func _produced_flags() -> Dictionary:
 	var out: Dictionary = {}
+	out[String(RegionFlags.key(&"iron_fortress", &"waves_cleared"))] = true  # produced by the stage's StageWaves encounter
 	for id: String in _f.parts.nodes:
 		var node: Object = _f.parts.nodes[id]
 		if node is ResearchTerminal and (node as ResearchTerminal).finish_flag != &"":

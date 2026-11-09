@@ -17,6 +17,13 @@ text = "Take the barracks credentials"
 type = 5
 targets = PackedStringArray("credential_barracks")
 
+[sub_resource type="Resource" id="Resource_g5h6f"]
+script = ExtResource("1_g5h6f")
+id = &"iron_fortress_waves_cleared"
+text = "Hold the barracks against the garrison"
+type = 5
+targets = PackedStringArray("iron_fortress_waves_cleared")
+
 [sub_resource type="Resource" id="Resource_5b8hx"]
 script = ExtResource("1_g5h6f")
 id = &"enter_barracks"
@@ -79,7 +86,7 @@ script = ExtResource("2_a20ss")
 id = &"if_inside_the_walls"
 title = "Inside the Walls"
 description = "Break through the outer perimeter: start the gate sequence, win a pass for the barracks, and take the command key from the defenders."
-objectives = Array[ExtResource("1_g5h6f")]([SubResource("Resource_ltgpf"), SubResource("Resource_1q0st"), SubResource("Resource_5b8hx"), SubResource("Resource_7vb2p"), SubResource("Resource_ee2kr"), SubResource("Resource_vcbdh"), SubResource("Resource_s1pwy"), SubResource("Resource_ogily"), SubResource("Resource_e0agh"), SubResource("Resource_3vmmf")])
+objectives = Array[ExtResource("1_g5h6f")]([SubResource("Resource_ltgpf"), SubResource("Resource_1q0st"), SubResource("Resource_g5h6f"), SubResource("Resource_5b8hx"), SubResource("Resource_7vb2p"), SubResource("Resource_ee2kr"), SubResource("Resource_vcbdh"), SubResource("Resource_s1pwy"), SubResource("Resource_ogily"), SubResource("Resource_e0agh"), SubResource("Resource_3vmmf")])
 rewards = PackedStringArray("credits_medium", "armor_plate")
 reward_text = "Credits and an armor plate."
 next_quest = &"if_chain_of_command"

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ArenaWaveSet" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/arena_wave_set.gd" id="1_waves"]
+
+[resource]
+script = ExtResource("1_waves")
+waves = Array[Dictionary]([{
+"enemies": ["res://resources/enemies/fortress_infantry.tres", "res://resources/enemies/fortress_infantry.tres", "res://resources/enemies/fortress_infantry.tres"],
+"rest": 3.0,
+"spacing": 0.25
+}, {
+"enemies": ["res://resources/enemies/fortress_infantry.tres", "res://resources/enemies/fortress_infantry.tres", "res://resources/enemies/elite_security_soldier.tres"],
+"rest": 3.0,
+"spacing": 0.25
+}, {
+"enemies": ["res://resources/enemies/heavy_assault_unit.tres", "res://resources/enemies/elite_security_soldier.tres", "res://resources/enemies/fortress_infantry.tres"],
+"rest": 3.0,
+"spacing": 0.25
+}, {
+"enemies": ["res://resources/enemies/tactical_commander.tres", "res://resources/enemies/elite_security_soldier.tres", "res://resources/enemies/elite_security_soldier.tres", "res://resources/enemies/fortress_infantry.tres"],
+"rest": 3.0,
+"spacing": 0.25
+}])

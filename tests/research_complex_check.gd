@@ -116,6 +116,7 @@ func _load_quests() -> Array[QuestData]:
 ## Flags the world can set: credentials, door opens, document reads, crate takes, group results, puzzle results.
 func _produced_flags() -> Array[String]:
 	var out: Array[String] = []
+	out.append(String(RegionFlags.key(&"research_complex", &"waves_cleared")))  # produced by the stage's StageWaves encounter
 	for level in FacilityIds.LEVELS:
 		out.append(String(FacilityIds.credential_flag(level)))
 	for id: String in _rc.parts.doors:

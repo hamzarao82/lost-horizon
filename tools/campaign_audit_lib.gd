@@ -204,4 +204,5 @@ const DYNAMIC_FLAGS: Array[Dictionary] = [
 	{"pattern": "^credential_\\w+$", "how": "AccessPanel sets credential_<level> (facility_ids.gd:10)"},
 	{"pattern": "^\\w+_taken$", "how": "SupplyCrate sets <crate_id>_taken (supply_crate.gd:32)"},
 	{"pattern": "^blackwood_\\w+_cleared$", "how": "BlackwoodEncounter sets blackwood_<id>_cleared (blackwood_encounter.gd:36)"},
+	{"pattern": "^(dead_coast|blackwood|research_complex|iron_fortress)_waves_cleared$", "how": "StageWaves sets <region>_waves_cleared (stage_waves.gd cleared_flag)"},
 ]

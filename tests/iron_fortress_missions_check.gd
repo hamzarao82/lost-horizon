@@ -170,6 +170,7 @@ func _scenario_in_order() -> void:
 	_check(_has("if_cache_approach_taken"), "the optional cache can still be opened afterwards")
 
 	# Mission 2: Inside the Walls
+	_world.set_flag(&"iron_fortress_waves_cleared")  # the stage's wave step (stage_waves_check plays the real fight)
 	var command_panel := _f.parts.nodes["if_command_panel"] as Interactable
 	_check(not _door("if_barracks_door"), "the barracks gate is locked before the gate sequence")
 	_check(not (_f.parts.nodes["if_barracks_panel"] as Interactable).interact(_dummy), "the barracks panel is dead before the gate sequence")

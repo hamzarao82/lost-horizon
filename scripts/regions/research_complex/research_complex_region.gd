@@ -20,6 +20,7 @@ func _ready() -> void:
 	content = ResearchComplex.new()
 	content.name = "ResearchComplex"
 	add_child(content)
+	StageWaves.attach(self, &"research_complex")  # one wave encounter in the stage's middle section
 
 
 func enter(entry_id: StringName) -> void:
