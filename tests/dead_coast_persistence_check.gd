@@ -166,6 +166,7 @@ func _play_and_collect_flags() -> void:
 				enemy.receive_hit(attack, enemy.global_position + Vector3(0.0, 0.0, 2.0))
 				await physics_frame
 	await _frames(4)
+	_world.set_flag(&"dead_coast_waves_cleared")  # the stage's wave step (stage_waves_check plays the real fight)
 	_world.set_flag(&"patrol_dead_coast_checkpoint_cleared", true)
 	(_region.triggers[&"dc_checkpoint"] as AreaTrigger).report_entered()
 	(_region.triggers[&"dc_cove"] as AreaTrigger).report_entered()
