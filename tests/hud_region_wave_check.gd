@@ -44,5 +44,17 @@ func _run() -> void:
 	rm.current_region_id = &"outpost_17"
 	rm.region_changed.emit(&"blackwood", &"outpost_17")
 	_check(label.text.begins_with("Wave"), "returning to Outpost 17 brings the counter back")
+	# A running stage encounter shows its own counter, counting only its own enemies.
+	rm.current_region_id = &"dead_coast"
+	var stage := StageWaves.attach(main, &"dead_coast")
+	await physics_frame
+	stage.state = StageWaves.State.ACTIVE
+	stage.current_wave = 2
+	rm.region_changed.emit(&"outpost_17", &"dead_coast")
+	_check(label.text == "Wave 2/3  Enemies: 0", "an active stage encounter shows its own counter (%s)" % label.text)
+	stage.state = StageWaves.State.COMPLETE
+	rm.region_changed.emit(&"dead_coast", &"dead_coast")
+	_check(label.text == "", "a finished encounter shows no counter")
+	stage.queue_free()
 	print("hud_region_wave_check: %d checks, %d failed" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)

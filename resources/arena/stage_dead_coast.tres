@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ArenaWaveSet" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/arena_wave_set.gd" id="1_waves"]
+
+[resource]
+script = ExtResource("1_waves")
+waves = Array[Dictionary]([{
+"enemies": ["res://scenes/enemies/PatrolSoldier.tscn", "res://scenes/enemies/PatrolSoldier.tscn", "res://scenes/enemies/PatrolSoldier.tscn"],
+"rest": 3.0,
+"spacing": 0.25
+}, {
+"enemies": ["res://scenes/enemies/PatrolSoldier.tscn", "res://scenes/enemies/PatrolSoldier.tscn", "res://scenes/enemies/HunterElite.tscn"],
+"rest": 3.0,
+"spacing": 0.25
+}, {
+"enemies": ["res://scenes/enemies/PatrolSoldier.tscn", "res://scenes/enemies/HunterElite.tscn", "res://scenes/enemies/HeavySoldier.tscn"],
+"rest": 3.0,
+"spacing": 0.25
+}])

@@ -18,6 +18,7 @@ func _ready() -> void:
 	content = IronFortress.new()
 	content.name = "IronFortress"
 	add_child(content)
+	StageWaves.attach(self, &"iron_fortress")  # one wave encounter in the stage's middle section
 
 
 func enter(entry_id: StringName) -> void:

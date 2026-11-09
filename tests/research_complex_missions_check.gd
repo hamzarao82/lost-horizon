@@ -163,6 +163,7 @@ func _scenario_in_order() -> void:
 	_check(_has("rc_cache_perimeter_taken"), "the optional cache can still be opened afterwards")
 
 	# Mission 2: Silent Records
+	_world.set_flag(&"research_complex_waves_cleared")  # the stage's wave step (stage_waves_check plays the real fight)
 	_enter("rc_archive")
 	_check(_done(&"rc_silent_records", "find_archive"), "entering the archive completes its objective")
 	_check(not _use("rc_archive_breaker"), "the archive breaker is dead while security is offline")
@@ -250,6 +251,7 @@ func _scenario_in_order() -> void:
 func _scenario_other_order() -> void:
 	print("-- other order (the guards are slipped past, steps shuffled)")
 	await _fresh()
+	_world.set_flag(&"research_complex_waves_cleared")  # the stage's wave step (stage_waves_check plays the real fight)
 	_rc.enter()
 	# credentials and doors reached through their panels and terminals, but guards avoided
 	_fire("rc_entrance")  # strict stage order: the entrance is the first step, so it comes first

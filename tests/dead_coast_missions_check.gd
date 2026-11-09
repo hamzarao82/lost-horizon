@@ -141,6 +141,7 @@ func _scenario_in_order() -> void:
 		_check(int(_progression.progress.xp) > xp_before or int(_progression.progress.level) > 1, "completing a mission awards XP")
 
 	# Mission 2: The Silent Checkpoint, in a different order than the quest text
+	_world.set_flag(&"dead_coast_waves_cleared")  # the stage's wave step (stage_waves_check plays the real fight)
 	var gate := _region.content.nodes["dc_gate"] as Door
 	_check(gate.locked, "the barrier is locked before the pass")
 	_check(_use("dead_coast_checkpoint_terminal"), "the checkpoint terminal can be read")
@@ -195,6 +196,7 @@ func _scenario_out_of_order() -> void:
 	await _fresh()
 	_region.enter()
 	# Everything the later missions need happens first, as flags and interactions.
+	_world.set_flag(&"dead_coast_waves_cleared")  # the stage's wave step (stage_waves_check plays the real fight)
 	_use("dead_coast_guard_pass")
 	_use("dead_coast_log_checkpoint_orders")
 	_use("dead_coast_checkpoint_terminal")

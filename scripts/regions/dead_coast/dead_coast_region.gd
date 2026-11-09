@@ -22,6 +22,7 @@ func _ready() -> void:
 	content.name = "DeadCoast"
 	content.vegetation_density = 0.4 if OS.has_feature("web") or OS.has_feature("mobile") else 1.0
 	add_child(content)
+	StageWaves.attach(self, &"dead_coast")  # one wave encounter in the stage's middle section
 
 
 func enter(entry_id: StringName) -> void:

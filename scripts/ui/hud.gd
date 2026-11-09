@@ -438,8 +438,21 @@ func _cut_captions() -> void:
 		_subtitle_time = 0.9
 
 
+## A stage's wave encounter (Dead Coast, Blackwood, Research Complex, Iron Fortress) that is running now.
+func _active_stage() -> Node:
+	for node in get_tree().get_nodes_in_group("stage_waves"):
+		if node.has_method("is_active") and node.is_active():
+			return node
+	return null
+
+
 func _refresh_wave_label() -> void:
-	# The five-wave arena belongs to Outpost 17; other regions have no wave counter.
+	# A running stage encounter shows its own counter, counting only its own living enemies.
+	var stage := _active_stage()
+	if stage != null:
+		_wave_label.text = "Wave %d/%d  Enemies: %d" % [stage.current_wave, stage.total_waves(), stage.active_enemy_count()]
+		return
+	# The five-wave arena belongs to Outpost 17; other regions have no wave counter outside an encounter.
 	var regions := get_node_or_null("/root/RegionManager")
 	if regions != null and String(regions.get("current_region_id")) not in ["", "outpost_17"]:
 		_wave_label.text = ""
