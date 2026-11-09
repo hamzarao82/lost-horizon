@@ -32,6 +32,7 @@ var _health_bar: HudBar
 var _stamina_bar: HudBar
 var _armor_bar: HudBar
 var _message: Label
+var _message_time: float = 0.0  # seconds left of a timed message; 0 = not timed
 var _wave_label: Label
 var _banner: Label
 var _equipment: HudEquipment
@@ -172,6 +173,7 @@ func _ready() -> void:
 	_waves = get_tree().get_first_node_in_group("wave_manager") as WaveManager
 	if _waves:
 		_waves.wave_started.connect(_on_wave_started)
+		_waves.all_cleared.connect(_on_arena_cleared)
 	_refresh_wave_label()
 	var region_manager := get_node_or_null("/root/RegionManager")
 	if region_manager != null and region_manager.has_signal("region_changed"):
@@ -222,6 +224,11 @@ func _process(delta: float) -> void:
 		_toast.visible = _toast_time > 0.0
 
 	_update_boss_bar(viewport_size)
+	if _message_time > 0.0:
+		_message_time -= delta
+		_message.modulate.a = clampf(_message_time / 0.6, 0.0, 1.0)
+		if _message_time <= 0.0:
+			_message.visible = false
 	_update_story(viewport_size, delta)
 	_sync_backdrops()
 	_update_teleport(delta)
@@ -240,8 +247,7 @@ func _process(delta: float) -> void:
 	if _player and _player.is_dead():
 		if get_tree().get_first_node_in_group("death_screen") == null:  # DeathScreen shows its own
 			_show_message("YOU DIED", Color(0.9, 0.15, 0.15))
-	elif _arena_cleared():
-		_show_message("ARENA CLEARED", Color(0.95, 0.85, 0.3))
+	_connect_stage_waves()
 
 
 func _update_boss_bar(viewport_size: Vector2) -> void:
@@ -261,10 +267,25 @@ func _update_boss_bar(viewport_size: Vector2) -> void:
 	_boss_name.position = Vector2((viewport_size.x - _boss_name.size.x) * 0.5, 40)
 
 
-func _arena_cleared() -> bool:
-	if _waves and is_instance_valid(_waves):
-		return _waves.is_finished()
-	return get_tree().get_nodes_in_group("enemies").is_empty()
+## "ARENA CLEARED" used to be drawn on every frame while the arena was finished (or while no enemy was alive
+## in a region without an arena) and was never hidden. It now shows once, when a fight really ends, and fades.
+const CLEARED_MESSAGE_SECONDS: float = 5.0
+
+
+func _on_arena_cleared() -> void:
+	_show_message("ARENA CLEARED", Color(0.95, 0.85, 0.3), CLEARED_MESSAGE_SECONDS)
+
+
+func _on_stage_waves_cleared() -> void:
+	_show_message("WAVES CLEARED", Color(0.95, 0.85, 0.3), CLEARED_MESSAGE_SECONDS)
+
+
+## Stage wave encounters appear when a region is built; hook each one once.
+func _connect_stage_waves() -> void:
+	for node in get_tree().get_nodes_in_group("stage_waves"):
+		if node.has_signal("all_cleared") and not node.has_meta(&"hud_connected"):
+			node.set_meta(&"hud_connected", true)
+			node.all_cleared.connect(_on_stage_waves_cleared)
 
 
 func _make_label(font_size: int, outline: int) -> Label:
@@ -740,8 +761,11 @@ func _show_toast(text: String, color: Color) -> void:
 	_toast_time = TOAST_SECONDS
 
 
-func _show_message(text: String, color: Color) -> void:
+## `seconds` > 0 shows the message for that long and fades it out; 0 keeps it up (the death message).
+func _show_message(text: String, color: Color, seconds: float = 0.0) -> void:
 	_message.text = text
 	_message.add_theme_color_override("font_color", color)
+	_message.modulate.a = 1.0
 	_message.visible = true
+	_message_time = seconds
 	_message.position = (get_viewport().get_visible_rect().size - _message.size) * 0.5
