@@ -205,4 +205,6 @@ const DYNAMIC_FLAGS: Array[Dictionary] = [
 	{"pattern": "^\\w+_taken$", "how": "SupplyCrate sets <crate_id>_taken (supply_crate.gd:32)"},
 	{"pattern": "^blackwood_\\w+_cleared$", "how": "BlackwoodEncounter sets blackwood_<id>_cleared (blackwood_encounter.gd:36)"},
 	{"pattern": "^(dead_coast|blackwood|research_complex|iron_fortress)_waves_cleared$", "how": "StageWaves sets <region>_waves_cleared (stage_waves.gd cleared_flag)"},
+	{"pattern": "^(dead_coast|blackwood|research_complex)_boss_[12]_defeated$", "how": "StageBoss sets <region>_boss_<n>_defeated (stage_boss.gd flag_for)"},
+	{"pattern": "^(blackwood|research_complex|iron_fortress)_arrived$", "how": "CampaignFlow sets <region>_arrived on arrival (campaign_flow.gd _on_region_changed)"},
 ]

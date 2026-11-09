@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_a7gdd"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_q7yhv"]
+
+[sub_resource type="Resource" id="Resource_5v7k1"]
+script = ExtResource("1_a7gdd")
+id = &"blackwood_arrived"
+text = "Take the road to Blackwood"
+type = 5
+targets = PackedStringArray("blackwood_arrived")
+
+[resource]
+script = ExtResource("2_q7yhv")
+id = &"dc_road_to_blackwood"
+title = "The Road to Blackwood"
+description = "The shipment's trail runs inland. The gate at the end of the coast road is open."
+prerequisites = PackedStringArray("dc_lost_cargo")
+objectives = Array[ExtResource("1_a7gdd")]([SubResource("Resource_5v7k1")])
+start_captions = PackedStringArray("The road to Blackwood is open.")

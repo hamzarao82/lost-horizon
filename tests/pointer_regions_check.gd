@@ -61,6 +61,8 @@ func _run() -> void:
 		_check(ok and _rm.current_region_id == region, "%s: reached by real travel" % region)
 		var total := 0
 		var waves_checked := 0
+		var bosses_checked := 0
+		var arrivals_checked := 0
 		var missing: Array[String] = []
 		for quest_id: StringName in _qm.quests.keys():
 			if _qm._quest_region.get(quest_id, &"outpost_17") != region:
@@ -74,11 +76,22 @@ func _run() -> void:
 				if pointer.target == null:
 					missing.append("%s/%s" % [quest_id, objective.id])
 				for flag in objective.targets:
+					if ObjectivePointer._is_boss_flag(String(flag)):
+						bosses_checked += 1
+						_check(pointer.label == "Boss", "%s: the boss step '%s' aims at the boss (%s)" % [region, objective.id, pointer.label])
+					if String(flag).ends_with("_arrived"):
+						arrivals_checked += 1
+						_check(pointer.label.begins_with("Road to"), "%s: the arrival step '%s' aims at the road (%s)" % [region, objective.id, pointer.label])
 					if String(flag).ends_with("_waves_cleared"):
 						waves_checked += 1
 						_check(pointer.label == "Hold point", "%s: the wave step '%s' aims at the hold point (%s)" % [region, objective.id, pointer.label])
 		_check(total > 0, "%s: has required objectives (%d)" % [region, total])
 		_check(waves_checked == 1, "%s: has exactly one wave step (%d)" % [region, waves_checked])
+		# Two bosses per stage (Subject Zero counts for the Research Complex); the Iron Fortress has its own two.
+		var wanted_bosses: int = 2 if region != &"iron_fortress" else 0
+		_check(bosses_checked >= wanted_bosses, "%s: has its boss steps (%d, wanted at least %d)" % [region, bosses_checked, wanted_bosses])
+		if region != &"iron_fortress":
+			_check(arrivals_checked == 1, "%s: ends with one road step (%d)" % [region, arrivals_checked])
 		_check(missing.is_empty(), "%s: the arrow finds every required objective (missing: %s)" % [region, ", ".join(missing)])
 	_sm.reset_runtime_state()
 	_sm.delete_save()

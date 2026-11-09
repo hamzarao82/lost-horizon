@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_b523e"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_fa6di"]
+
+[sub_resource type="Resource" id="Resource_e3x51"]
+script = ExtResource("1_b523e")
+id = &"iron_fortress_arrived"
+text = "Take the underground road to the Iron Fortress"
+type = 5
+targets = PackedStringArray("iron_fortress_arrived")
+
+[resource]
+script = ExtResource("2_fa6di")
+id = &"rc_road_to_iron_fortress"
+title = "The Road to the Iron Fortress"
+description = "The recovered data ends at one place. The underground road leads there."
+prerequisites = PackedStringArray("rc_project_black_site")
+objectives = Array[ExtResource("1_b523e")]([SubResource("Resource_e3x51")])
+start_captions = PackedStringArray("The underground road is open.")

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_x80x4"]
+
+[resource]
+script = ExtResource("1_x80x4")
+item_id = &"dc_harbor_cap"
+display_name = "Harbor Commander's Cap"
+kind = 1
+rarity = 2
+description = "A salt-stained officer's cap with a checkpoint pin. Whoever wore it never left the harbor road."
+slot = 3
+base_stats = {
+"damage_reduction": 0.03,
+"max_health": 6.0
+}
+unique = true
+value = 90
+region = "dead_coast"

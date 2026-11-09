@@ -24,6 +24,13 @@ text = "Defeat the laboratory security"
 type = 5
 targets = PackedStringArray("research_complex_lab_security_cleared")
 
+[sub_resource type="Resource" id="Resource_k411n"]
+script = ExtResource("1_k411n")
+id = &"research_complex_boss_2_defeated"
+text = "Defeat the Facility Commander"
+type = 5
+targets = PackedStringArray("research_complex_boss_2_defeated")
+
 [sub_resource type="Resource" id="Resource_siwcg"]
 script = ExtResource("1_k411n")
 id = &"reach_final"
@@ -72,9 +79,10 @@ script = ExtResource("2_nrvto")
 id = &"rc_project_black_site"
 title = "Project Black Site"
 description = "The laboratory holds the data the whole operation was built around. Restore its power, reach the final chamber and get out with what you find."
-objectives = Array[ExtResource("1_k411n")]([SubResource("Resource_bymqv"), SubResource("Resource_amm2d"), SubResource("Resource_uvknm"), SubResource("Resource_siwcg"), SubResource("Resource_ihw8e"), SubResource("Resource_vfe21"), SubResource("Resource_sm8cj"), SubResource("Resource_yhkwv"), SubResource("Resource_5bbgp")])
+objectives = Array[ExtResource("1_k411n")]([SubResource("Resource_bymqv"), SubResource("Resource_amm2d"), SubResource("Resource_uvknm"), SubResource("Resource_k411n"), SubResource("Resource_siwcg"), SubResource("Resource_ihw8e"), SubResource("Resource_vfe21"), SubResource("Resource_sm8cj"), SubResource("Resource_yhkwv"), SubResource("Resource_5bbgp")])
 rewards = PackedStringArray("credits_medium", "credits_medium", "upgrade_kit_weapon", "electronics")
 reward_text = "Credits, a weapon upgrade kit and electronics."
+next_quest = &"rc_road_to_iron_fortress"
 start_captions = PackedStringArray("The last door in the facility needs the power on.")
 complete_captions = PackedStringArray("One destination in the route table. The command, behind the iron gate.")
 location_hint = "Central laboratory"

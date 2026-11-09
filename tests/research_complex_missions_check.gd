@@ -233,6 +233,7 @@ func _scenario_in_order() -> void:
 	_check(not _has("research_complex_lab_security_cleared"), "the Commander still counts as laboratory security")
 	await _kill(_rc.commander, 600)
 	_check(_rc.commander.is_dead() and _has("research_complex_lab_security_cleared"), "defeating the Commander clears the laboratory")
+	_world.set_flag(&"research_complex_boss_2_defeated")  # the commander is the stage's second boss (the content alone has no helper)
 	_enter("rc_final_chamber")
 	_check(not _door("rc_service_hatch"), "the service hatch stays sealed before the data is retrieved")
 	_check(_use("rc_black_site_data") and _has("research_complex_next_lead"), "the Project Black Site data can be retrieved")

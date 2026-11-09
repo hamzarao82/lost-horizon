@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EnemyConfig" format=3]
+
+[ext_resource type="Script" path="res://scripts/ai/enemy_config.gd" id="1_88u86"]
+
+[resource]
+script = ExtResource("1_88u86")
+scene_path = "res://scenes/enemies/StageBoss.tscn"
+display_name = "Cove Boss"
+hit_points = 430.0
+armor = 60.0
+body_color = Color(0.55, 0.35, 0.15, 1)
+body_scale = 1.6
+stagger_resist = 0.7
+swing_path = "res://resources/attacks/experimental_claw.tres"
+loot_table_path = "res://resources/loot/dead_coast_elite.tres"
+move_speed = 3.0
+detection_range = 18.0
+attack_range = 3.0
+cooldown_min = 1.4
+cooldown_max = 2.0
+extras = {
+"charge_weight": 0.0,
+"claw_weight": 1.0,
+"ring_weight": 3.0
+}

@@ -43,6 +43,13 @@ text = "Defeat the checkpoint's defenders"
 type = 5
 targets = PackedStringArray("patrol_dead_coast_checkpoint_cleared")
 
+[sub_resource type="Resource" id="Resource_6w55u"]
+script = ExtResource("1_qglf7")
+id = &"dead_coast_boss_1_defeated"
+text = "Defeat the Harbor Commander"
+type = 5
+targets = PackedStringArray("dead_coast_boss_1_defeated")
+
 [sub_resource type="Resource" id="Resource_yxraa"]
 script = ExtResource("1_qglf7")
 id = &"search_guardhouse"
@@ -56,7 +63,7 @@ id = &"dc_silent_checkpoint"
 title = "The Silent Checkpoint"
 description = "A military checkpoint on the coast road stopped answering. Find out why, and open the supply route."
 prerequisites = PackedStringArray("dc_wreckage")
-objectives = Array[ExtResource("1_qglf7")]([SubResource("Resource_pltku"), SubResource("Resource_pxftn"), SubResource("Resource_qglf7"), SubResource("Resource_1xohk"), SubResource("Resource_we5y4"), SubResource("Resource_u18w5"), SubResource("Resource_yxraa")])
+objectives = Array[ExtResource("1_qglf7")]([SubResource("Resource_pltku"), SubResource("Resource_pxftn"), SubResource("Resource_qglf7"), SubResource("Resource_1xohk"), SubResource("Resource_we5y4"), SubResource("Resource_u18w5"), SubResource("Resource_6w55u"), SubResource("Resource_yxraa")])
 rewards = PackedStringArray("armor_patch", "credits_medium")
 reward_text = "Armor patch and credits"
 next_quest = &"dc_lost_cargo"

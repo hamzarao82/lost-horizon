@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_o0ns3"]
+
+[resource]
+script = ExtResource("1_o0ns3")
+item_id = &"bw_chief_boots"
+display_name = "Patrol Chief's Boots"
+kind = 1
+rarity = 2
+description = "Jungle boots worn to the shape of one man's stride. The trail lanterns were set to his pace."
+slot = 6
+base_stats = {
+"damage_reduction": 0.02,
+"move_speed_mult": 1.04
+}
+unique = true
+value = 90
+region = "blackwood"

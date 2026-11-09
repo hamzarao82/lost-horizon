@@ -152,6 +152,7 @@ func _test_full_chain() -> void:
 	await _frames(4)
 	_check(_done(Q1, &"survive_ambush"), "'Survive the ambush' is done after the attackers fall")
 	_world.emit_area_entered(&"blackwood_patrol_camp")
+	_world.set_flag(&"blackwood_boss_1_defeated")  # the patrol chief step (stage_bosses_check plays the real fight)
 	await _frames(3)
 	_check(_qm.is_completed(Q1), "Into the Blackwood completes without the optional logs")
 	_check(_count("bandage") == 2, "its reward paid two bandages (%d)" % _count("bandage"))
@@ -203,6 +204,7 @@ func _test_full_chain() -> void:
 	var defenders: BlackwoodEncounter = _region.encounters[&"site_defenders"]
 	_check(defenders.enemies.size() == 4, "four defenders guard the site (%d)" % defenders.enemies.size())
 	_kill(defenders)
+	_world.set_flag(&"blackwood_boss_2_defeated")  # the site overseer step (stage_bosses_check plays the real fight)
 	await _frames(4)
 	_check(_done(Q3, &"defeat_defenders"), "'Defeat the site defenders' is done")
 	_check(not _qm.is_completed(Q3), "the mission is open before the access is unlocked")
@@ -220,6 +222,8 @@ func _test_out_of_order() -> void:
 	print("Out of order and optional")
 	await _fresh()
 	_world.set_flag(&"blackwood_waves_cleared")  # the stage's wave step (stage_waves_check plays the real fight)
+	_world.set_flag(&"blackwood_boss_1_defeated")  # the boss steps (stage_bosses_check plays the real fights)
+	_world.set_flag(&"blackwood_boss_2_defeated")
 	# Do things from later missions before the chain even starts: they are remembered.
 	_world.emit_area_entered(&"blackwood_research_perimeter")
 	_world.emit_area_entered(&"blackwood_testing_site")
@@ -275,6 +279,7 @@ func _test_reload_no_repeat() -> void:
 	_world.emit_area_entered(&"blackwood_trail")
 	_use(&"bw_patrol_gear")
 	_world.emit_area_entered(&"blackwood_patrol_camp")
+	_world.set_flag(&"blackwood_boss_1_defeated")  # the patrol chief step
 	await _frames(3)
 	var bandages := _count("bandage")
 	_check(_qm.is_completed(Q1) and bandages == 2, "quest one is done and paid (%d bandages)" % bandages)

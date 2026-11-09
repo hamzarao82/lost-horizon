@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="1_6fupu"]
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="2_edw5m"]
+
+[sub_resource type="Resource" id="Resource_sl1jn"]
+script = ExtResource("1_6fupu")
+id = &"research_complex_arrived"
+text = "Take the road to the Research Complex"
+type = 5
+targets = PackedStringArray("research_complex_arrived")
+
+[resource]
+script = ExtResource("2_edw5m")
+id = &"bw_road_to_research_complex"
+title = "The Road to the Research Complex"
+description = "The testing site's access code opens the facility road."
+prerequisites = PackedStringArray("experimental_site")
+objectives = Array[ExtResource("1_6fupu")]([SubResource("Resource_sl1jn")])
+start_captions = PackedStringArray("The road to the Research Complex is open.")

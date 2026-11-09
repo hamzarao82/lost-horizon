@@ -147,6 +147,10 @@ func _resolve_flag_target(objective: ObjectiveData) -> void:
 				var flag_name := String(flag)
 				if flag_name.ends_with("_waves_cleared"):
 					_point_at_wave_hold()  # a stage wave fight: head for its hold area
+				elif _is_boss_flag(flag_name):
+					_point_at_boss()  # a stage boss: the living boss, or the spot where it will stand
+				elif flag_name.ends_with("_arrived"):
+					_point_at_road_to(StringName(flag_name.trim_suffix("_arrived")))  # the road to the next stage
 				elif flag_name.begins_with("patrol_") and flag_name.ends_with("_cleared"):
 					_point_at_nearest_enemy()  # a patrol group has to be defeated
 				elif not _point_at_interactable(StringName(flag_name)):
@@ -222,6 +226,50 @@ func _find_mission_trigger(id: StringName) -> Node3D:
 		if trigger != null and (trigger.trigger_id == id or trigger.event_id == id):
 			return trigger
 	return null
+
+
+static func _is_boss_flag(flag_name: String) -> bool:
+	return flag_name == "research_complex_elite_down" or ("_boss_" in flag_name and flag_name.ends_with("_defeated"))
+
+
+## The nearest living boss; before it exists (or after a reload) the spot a stage boss will stand.
+func _point_at_boss() -> bool:
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	var best := INF
+	for node in get_tree().get_nodes_in_group("boss"):
+		var boss := node as Node3D
+		if boss == null or (boss.has_method("is_dead") and boss.is_dead()):
+			continue
+		var distance := player.global_position.distance_to(boss.global_position) if player != null else 0.0
+		if distance < best:
+			best = distance
+			target = Vector3(boss.global_position.x, 0.0, boss.global_position.z)
+			label = "Boss"
+	if target != null:
+		return true
+	for node in get_tree().get_nodes_in_group("stage_boss_spawns"):
+		var spawn := node as StageBoss
+		if spawn != null and not spawn.is_defeated():
+			target = Vector3(spawn.global_position.x, 0.0, spawn.global_position.z)
+			label = "Boss"
+			return true
+	return false
+
+
+## The nearest exit trigger whose destination is `region`.
+func _point_at_road_to(region: StringName) -> bool:
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	var best := INF
+	for node in get_tree().root.find_children("*", "RegionExit", true, false):
+		var road := node as RegionExit
+		if road == null or road.target_region != region:
+			continue
+		var distance := player.global_position.distance_to(road.global_position) if player != null else 0.0
+		if distance < best:
+			best = distance
+			target = Vector3(road.global_position.x, 0.0, road.global_position.z)
+			label = "Road to %s" % String(region).replace("_", " ").capitalize()
+	return target != null
 
 
 ## The hold area of this stage's wave encounter (a StageWaves node joins the group "stage_waves").

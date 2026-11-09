@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EnemyConfig" format=3]
+
+[ext_resource type="Script" path="res://scripts/ai/ranged/ranged_config.gd" id="1_74nhn"]
+[ext_resource type="Script" path="res://scripts/ai/enemy_config.gd" id="2_liqnd"]
+
+[sub_resource type="Resource" id="Resource_xggci"]
+script = ExtResource("1_74nhn")
+
+[resource]
+script = ExtResource("2_liqnd")
+display_name = "Facility Commander"
+hit_points = 380.0
+armor = 80.0
+body_color = Color(0.25, 0.38, 0.55, 1)
+body_scale = 1.3
+stagger_resist = 0.5
+swing_path = "res://resources/attacks/ranged_shove.tres"
+loot_table_path = "res://resources/loot/hunter_loot.tres"
+move_speed = 3.8
+detection_range = 16.0
+attack_range = 2.0
+coordinate_alarm = true
+ranged = SubResource("Resource_xggci")
