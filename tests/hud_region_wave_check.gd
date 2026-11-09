@@ -37,10 +37,10 @@ func _run() -> void:
 	_check(label.text.begins_with("Wave"), "Outpost 17 shows the wave counter (%s)" % label.text)
 	rm.current_region_id = &"dead_coast"
 	rm.region_changed.emit(&"outpost_17", &"dead_coast")
-	_check(label.text == "", "Dead Coast shows no wave counter")
+	_check(not label.text.begins_with("Wave"), "Dead Coast never shows the arena wave counter (%s)" % label.text)
 	rm.current_region_id = &"blackwood"
 	rm.region_changed.emit(&"dead_coast", &"blackwood")
-	_check(label.text == "", "Blackwood shows no wave counter")
+	_check(not label.text.begins_with("Wave"), "Blackwood never shows the arena wave counter (%s)" % label.text)
 	rm.current_region_id = &"outpost_17"
 	rm.region_changed.emit(&"blackwood", &"outpost_17")
 	_check(label.text.begins_with("Wave"), "returning to Outpost 17 brings the counter back")
@@ -54,7 +54,7 @@ func _run() -> void:
 	_check(label.text == "Wave 2/3  Enemies: 0", "an active stage encounter shows its own counter (%s)" % label.text)
 	stage.state = StageWaves.State.COMPLETE
 	rm.region_changed.emit(&"dead_coast", &"dead_coast")
-	_check(label.text == "", "a finished encounter shows no counter")
+	_check(not label.text.begins_with("Wave"), "a finished encounter no longer shows the wave counter (%s)" % label.text)
 	stage.queue_free()
 	print("hud_region_wave_check: %d checks, %d failed" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)

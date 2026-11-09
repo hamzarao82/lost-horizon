@@ -473,10 +473,10 @@ func _refresh_wave_label() -> void:
 	if stage != null:
 		_wave_label.text = "Wave %d/%d  Enemies: %d" % [stage.current_wave, stage.total_waves(), stage.active_enemy_count()]
 		return
-	# The five-wave arena belongs to Outpost 17; other regions have no wave counter outside an encounter.
+	# The five-wave arena belongs to Outpost 17. The later regions show how many of their enemies are left.
 	var regions := get_node_or_null("/root/RegionManager")
 	if regions != null and String(regions.get("current_region_id")) not in ["", "outpost_17"]:
-		_wave_label.text = ""
+		_wave_label.text = StageEnemies.label_text(get_tree()) if StageEnemies.applies(StringName(regions.get("current_region_id"))) else ""
 		return
 	var enemies := get_tree().get_nodes_in_group("enemies").size()
 	var wave := 0

@@ -24,6 +24,7 @@ func cleared_flag() -> StringName:
 
 
 func _ready() -> void:
+	add_to_group("stage_enemy_sources")  # lets the stage "enemies left" counter see squads that have not spawned yet
 	var state := get_node_or_null("/root/WorldState")
 	if state == null:
 		return

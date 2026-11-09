@@ -153,7 +153,7 @@ func _run() -> void:
 	var hud: Hud = hud_found[0] if hud_found.size() > 0 else null
 	var label: Label = hud.get("_wave_label") if hud != null else null
 	hud._refresh_wave_label()
-	_check(label.text == "", "no wave counter while the encounter is idle")
+	_check(not label.text.begins_with("Wave"), "no wave counter while the encounter is idle (it shows the stage count instead: %s)" % label.text)
 	var stage_xp: Array[int] = []
 	_prog.xp_gained.connect(func(amount: int, source: Variant) -> void:
 		if String(source) == "stage_waves":
@@ -171,7 +171,7 @@ func _run() -> void:
 	_check(stage_xp == [140], "140 XP was paid, once (%s)" % str(stage_xp))
 	_check(int(_player().inventory.currency) - credits_before == 160, "160 credits were paid")
 	hud._refresh_wave_label()
-	_check(label.text == "", "the counter goes away when the stage is secure")
+	_check(not label.text.begins_with("Wave"), "the wave counter goes away when the stage is secure (%s)" % label.text)
 
 	print("Reload and persistence")
 	var saved: Dictionary = _world.to_dict()

@@ -43,6 +43,7 @@ func claim_id() -> StringName:
 
 
 func _ready() -> void:
+	add_to_group("stage_enemy_sources")  # lets the stage "enemies left" counter see ambushes that have not sprung yet
 	var state := get_node_or_null("/root/WorldState")
 	if state == null:
 		return
