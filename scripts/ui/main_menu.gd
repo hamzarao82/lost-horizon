@@ -181,6 +181,7 @@ func _build_ui() -> void:
 	background.color = Color(0.04, 0.05, 0.07)
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(background)
+	_root.add_child(MenuStorm.new())
 	_root.add_child(MenuEmbers.new())
 
 	# Which build is this? Dim text in the bottom-left corner (stamped by tools/stamp_build.ps1 at export).

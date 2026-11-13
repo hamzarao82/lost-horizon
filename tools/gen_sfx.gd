@@ -44,6 +44,10 @@ func _initialize() -> void:
 	_write("ambience_facility", _ambience_facility())
 	_write("bird_flush", _bird_flush())
 	_write("metal_creak", _metal_creak())
+	# Opening: cinematic menu background sounds, appended last so every earlier sound keeps its exact bytes.
+	_write("menu_thunder", _menu_thunder())
+	_write("menu_wind", _menu_wind())
+	_write("menu_waves", _menu_waves())
 	quit()
 
 
@@ -453,3 +457,50 @@ func _metal_creak() -> PackedFloat32Array:
 		tone[i] *= 0.75 + 0.25 * sin(TAU * 9.0 * float(i) / RATE)
 	var scrape := _env(_lowpass(_highpass(_noise(1.4), 900.0), 3200.0, 1800.0), 0.1, 2.0)
 	return _normalize(_mix(_normalize(tone, 0.6), _normalize(scrape, 0.3), 0.6), 0.6)
+
+
+## 2.6 s of distant thunder: a short crack, then a low rolling rumble that fades slowly.
+func _menu_thunder() -> PackedFloat32Array:
+	var seconds := 2.6
+	var rumble := _lowpass(_noise(seconds), 260.0, 80.0)
+	var shaped := PackedFloat32Array()
+	shaped.resize(rumble.size())
+	for i in rumble.size():
+		var t := float(i) / RATE
+		var roll := 0.55 + 0.45 * sin(TAU * t * 5.5 + 0.8)
+		shaped[i] = rumble[i] * roll * exp(-t * 1.15) * minf(t * 25.0, 1.0)
+	var crack := _env(_highpass(_noise(0.18), 900.0), 0.003, 22.0)
+	return _normalize(_mix(shaped, crack, 0.45, 0.0), 0.7)
+
+
+## 8 s loop: a low wind bed with slow gusts (seamless: the tail is folded into the head).
+func _menu_wind() -> PackedFloat32Array:
+	var seconds := 8.0
+	var n := _samples(seconds)
+	var fade := _samples(0.6)
+	var low := _loop_fold(_lowpass(_noise(seconds + 0.6), 320.0, 260.0), n, fade)
+	var hiss := _loop_fold(_lowpass(_highpass(_noise(seconds + 0.6), 700.0), 1800.0, 1400.0), n, fade)
+	var bed := PackedFloat32Array()
+	bed.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		var gust := 0.55 + 0.45 * sin(TAU * t / 8.0 + 0.4)
+		var gust2 := 0.5 + 0.5 * sin(TAU * t / 4.0 + 1.7)
+		bed[i] = low[i] * (0.5 + 0.7 * gust) + hiss[i] * 0.35 * gust2
+	return _normalize(bed, 0.5)
+
+
+## 8 s loop of a heavy swell: two big surges per loop with foam on the crest.
+func _menu_waves() -> PackedFloat32Array:
+	var seconds := 8.0
+	var n := _samples(seconds)
+	var fade := _samples(0.6)
+	var surf := _loop_fold(_lowpass(_noise(seconds + 0.6), 700.0, 520.0), n, fade)
+	var foam := _loop_fold(_lowpass(_highpass(_noise(seconds + 0.6), 2200.0), 4800.0, 3800.0), n, fade)
+	var bed := PackedFloat32Array()
+	bed.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		var swell := pow(0.5 + 0.5 * sin(TAU * t / 4.0 - 1.0), 2.4)
+		bed[i] = surf[i] * (0.2 + 1.0 * swell) + foam[i] * 0.4 * swell
+	return _normalize(bed, 0.55)
