@@ -89,3 +89,6 @@ All 69 suites pass on the merged `master`, zero script errors. **Implemented and
 **Seen in screenshots:** zone-coloured interiors and a boss telegraph. **Visible defects:** the admin wing is washed out to pale blue; the zone banner overlaps the boss bar; one perimeter frame measured 168 draw calls against a 150 budget.
 
 **Not done:** nobody has played the ambush, Subject Zero or the Commander fight, so balance is unjudged; no alarm, door or terminal sounds; no new animation clips (ranged shots reuse a spell-cast pose); art is flat vertex-coloured boxes; web and Android untested; the exit toward the Iron Fortress is sealed because that region does not exist.
+
+## 14. Latest status (2026-11-13, after Milestone 12 work)
+The Research Complex now also has one stage-wide wave encounter and an "Enemies left" counter outside it, on the same footing as the other three later regions (see `MILESTONE_012.md`). Its own two bosses (Subject Zero and the Facility Commander) already existed from this milestone; the Milestone 12 "boss-opens-the-road" rule applies to it the same way, so the Iron Fortress unlocks when both are down even if a mission step is unfinished.
