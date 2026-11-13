@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_supplies"]
+script = ExtResource("2_obj")
+id = &"find_supplies"
+text = "Search the wreckage for medical supplies"
+type = 4
+targets = PackedStringArray("health_potion")
+count = 0
+progress_label = ""
+
+[sub_resource type="Resource" id="Obj_clothes"]
+script = ExtResource("2_obj")
+id = &"find_clothes"
+text = "Find something to wear"
+type = 4
+targets = PackedStringArray("salvaged_jacket")
+count = 0
+progress_label = ""
+
+[sub_resource type="Resource" id="Obj_weapon"]
+script = ExtResource("2_obj")
+id = &"find_weapon"
+text = "Find something to defend yourself"
+type = 4
+targets = PackedStringArray("wooden_stick")
+count = 0
+progress_label = ""
+
+[resource]
+script = ExtResource("1_quest")
+id = &"opening_survival"
+title = "First Light"
+description = "The boat is gone. So is whatever took the bag. Get back on your feet."
+prerequisites = PackedStringArray()
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_supplies"), SubResource("Obj_clothes"), SubResource("Obj_weapon")])
+rewards = PackedStringArray()
+reward_text = ""
+next_quest = &""
+start_captions = PackedStringArray()
+complete_captions = PackedStringArray("You can stand on your own again.")
+caption_seconds = 3.5
+category = 0
+location_hint = "The beach, near the wreckage"
+show_mission_banner = false
+strict_order = false

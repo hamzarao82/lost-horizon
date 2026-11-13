@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"wooden_stick"
+display_name = "Wooden Stick"
+kind = 0
+rarity = 0
+damage_multiplier = 1.0
+attack_speed = 1.0
+reach = 0.9
+description = "A length of driftwood. It will have to do."
+value = 2

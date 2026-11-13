@@ -732,12 +732,18 @@ func _run_intro(player: Player) -> void:
 	await get_tree().create_timer(INTRO_SETTLE_SECONDS, true, false, true).timeout
 	if not is_instance_valid(player) or _intro != null:
 		return
-	var scene := load(INTRO_SCENE) as PackedScene
-	if scene == null:
-		return
-	_intro = scene.instantiate()
-	_intro.tree_exited.connect(func() -> void: _intro = null)
-	get_tree().root.add_child(_intro)
+	# The opening: a speedboat/storm cinematic, then the shipwreck and injured-recovery beach sequence.
+	# `INTRO_SCENE` (the older black-screen-and-captions intro) stays in the project and under test
+	# (tests/quest_check.gd loads it directly) but is no longer what a real New Game plays.
+	var cinematic := OpeningCinematic.play(get_tree())
+	_intro = cinematic
+	cinematic.finished.connect(func(_skipped: bool) -> void:
+		_intro = null
+		if not is_instance_valid(player):
+			return
+		var beach := OpeningBeach.play(get_tree(), player)
+		_intro = beach
+		beach.finished.connect(func() -> void: _intro = null))
 
 
 # --- ending ----------------------------------------------------------------

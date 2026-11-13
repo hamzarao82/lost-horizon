@@ -111,11 +111,14 @@ func _test_objectives() -> void:
 	_world.emit_interacted(&"log_project_black_site")
 	_check(_done(&"read_black_site_file") and _qm.tracker_objective() == "Defeat the Warden", "reading the file -> Warden")
 	_world.set_flag(&"boss_warden_defeated", true)
-	_check(_done(&"defeat_warden") and _qm.tracker_objective().begins_with("Take the Warden"), "the Warden flag -> reward")
+	# The Warden falling also opens the road to Dead Coast (CampaignFlow): the tracker pins that step
+	# above first_signal's own from here on, even though first_signal is still open and tracked underneath.
+	_check(_done(&"defeat_warden") and _qm.tracker_objective() == "Follow the signal to the Dead Coast", "the Warden flag -> reward objective still completes; the pinned road quest is what the tracker shows")
 	_qm.notify(OBJ.ITEM_COLLECTED, &"health_potion")
 	_check(not _done(&"take_warden_reward"), "an unrelated pickup does not count")
 	_qm.notify(OBJ.ITEM_COLLECTED, &"warden_plate")
 	_check(_done(&"take_warden_reward") and _qm.is_active(FIRST), "the plate counts as the reward; the mission is still open")
+	_qm.tracker_first = &""  # drop the pin to see first_signal's own remaining step underneath it
 	_check(_qm.tracker_objective() == "Contact the outside from the command terminal", "the last objective is the command terminal")
 
 

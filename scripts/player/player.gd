@@ -65,6 +65,10 @@ var inventory: Inventory
 ## Seconds until the spin special is ready again (0 = ready). HUDs read this and `special_cooldown`.
 var special_cooldown_left: float = 0.0
 
+## The opening's injured recovery (1.0 and false = no effect; the default for every existing test).
+var injured_speed_mult: float = 1.0
+var attacks_locked: bool = false
+
 @onready var health: HealthComponent = $HealthComponent
 @onready var _visual_root: Node3D = $VisualRoot
 @onready var _camera_pivot: Node3D = $CameraPivot
@@ -342,7 +346,7 @@ func _set_stamina(value: float) -> void:
 
 func _state_free(delta: float) -> void:
 	var direction := _input_direction()
-	var speed := sprint_speed if Input.is_action_pressed("sprint") else walk_speed
+	var speed := (sprint_speed if Input.is_action_pressed("sprint") else walk_speed) * injured_speed_mult
 	var accel := acceleration if is_on_floor() else air_acceleration
 	var target := direction * speed
 	velocity.x = move_toward(velocity.x, target.x, accel * delta)
@@ -356,6 +360,8 @@ func _state_free(delta: float) -> void:
 
 
 func _handle_free_action(action: StringName) -> int:
+	if attacks_locked and (action == &"attack_light" or action == &"attack_heavy" or action == &"special"):
+		return Result.DROP  # too weak to fight yet (the opening's injured recovery)
 	match action:
 		&"dodge":
 			return Result.CHANGED_STATE if _try_dodge() else Result.DROP

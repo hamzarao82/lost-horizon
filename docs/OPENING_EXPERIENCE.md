@@ -59,32 +59,35 @@ Recommendation for Milestone 13: author real clips (lie, wake, sit, stand, limp,
 8. **No outpost**: the wake camera and the playable beach area are framed so no outpost building, wall or sign is visible; the first mission's "Outpost 17" banner appears later.
 
 ## 6. Work plan
-| # | Piece | Files (planned) | Status |
+| # | Piece | Files | Status |
 |---|---|---|---|
-| 1 | Cinematic main menu background | `scripts/ui/menu_background.gd`, `main_menu.gd` hook, sounds | Planned |
-| 2 | Speedboat and storm cinematic | `scripts/story/opening_cinematic.gd`, `scenes/story/OpeningCinematic.tscn`, `scripts/story/opening_assets.gd` (procedural meshes), storm sounds | Planned |
-| 3 | Shipwreck, treasure event, recovery, survival gameplay | `scripts/story/opening_beach.gd`, new items, `opening_survival` quest, player injury hooks, `QuestManager._run_intro` chain | Planned |
-| 4 | Tests and docs | `tests/opening_*_check.gd` | Planned |
-| 5 | Re-balance of first-mission radio timing; ending captions consistent with the thief canon | `world_flow.gd`, `campaign_ending.gd` | Planned (separate) |
+| 1 | Cinematic main menu background | `scripts/ui/menu_storm.gd`, `main_menu.gd` hook, `menu_thunder/wind/waves` sounds | **Implemented, verified** (`tests/menu_background_check.gd`, 8 checks; a real screenshot was looked at) |
+| 2 | Speedboat and storm cinematic | `scripts/story/opening_cinematic.gd`, `scripts/story/opening_timeline.gd` (data) | **Implemented, verified** (`tests/opening_cinematic_check.gd`, 15 checks; real screenshots were looked at; a camera-clipping bug found and fixed) |
+| 3 | Shipwreck, treasure event, recovery, survival gameplay | `scripts/story/opening_beach.gd`, `resources/items/wooden_stick.tres`, `salvaged_jacket.tres`, `resources/quests/campaign/opening_survival.tres`, `Player.injured_speed_mult`/`attacks_locked`, `QuestManager._run_intro` now chains cinematic -> beach | **Implemented, verified** (`tests/opening_beach_check.gd`, 20 checks; real screenshots were looked at), **with documented simplifications** — see `docs/OPENING_BEACH.md` section "Simplifications" (no skeletal wake/stand/limp animation, 3 survival steps instead of 4, capsule stand-ins for the guard and workers) |
+| 4 | Tests and docs | `tests/opening_cinematic_check.gd`, `tests/menu_background_check.gd`, `tests/opening_beach_check.gd`, `docs/OPENING_CINEMATIC.md`, `docs/OPENING_BEACH.md` | **Done** |
+| 5 | Re-balance of first-mission radio timing; ending captions consistent with the thief canon | `world_flow.gd`, `campaign_ending.gd` | **Not done** — the first mission's existing radio lines and the ending's "witness aboard a transport" beat still reflect the OLD canon and now contradict the thief-and-storm opening; this needs a separate pass and is not safe to do quickly (the ending beat is also still an unapproved proposal per section 2) |
 
 ## 7. Acceptance criteria and status
 | # | Criterion | Status |
 |---|---|---|
-| 1 | Main menu presentation works | Planned |
-| 2 | New Game starts the new opening | Planned |
-| 3 | The speedboat cinematic plays | Planned |
-| 4 | Storm and shipwreck sequences work | Planned |
-| 5 | The protagonist wakes on the beach | Planned |
-| 6 | The treasure retrieval event plays | Planned |
-| 7 | The injured recovery sequence plays | Planned |
-| 8 | Medical supplies can be collected | Planned |
-| 9 | Clothing can be collected and equipped | Planned |
-| 10 | A wooden stick can be collected and used | Planned |
-| 11 | Control transitions correctly into gameplay | Planned |
-| 12 | Continue does not replay the opening | Planned |
-| 13 | Skipping works | Planned |
-| 14 | Existing combat, inventory and save systems remain functional | Planned (existing suites) |
-| 15 | Existing automated tests continue to pass | Planned |
+| 1 | Main menu presentation works | **Implemented, verified** by test and a real screenshot |
+| 2 | New Game starts the new opening | **Implemented** (`QuestManager._run_intro` chain); **not verified by a human play** |
+| 3 | The speedboat cinematic plays | **Implemented, verified** by test and real screenshots |
+| 4 | Storm and shipwreck sequences work | **Implemented, verified** by test and real screenshots |
+| 5 | The protagonist wakes on the beach | **Implemented** (a fade, not a driven wake animation — see simplifications) |
+| 6 | The treasure retrieval event plays | **Implemented** (capsule stand-ins, own isolated scene, no outpost visible) |
+| 7 | The injured recovery sequence plays | **Implemented** (caption-based, not a driven pose — see simplifications) |
+| 8 | Medical supplies can be collected | **Implemented, verified** (`opening_beach_check`) |
+| 9 | Clothing can be collected and equipped | **Implemented, verified**, auto-equips |
+| 10 | A wooden stick can be collected and used | **Implemented, verified**, auto-equips; a 120 s failsafe guarantees it |
+| 11 | Control transitions correctly into gameplay | **Implemented, verified** (health/speed/lock set exactly; attacks really blocked and later unblocked) |
+| 12 | Continue does not replay the opening | **Unchanged and still correct**: `should_play_intro()`/`intro_done` gating was not touched; `quest_check.gd`'s existing truth-table test for this still passes |
+| 13 | Skipping works | **Implemented, verified** for the cinematic (fires `finished` exactly once, even on a double skip or an early free) and for the beach's input handling; the beach's own skip-while-mid-NPC-walk path exists but is not covered by an automated test (the timeline uses real wall-clock timers, like `StoryIntro`) |
+| 14 | Existing combat, inventory and save systems remain functional | **Verified**: `run_tests`, `input_check`, `equipment_check`, `save_check`, `save_v2_check` all pass unmodified |
+| 15 | Existing automated tests continue to pass | **Verified**, with one correction: `tests/mission_check.gd` had a genuine, pre-existing failure (found while verifying this work, not caused by it — see `docs/OPENING_BEACH.md`) that was outdated against an already-shipped, intentional design change; it has been fixed. The full suite run is recorded in the final report. |
+
+## 8. Honest summary
+This is a first functional pass across the whole opening, not a polished cut. Every piece plays, is skippable, does not replay on Continue, and does not disturb the existing game's 94+ test suites. The two biggest simplifications against the original brief are (a) no real skeletal "lying/waking/standing/limping" animation — captions and fades stand in for it — and (b) the guard, the workers, and the cinematic's protagonist are procedural capsule shapes, not the rigged game character. Both are documented as Milestone 13 (graphics overhaul) candidates. Nobody has played any of it by hand.
 
 ## 8. Risks
 - The cinematic is procedural and low-poly: it will look stylized, not like a film. Camera work and effects carry it.
