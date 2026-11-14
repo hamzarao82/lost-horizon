@@ -18,6 +18,8 @@ const LABEL_STACK_STEP: float = 0.45
 static var _all: Array[Pickup] = []
 
 var item: ItemData
+## Story pickups: always taken (and worn when it is gear), even when not an upgrade, and never expire.
+var guaranteed: bool = false
 
 var _age: float = 0.0
 var _base_y: float = 0.0
@@ -61,13 +63,22 @@ func _process(delta: float) -> void:
 	_update_label(delta)
 	position.y = _base_y + sin(_age * 3.0) * 0.12
 	_mesh.rotation.y += delta * 2.0
-	if _age > LIFETIME:
+	if _age > LIFETIME and not guaranteed:
 		queue_free()
 
 
 func _on_body_entered(body: Node3D) -> void:
 	var player := body as Player
 	if player == null:
+		return
+	if guaranteed:
+		player.inventory.collect(item)
+		if item.kind != ItemData.Kind.CONSUMABLE:
+			player.inventory.equip(item)
+		var story_audio := get_node_or_null("/root/AudioManager")
+		if story_audio:
+			story_audio.play(&"pickup")
+		queue_free()
 		return
 	if player.inventory.add_item(item):
 		var upgrade := item.kind != ItemData.Kind.CONSUMABLE

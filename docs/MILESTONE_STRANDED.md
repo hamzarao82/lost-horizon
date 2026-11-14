@@ -67,3 +67,9 @@ By the brief's rule this milestone is **not complete**.
 5. Later, with the real rig: waking, sitting, limp and pickup animations, and breathing and creaking sounds.
 
 Status of this plan is recorded in `OPENING_BEACH.md` when it is done. Nothing in this list is built at the time of writing.
+
+## 8. Status of the fix (2026-11-14)
+Items 1, 2 and 4 of section 7 are done and tested; items 3 and 5 are not.
+- **Done:** the handoff now spawns three real pickups (medkit, jacket, stick) within about 5 m of the player. They are marked `guaranteed` on `Pickup` (a new opt-in flag): they are always taken through `Inventory.collect` and `equip`, never expire, and so credit the survival quest even when the item is not an upgrade. A second layer of the same defect was found while testing: the normal pickup path (`add_item`) refuses a weapon that is not stronger than the starting Improvised Blade, so even a placed stick would not have counted. The 120 s failsafe now grants every missing item, not only the stick.
+- **Tested:** `opening_beach_check` now has 27 checks, including that the three pickups exist in the world after the handoff, that touching them completes the quest and lifts the locks, and that the failsafe alone can finish the quest.
+- **Not done:** the "Recover your payment." objective (item 3), and the animations, sounds and hint (item 5). The fix has not been played by a person, and the pickups' positions are offsets from the player's start, not checked against terrain.

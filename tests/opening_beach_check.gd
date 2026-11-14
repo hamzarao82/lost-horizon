@@ -92,6 +92,47 @@ func _run() -> void:
 	_check(player.injured_speed_mult > 0.55, "movement speed recovers toward normal (%.2f)" % player.injured_speed_mult)
 	_check(_qm.tracker_first == &"", "the tracker pin is released")
 
+	# The items must exist IN THE WORLD, not only be injectable: a fresh handoff spawns three real pickups, and
+	# walking into them (their body_entered path) completes the quest and lifts the locks.
+	_qm.reset()
+	await _frames(2)
+	var player2 := await _make_player()
+	var beach2 := OpeningBeach.new()
+	beach2._player = player2
+	beach2._world_flags = _world
+	beach2._quest_manager = _qm
+	beach2._hand_off()
+	await _frames(2)
+	var found: Dictionary = {}
+	for node in root.find_children("*", "Pickup", true, false):
+		var pk := node as Pickup
+		if pk != null and pk.item != null:
+			found[String(pk.item.item_id)] = pk
+	for want in ["health_potion", "salvaged_jacket", "wooden_stick"]:
+		_check(found.has(want), "a real '%s' pickup exists in the world after the handoff" % want)
+	for want in found:
+		(found[want] as Pickup)._on_body_entered(player2)
+	await _frames(3)
+	_check(_qm.is_completed(&"opening_survival"), "collecting the three world pickups completes the survival quest")
+	_check(not player2.attacks_locked, "attacks unlock after collecting the world pickups")
+
+	# The failsafe must be able to finish the quest on its own (a missed or unreachable pickup never traps the player).
+	_qm.reset()
+	await _frames(2)
+	var player3 := await _make_player()
+	var beach3 := OpeningBeach.new()
+	beach3._player = player3
+	beach3._world_flags = _world
+	beach3._quest_manager = _qm
+	beach3._hand_off()
+	for node in root.find_children("*", "Pickup", true, false):
+		node.queue_free()
+	await _frames(2)
+	beach3._grant_missing_items()
+	await _frames(3)
+	_check(_qm.is_completed(&"opening_survival"), "the failsafe grants every missing item and completes the quest")
+	_check(not player3.attacks_locked, "and attacks unlock even if no pickup was ever found")
+
 	# Flag and id safety: everything this feature writes obeys WorldState's rule.
 	for id in [&"opening_event_seen", &"opening_survival", &"wooden_stick", &"salvaged_jacket", &"health_potion"]:
 		var s := String(id)

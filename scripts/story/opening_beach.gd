@@ -153,6 +153,27 @@ func _hand_off() -> void:
 	if _world_flags != null and _world_flags.has_method("set_flag"):
 		_world_flags.set_flag(&"opening_event_seen", true)
 	_start_survival_quest()
+	_spawn_survival_pickups()
+
+
+## The three items the survival quest asks for, as real pickups on the ground near the player, so the quest
+## can finish through play (the quest listens for ITEM_COLLECTED from the normal pickup path).
+func _spawn_survival_pickups() -> void:
+	var parent := _player.get_parent()
+	if parent == null or not parent.is_inside_tree():
+		return
+	var origin := _player.global_position
+	var offsets := {SUPPLIES_ID: Vector3(2.5, 0.0, -2.0), JACKET_ID: Vector3(-3.0, 0.0, -3.5), STICK_ID: Vector3(0.5, 0.0, -5.0)}
+	for id: StringName in offsets:
+		var item := load("res://resources/items/%s.tres" % String(id)) as ItemData
+		if item == null:
+			continue
+		var at: Vector3 = origin + offsets[id] + Vector3(0.0, 0.6, 0.0)
+		if parent is Node3D:
+			at = (parent as Node3D).to_local(at)
+		var pickup := Pickup.spawn(parent, item, at)
+		if pickup != null:
+			pickup.guaranteed = true
 
 
 func _start_survival_quest() -> void:
@@ -204,18 +225,28 @@ func _watch_nudge(tree: SceneTree) -> void:
 
 func _watch_failsafe(tree: SceneTree) -> void:
 	await tree.create_timer(FAILSAFE_SECONDS, true, false, true).timeout
+	_grant_missing_items()
+
+
+func _grant_missing_items() -> void:
 	if _quest_manager == null or not is_instance_valid(_player):
 		return
-	if not _has_item(STICK_ID):
-		var stick := load("res://resources/items/wooden_stick.tres") as ItemData
-		_player.inventory.collect(stick)
-		_player.inventory.equip(stick)
+	for id: StringName in [SUPPLIES_ID, JACKET_ID, STICK_ID]:
+		if _has_item(id):
+			continue
+		var item := load("res://resources/items/%s.tres" % String(id)) as ItemData
+		if item == null:
+			continue
+		_player.inventory.collect(item)
+		if id != SUPPLIES_ID:
+			_player.inventory.equip(item)
 
 
 func _has_item(item_id: StringName) -> bool:
 	if not is_instance_valid(_player) or _player.inventory == null:
 		return false
-	return _player.inventory.count_of(String(item_id)) > 0 or _player.inventory.weapon == load("res://resources/items/%s.tres" % String(item_id))
+	var item := load("res://resources/items/%s.tres" % String(item_id)) as ItemData
+	return _player.inventory.count_of(String(item_id)) > 0 or _player.inventory.weapon == item or _player.inventory.armor == item
 
 
 # --- UI ------------------------------------------------------------------
