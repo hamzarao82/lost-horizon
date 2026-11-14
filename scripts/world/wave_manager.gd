@@ -261,6 +261,8 @@ func _rest_after(index: int) -> float:
 
 ## Once per playthrough: the claim flag is saved with the world, so a reload or a replay pays nothing.
 func _grant_completion_reward() -> void:
+	if ArenaMode.active:
+		return  # Arena Mode pays nothing: no claim flag, no XP, no credits
 	if _world_flag(REWARD_FLAG):
 		return
 	_set_world_flag(REWARD_FLAG)

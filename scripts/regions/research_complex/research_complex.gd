@@ -63,6 +63,7 @@ func build() -> void:
 	_build_area_triggers()
 	_build_entries_and_exits()
 	_wire()
+	EliteStrongholds.add_to(self, REGION_ID)
 	_refresh_groups.call_deferred()
 
 

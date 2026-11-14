@@ -287,6 +287,9 @@ func autosave(reason: String = "auto") -> bool:
 
 ## Atomic write: full contents go to <file>.tmp first, then it replaces the real file.
 func write_data(data: Dictionary, reason: String = "manual") -> bool:
+	if ArenaMode.active:
+		last_error = "Arena Mode never writes a save"
+		return false
 	var path := save_path()
 	var tmp := path + ".tmp"
 	var file := FileAccess.open(tmp, FileAccess.WRITE)

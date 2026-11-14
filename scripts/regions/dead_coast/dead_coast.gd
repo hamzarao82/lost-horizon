@@ -104,6 +104,7 @@ func build() -> void:
 	if owns_lighting:
 		_build_lighting()
 	_wire_quests()
+	EliteStrongholds.add_to(self, REGION_ID)
 	_retry = Timer.new()
 	_retry.name = "SpawnRetry"
 	_retry.wait_time = RETRY_SECONDS

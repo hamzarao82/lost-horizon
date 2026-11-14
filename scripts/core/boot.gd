@@ -572,9 +572,11 @@ func _show_menu_early() -> void:
 
 
 func _make_menu() -> void:
+	ArenaMode.end()  # the title screen is outside Arena Mode, however it was reached
 	menu = MainMenu.new()
 	menu.new_game_pressed.connect(_on_new_game)
 	menu.continue_pressed.connect(_on_continue)
+	menu.arena_mode_pressed.connect(_on_arena_mode)
 	menu.quit_pressed.connect(func() -> void: get_tree().quit())
 	add_child(menu)
 
@@ -599,6 +601,21 @@ func _on_new_game() -> void:
 		stats.reset()
 	_close_menu()
 	_begin_fade()
+
+
+## Arena Mode: a fresh, isolated run of the five-wave arena. Nothing is saved while it is active (SaveManager
+## refuses), the world and progression start new, and no reward is paid.
+func _on_arena_mode() -> void:
+	var saves := get_node_or_null("/root/SaveManager")
+	if saves != null:
+		saves.reset_runtime_state()
+	var stats := get_node_or_null("/root/RunStats")
+	if stats:
+		stats.reset()
+	ArenaMode.begin()
+	_close_menu()
+	_begin_fade()
+	ArenaRun.attach(main_node)
 
 
 ## The save is restored while the scene is created, so Main is reloaded (the same way the pause
