@@ -117,13 +117,27 @@ func save() -> void:
 	cfg.set_value("settings", "touch_sensitivity", touch_sensitivity)
 	cfg.set_value("settings", "quality", int(quality))
 	cfg.set_value("settings", "hit_stop", int(hit_stop))
+	var bindings := KeyBindings.to_config()
+	for action: String in bindings:
+		cfg.set_value(KeyBindings.CONFIG_SECTION, action, bindings[action])
 	cfg.save(config_path)
 
 
+func bindings_changed() -> void:
+	_touched()
+
+
 func load_settings() -> void:
+	KeyBindings.capture_defaults()
 	var cfg := ConfigFile.new()
 	if cfg.load(config_path) != OK:
 		return
+	var saved_bindings := {}
+	if cfg.has_section(KeyBindings.CONFIG_SECTION):
+		for action in cfg.get_section_keys(KeyBindings.CONFIG_SECTION):
+			saved_bindings[action] = cfg.get_value(KeyBindings.CONFIG_SECTION, action)
+	if not saved_bindings.is_empty():
+		KeyBindings.apply_config(saved_bindings)
 	master_volume = clampf(float(cfg.get_value("settings", "master_volume", master_volume)), 0.0, 1.0)
 	music_volume = clampf(float(cfg.get_value("settings", "music_volume", music_volume)), 0.0, 1.0)
 	mouse_sensitivity = clampf(float(cfg.get_value("settings", "mouse_sensitivity", mouse_sensitivity)),

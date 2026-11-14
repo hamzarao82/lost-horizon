@@ -12,6 +12,8 @@ const SENSITIVITY_MAX: float = 3.0
 
 var _quality_buttons: Array[Button] = []
 var _sliders: Dictionary = {}  # name -> HSlider
+var _bindings_view: Control = null
+var _hidden_for_bindings: Array = []
 
 func _init() -> void:
 	add_theme_constant_override("separation", 10)
@@ -48,10 +50,41 @@ func _build() -> void:
 		for overlay in get_tree().get_nodes_in_group("perf_overlay"):
 			overlay.call("toggle")))
 
+	add_child(_button("Key bindings", _open_bindings))
 	add_child(_button("Back", func() -> void: back_pressed.emit()))
+
+func _open_bindings() -> void:
+	if _bindings_view != null:
+		return
+	_hidden_for_bindings = []
+	for child in get_children():
+		if (child as CanvasItem).visible:
+			(child as CanvasItem).visible = false
+			_hidden_for_bindings.append(child)
+	var panel := RebindPanel.new()
+	panel.back_pressed.connect(_close_bindings)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(BUTTON_SIZE.x + 40.0, 460.0)
+	scroll.add_child(panel)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_child(scroll)
+	_bindings_view = scroll
+
+func _close_bindings() -> void:
+	if _bindings_view == null:
+		return
+	_bindings_view.queue_free()
+	_bindings_view = null
+	for child: CanvasItem in _hidden_for_bindings:
+		child.visible = true
+	_hidden_for_bindings = []
+	if _sliders.has("master"):
+		(_sliders["master"] as Control).grab_focus()
 
 ## Pull the stored values into the controls without re-triggering the setters, and focus the first one.
 func show_page() -> void:
+	_close_bindings()
 	sync_controls()
 	(_sliders["master"] as Control).grab_focus()
 
