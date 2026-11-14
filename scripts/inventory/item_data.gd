@@ -22,6 +22,13 @@ const SPEED_WEIGHT: float = 0.5
 @export var attack_speed: float = 1.0
 ## Weapons: visual length multiplier of the model (the hitbox is owned by the player scene).
 @export var reach: float = 1.0
+## Weapon identity (Milestone 11), all neutral at 1.0 so older items behave exactly as before.
+## Scales the stagger time and knockback of every attack made with this weapon.
+@export var stagger_power: float = 1.0
+## Scales the recovery frames of every attack (above 1.0 = a heavier, longer recovery).
+@export var recovery_scale: float = 1.0
+## Extra damage multiplier on heavy and sprint attacks only.
+@export var heavy_multiplier: float = 1.0
 ## Armor: size of the armor bar this item grants. It absorbs damage before health does.
 @export var armor_points: float = 0.0
 ## Kept for old saves/resources; armor no longer uses a percentage.
