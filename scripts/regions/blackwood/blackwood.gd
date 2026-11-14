@@ -637,7 +637,7 @@ func _build_testing_site() -> void:
 		eq.interacted.connect(func(_p: Node3D) -> void: Outpost17.say(self, line, 5.5))
 	_structures.box(Vector3(c.x + 4.0, 1.5, c.y + 2.0), Vector3(0.2, 3.0, 2.6), Color(0.35, 0.36, 0.38))
 	_add_doc(&"bw_log_experiment_1", "Experiment record, Subject 14", Vector3(c.x - 2.0, 0.0, c.y - 4.0),
-			"Subject 14 (transferred from the coast hospital, no next of kin on file). Dose four. Heart rate unstable, speech lost on day nine, strength gain beyond projection. The programme calls this a success. The medical officer has requested to be reassigned.")
+			"Subject 14 (transferred from the coast hospital to this first-generation annex, no next of kin on file; later moved on to the Research Complex). Dose four. Heart rate unstable, speech lost on day nine, strength gain beyond projection. The programme calls this a success. The medical officer has requested to be reassigned.")
 	_add_doc(&"bw_log_subject_list", "Subject list", Vector3(c.x + 8.0, 0.0, c.y - 4.0),
 			"Fourteen names crossed out, then numbers. Under 14 someone has written: 'Moved down to Sublevel 1.' Under 15: 'Not yet.'")
 	_add_doc(&"bw_log_hatch", "Maintenance note", Vector3(c.x + 22.0, 0.0, c.y - 6.0),

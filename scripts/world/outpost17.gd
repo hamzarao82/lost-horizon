@@ -265,7 +265,7 @@ func _build_interactables() -> void:
 	comms.requires_flag = &"comms_power_on"
 	comms.locked_text = "Terminal offline: restore power"
 	comms.finish_flag = &"next_location_unlocked"
-	comms.pages = PackedStringArray(["Outpost 17 comms online.", "Coordinates uploaded: Research Complex."])
+	comms.pages = PackedStringArray(["Outpost 17 comms online.", "Signal traced to a relay on the Dead Coast. Coordinates uploaded."])
 	_place(comms, &"military_terminal", Vector3(17.5, 0.2, -58.7))
 
 	# Optional lore, Area C west side: a service record that explains what the Warden was (no objective).
@@ -284,7 +284,7 @@ func _build_interactables() -> void:
 	cmd.locked_text = "Command terminal locked: the Warden holds the command room"
 	cmd.pages = PackedStringArray([
 		"Uplink open. Relaying your position to the outside.",
-		"Signal confirmed. Project Black Site is no longer a secret."])
+		"Signal confirmed. The outside can hear you now."])
 	_place(cmd, &"command_terminal_d", Vector3(0.0, 0.2, -78.4))
 	# The file that names the experiment and the Director (mission objective, Act 4).
 	var black_site := LoreDocument.new()

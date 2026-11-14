@@ -243,3 +243,28 @@ static func _decode(value: Variant) -> Array[InputEvent]:
 			return [] as Array[InputEvent]
 		out.append(event)
 	return out
+
+
+## Short, player-facing name of an action's current primary binding ("R", "Left mouse"), for hint text.
+static func key_name(action: StringName) -> String:
+	if not InputMap.has_action(action):
+		return "?"
+	var event := primary(action)
+	if event is InputEventMouseButton:
+		match (event as InputEventMouseButton).button_index:
+			MOUSE_BUTTON_LEFT: return "Left mouse"
+			MOUSE_BUTTON_RIGHT: return "Right mouse"
+			MOUSE_BUTTON_MIDDLE: return "Middle mouse"
+			MOUSE_BUTTON_WHEEL_UP: return "Wheel up"
+			MOUSE_BUTTON_WHEEL_DOWN: return "Wheel down"
+	return describe(event)
+
+
+## Replaces every "{action_name}" in `template` with the action's current key, so hint text follows rebinding.
+static func fill(template: String) -> String:
+	var out := template
+	for entry: Array in ACTIONS:
+		var token := "{%s}" % entry[0]
+		if out.contains(token):
+			out = out.replace(token, key_name(entry[0]))
+	return out

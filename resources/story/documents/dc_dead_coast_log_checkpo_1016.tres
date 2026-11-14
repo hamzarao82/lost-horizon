@@ -8,5 +8,5 @@ key = &"dc_dead_coast_log_checkpo_1016"
 source_id = &"dead_coast_log_checkpoint_orders"
 title = "Posted orders"
 region = &"dead_coast"
-body = "Taped to the booth glass: TRUCKS WITH BS STENCIL PASS WITHOUT INSPECTION. NO RECORDS. NO QUESTIONS. - Commander's office, Outpost 17."
+body = "Taped to the booth glass: TRUCKS WITH BS STENCIL PASS WITHOUT INSPECTION. NO RECORDS. NO QUESTIONS. - Administration office, Outpost 17."
 order = 3

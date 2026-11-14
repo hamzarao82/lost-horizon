@@ -131,7 +131,7 @@ func _beach() -> void:
 	props.kit("sandbag_stack", _ground(23.0, 15.0), 3.14, 1.0, true, "the first sandbag nest: someone expected a landing here")
 	checkpoint("checkpoint_dead_coast_1", 20.0, 4.0)
 	doc("dead_coast_wreck_hull", "Freighter hull",
-		"The name on the stern is half gone: CALLOWAY. Salt has eaten the paint but not the stencils on the crates in the hold: 'SEALED - NOT FOR INSPECTION - BS'.",
+		"The name on the stern is half gone: CALLOWAY. An earlier shipment's ship, not yours: this hull has rotted here for years. Salt has eaten the paint but not the stencils on the crates in the hold: 'SEALED - NOT FOR INSPECTION - BS'.",
 		8.5, -28.0, "the breach in the hull: where the investigation begins")
 	terminal("dead_coast_radio_wreck", "Ship radio",
 		["Static, then a looping voice: 'Calloway, Calloway, cargo sealed, do not board, repeat do not board.'",
@@ -141,7 +141,7 @@ func _beach() -> void:
 		"Consignment 4 of 9. Forty sealed containers, 'medical stores', consigned to the island garrison. Weight does not match the declared contents. Receiving officer: Outpost 17.",
 		9.0, -6.0, "the manifest: evidence of a military shipment", 1.4)
 	doc("dead_coast_data_device", "Data device",
-		"A ruggedised drive taped under a bunk. Most of it is encrypted. The header is readable: SHIPPING LEDGER, BLACKWOOD ROUTE, SIGNED R. HALE.",
+		"A ruggedised drive taped under a bunk. Most of it is encrypted. The header is readable: SHIPPING LEDGER, BLACKWOOD ROUTE, SIGNED R. HALE, MEDICAL OFFICER.",
 		1.0, -37.5, "the data device in the stern: the mission's hard objective")
 	crate("dead_coast_cache_wreck", ["bandage", "credits_small"], 4.0, -10.5, "lifeboat locker: optional supplies")
 	patrol("dead_coast_beach", "dc_wreckage_beach", [ENEMY_SOLDIER, ENEMY_SOLDIER],
@@ -185,7 +185,7 @@ func _checkpoint_area() -> void:
 		6.0, -105.4, "the checkpoint security terminal")
 	props.decor_box(_ground(9.4, -106.0, 0.6), Vector3(0.12, 1.2, 0.12), Color(0.3, 0.21, 0.14))  # the notice post the orders are pinned to
 	doc("dead_coast_log_checkpoint_orders", "Posted orders",
-		"Taped to the booth glass: TRUCKS WITH BS STENCIL PASS WITHOUT INSPECTION. NO RECORDS. NO QUESTIONS. - Commander's office, Outpost 17.",
+		"Taped to the booth glass: TRUCKS WITH BS STENCIL PASS WITHOUT INSPECTION. NO RECORDS. NO QUESTIONS. - Administration office, Outpost 17.",
 		9.4, -106.0, "why the checkpoint was abandoned: it was ordered blind", 1.2)
 	terminal("dead_coast_guard_pass", "Guard pass locker",
 		["Inside, a laminated pass on a lanyard. You take it. The barrier will open for it."],

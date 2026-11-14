@@ -12,8 +12,8 @@ const CHECKPOINT_NAMES: Dictionary = {
 }
 const HINTS: Array[String] = [
 	"Dodge through a heavy attack: the roll protects you for the first 0.18 seconds.",
-	"Press R for a medkit. You can tap it mid-swing.",
-	"Lock on with Tab or middle mouse to keep a fast enemy in front of you.",
+	"Press {use_item} for a medkit. You can tap it mid-swing.",
+	"Lock on with {lock_on} to keep a fast enemy in front of you.",
 	"Fight at a doorway: enemies can only reach you one at a time.",
 	"Better weapons and armor equip themselves when you walk over them.",
 	"Activate a checkpoint terminal to set where you return after a defeat.",

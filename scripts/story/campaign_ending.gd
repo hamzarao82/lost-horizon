@@ -17,13 +17,13 @@ const REGION_NAMES: Dictionary = {
 	&"outpost_17": "Outpost 17", &"dead_coast": "Dead Coast", &"blackwood": "Blackwood",
 	&"research_complex": "Research Complex", &"iron_fortress": "Iron Fortress",
 }
-## Closing beats (original text). The protagonist's reason for being on the transport is the bible's proposal.
+## Closing beats (original text). The protagonist is the thief whose speedboat the storm threw onto the island.
 const BEATS: Array[Dictionary] = [
 	{"text": "The Director falls. The control room goes quiet, then every screen begins to burn through its own records.", "seconds": 5.0},
 	{"text": "Radio: Transmission received. All of it: the trial records, the route table, the Director's own files. It reached the outside.", "seconds": 5.5},
 	{"text": "Radio: Command on the island is exposed. The people who gave the orders have stopped answering theirs.", "seconds": 5.0},
-	{"text": "Radio: The lost transport's manifest was in the records. One passenger had witnessed the first containment failure. They moved the witness to bury it.", "seconds": 6.0},
-	{"text": "Radio: The transport was meant to vanish. It did not. You are still here, and that is why this ended the way it did.", "seconds": 5.5},
+	{"text": "Radio: The records list every cargo the island took in, and one it never expected: a bag of stolen gold and diamonds, washed ashore in the same storm that wrecked your boat.", "seconds": 6.0},
+	{"text": "Radio: Nobody planned for you to be here. You are still here, and that is why this ended the way it did.", "seconds": 5.5},
 	{"text": "The island is not finished. Below Sublevel 1 a counter is still running, and a voice in the Blackwood is still counting.", "seconds": 5.5},
 	{"text": "For now the signal is out, and the island is yours to walk.", "seconds": 4.5},
 ]
@@ -184,12 +184,14 @@ func _ready() -> void:
 			world.set_flag(FLAG_SEEN, true)
 	_audio_call("play", [&"mission_complete"])
 	_set_duck(0.0)
+	_audio_call("set_music_mode", [&"ending", 1.5])
 	stage = Stage.FADE
 
 
 func _exit_tree() -> void:
 	_restore_huds()
 	_set_duck(1.0)
+	_audio_call("set_music_mode", [&"explore", 1.5])
 
 
 func _process(delta: float) -> void:

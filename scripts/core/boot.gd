@@ -47,9 +47,9 @@ const WARM_ITEM: String = "res://resources/items/health_potion.tres"
 const TIPS: Array[String] = [
 	"Dodging makes you invulnerable for the first 0.18 seconds of the roll.",
 	"Light, light, heavy chains into a finisher. Heavy attacks are slow: watch for the red windup.",
-	"Lock on with middle mouse or Tab, and switch targets with the mouse wheel.",
+	"Lock on with {lock_on}, and switch targets with {target_next} and {target_prev}.",
 	"Better weapons and armor equip automatically when you walk over them.",
-	"Press R to use a medkit. You can tap it mid-swing and it fires when you recover.",
+	"Press {use_item} to use a medkit. You can tap it mid-swing and it fires when you recover.",
 	"Press P to pause, change volume and sensitivity, or save your progress.",
 	"The Warden is waiting at the end of wave five. Bring your best gear.",
 ]
@@ -186,7 +186,7 @@ func _build_ui() -> void:
 	row.add_child(_percent)
 	box.add_child(row)
 
-	_tip = _make_label(TIPS[0], 17, Color(0.7, 0.74, 0.8))
+	_tip = _make_label(KeyBindings.fill(TIPS[0]), 17, Color(0.7, 0.74, 0.8))
 	_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tip.custom_minimum_size = Vector2(480, 60)
 	box.add_child(_tip)
@@ -255,7 +255,7 @@ func _update_ui(delta: float) -> void:
 	if _tip_time >= TIP_SECONDS:
 		_tip_time = 0.0
 		_tip_index = (_tip_index + 1) % TIPS.size()
-		_tip.text = TIPS[_tip_index]
+		_tip.text = KeyBindings.fill(TIPS[_tip_index])
 
 
 ## On web the reveal (the last 8% of the real progress) takes about 25-30 s because every frame
