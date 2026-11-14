@@ -480,9 +480,9 @@ func _menu_thunder() -> PackedFloat32Array:
 
 ## Barrel blast: a sharp crack, a pitch-dropping thud and a short rumbling tail.
 func _explosion() -> PackedFloat32Array:
-	var thud := _env(_sweep(0.5, 120.0, 34.0, 6.0, 0.02), 0.003, 6.5)
-	var crack := _env(_highpass(_noise(0.25), 700.0), 0.002, 14.0)
-	var tail := _env(_lowpass(_noise(0.55), 420.0, 140.0), 0.01, 4.5)
+	var thud := _env(_sweep(0.22, 120.0, 34.0, 6.0, 0.02), 0.003, 6.5)
+	var crack := _env(_highpass(_noise(0.15), 700.0), 0.002, 14.0)
+	var tail := _env(_lowpass(_noise(0.22), 420.0, 140.0), 0.01, 4.5)
 	return _normalize(_mix(_mix(thud, crack, 0.5, 0.0), tail, 0.45, 0.05), 0.9)
 
 
@@ -521,8 +521,8 @@ func _menu_waves() -> PackedFloat32Array:
 
 ## A slower, lower windup for heavy enemies (the light one is a quick rising saw).
 func _windup_heavy() -> PackedFloat32Array:
-	var tone := _lowpass(_saw(0.38, 90.0, 240.0), 500.0, 900.0)
-	var rumble := _env(_lowpass(_noise(0.38), 400.0, 200.0), 0.04, 3.5)
+	var tone := _lowpass(_saw(0.2, 90.0, 240.0), 500.0, 900.0)
+	var rumble := _env(_lowpass(_noise(0.2), 400.0, 200.0), 0.04, 3.5)
 	return _normalize(_bell(_mix(tone, rumble, 0.5)), 0.65)
 
 
