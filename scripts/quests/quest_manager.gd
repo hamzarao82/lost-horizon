@@ -416,6 +416,75 @@ func _finish_mission(quest_id: StringName) -> void:
 	mission_completed.emit(quest_id)
 
 
+
+# --- failure and recovery rules (docs/MISSION_RULES.md) ---------------------------------------------------
+
+## Rule 2: credits every set-type step of every active quest whose proof already exists in saved state:
+## a remembered event, a set FLAG, a "boss_<id>_defeated" flag or a "doc_<id>_found" flag. Idempotent, never
+## undoes progress, and respects strict order. Returns how many steps it credited.
+func reconcile_active() -> int:
+	var credited := 0
+	for quest_id in active.keys():
+		if not active.has(quest_id):
+			continue
+		var quest := get_quest(quest_id)
+		if quest == null:
+			continue
+		var before := (active[quest_id]["done"] as Array).count(true)
+		for index in quest.objectives.size():
+			if active[quest_id]["done"][index] or not quest.objectives[index].is_set_type():
+				continue
+			if not _unlocked(quest_id, index):
+				continue
+			var objective: ObjectiveData = quest.objectives[index]
+			_replay_objective(quest_id, index)
+			for target in objective.targets:
+				if _world_proves(objective.type, StringName(target)):
+					_credit(quest_id, index, objective, StringName(target), false)
+		if active.has(quest_id):
+			if is_strict(quest_id):
+				_advance_strict(quest_id)
+			_check_complete(quest_id)
+		if active.has(quest_id):
+			credited += (active[quest_id]["done"] as Array).count(true) - before
+		else:
+			credited += 1  # it completed during reconciliation
+	if credited > 0:
+		tracker_changed.emit()
+	return credited
+
+
+func _world_proves(type: ObjectiveData.Type, target: StringName) -> bool:
+	if _world == null or not _world.has_method("has_flag"):
+		return false
+	match type:
+		ObjectiveData.Type.BOSS_DEFEATED:
+			return _world.has_flag(StringName("boss_%s_defeated" % target))
+		ObjectiveData.Type.DISCOVER, ObjectiveData.Type.INTERACT:
+			return _world.has_flag(StringName("doc_%s_found" % target))
+	return false
+
+
+## Rule 3: puts an ACTIVE quest back to its first step and replays what history and saved state still prove.
+## Completed quests are never restarted and rewards are never paid again (the paid list is kept).
+func restart_quest(quest_id: StringName) -> bool:
+	var quest := get_quest(quest_id)
+	if quest == null or not active.has(quest_id):
+		return false
+	var progress: Array = []
+	var seen: Array = []
+	var done: Array = []
+	for objective in quest.objectives:
+		progress.append(0)
+		seen.append([])
+		done.append(false)
+	active[quest_id] = {"progress": progress, "seen": seen, "done": done}
+	_replay_history(quest_id)
+	reconcile_active()
+	tracker_changed.emit()
+	return true
+
+
 # --- rewards ---------------------------------------------------------------
 
 ## Hands queued reward items to the player. Items that cannot be delivered yet (no player in the
@@ -822,6 +891,7 @@ func from_dict(raw: Variant) -> void:
 func on_game_loaded(raw: Variant) -> void:
 	from_dict(raw)
 	intro_done = true  # a continued game never replays the opening
+	reconcile_active()
 
 
 func _clear_state() -> void:

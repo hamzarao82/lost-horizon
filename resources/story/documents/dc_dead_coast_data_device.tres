@@ -8,5 +8,5 @@ key = &"dc_dead_coast_data_device"
 source_id = &"dead_coast_data_device"
 title = "Data device"
 region = &"dead_coast"
-body = "A ruggedised drive taped under a bunk. Most of it is encrypted. The header is readable: SHIPPING LEDGER, BLACKWOOD ROUTE, SIGNED R. HALE."
+body = "A ruggedised drive taped under a bunk. Most of it is encrypted. The header is readable: SHIPPING LEDGER, BLACKWOOD ROUTE, SIGNED R. HALE, MEDICAL OFFICER."
 order = 2

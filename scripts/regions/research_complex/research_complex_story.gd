@@ -56,9 +56,9 @@ const DOCS: Dictionary = {
 	"rc_medical_evidence": {
 		"title": "Trial notes, Dr. Hale",
 		"pages": [
-			"Subject 11 no longer answers to name or order. Subject 14 did, for four days.",
+			"Subject 11 no longer answers to name or order. Subject 14, moved down from the Blackwood annex, still answered orders for four days after he lost his speech.",
 			"The compound does what we hoped. It does not stop. We keep adjusting the dose; the subjects keep adjusting to it.",
-			"If the review board reads this, I want it recorded that I asked to stop at subject nineteen.",
+			"If the review board reads this, I want it recorded that I asked to stop at subject nineteen. - R. Hale",
 		],
 	},
 	"rc_subject_roster": {
@@ -86,7 +86,7 @@ const DOCS: Dictionary = {
 		"title": "Containment incident report",
 		"pages": [
 			"INCIDENT 0214. The cell locks were not broken. They were released from the control level at 02:14, in sequence, one block at a time.",
-			"Security recorded no attack. It recorded an order. The release was authorised with a command key, not forced with a tool.",
+			"Security recorded no attack. It recorded an order. The lockdown that followed was ordered from below, after the release. The release was authorised with a command key, not forced with a tool.",
 			"Official finding to be entered: equipment failure. The Director's office has asked that this page not be copied.",
 		],
 	},

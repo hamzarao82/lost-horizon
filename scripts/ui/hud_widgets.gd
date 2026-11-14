@@ -43,7 +43,7 @@ func _draw() -> void:
 	var inner := size.x - PAD * 2.0
 	_row(font, font_size, 0, &"sword", weapon_color, weapon_name, weapon_mod, HudTheme.GOLD, inner)
 	_row(font, font_size, 1, &"armor", armor_color, armor_name, armor_points, HudTheme.ARMOR.lightened(0.25), inner)
-	_row(font, font_size, 2, &"medkit", HudTheme.HEALTH.lightened(0.2), "Medkits  x%d" % potions, "[R]", HudTheme.TEXT_DIM, inner)
+	_row(font, font_size, 2, &"medkit", HudTheme.HEALTH.lightened(0.2), "Medkits  x%d" % potions, "[%s]" % KeyBindings.key_name(&"use_item"), HudTheme.TEXT_DIM, inner)
 
 
 func _row(font: Font, font_size: int, index: int, icon: StringName, chip: Color, text: String,

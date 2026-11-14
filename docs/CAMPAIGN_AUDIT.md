@@ -178,3 +178,17 @@ Before the dynamic flag patterns were added the tool listed 13 candidates (patro
 
 ## 7. How to re-run
 `godot --headless --path . -s tools/campaign_audit.gd` (prints the tables) and `godot --headless --path . -s tests/story_continuity_check.gd` (460 checks, zero failures when written). When the Iron Fortress lands, add its folder name to `CampaignAudit.region_of_quest_path` and run both again.
+
+## 8. Resolution of section 5 (2026-11-14, Milestone 12 follow-up)
+Fixed in the game's own text and data, with `tests/story_consistency_check.gd` (31 checks) holding each one:
+1. **Ending firing mid-campaign:** already fixed earlier; `QuestManager._begin_ending` only emits `ending_started`.
+2. **Wrong region:** the Outpost 17 military terminal now says "Signal traced to a relay on the Dead Coast. Coordinates uploaded."
+3. **Pacing:** the command terminal now says "The outside can hear you now." (the programme's name is no longer declared "no longer a secret").
+4. **Two radio identities:** the early lines are a looping beacon from the compound ("a looping beacon from the compound...", "The beacon repeats...", "Whoever set the beacon left instructions...").
+5. **Subject 14:** Blackwood is the first-generation annex; Subject 14 is moved down to the Research Complex, where he "still answered orders for four days after he lost his speech".
+6. **Hale:** one person, R. Hale, medical officer; he signs the shipping ledger and the trial notes.
+7. **Lockdown versus release:** one sequence: release first (command key), then a lockdown "ordered from below, after the release".
+8. **Warden's office:** the checkpoint order now comes from the "Administration office", a separate office from the Warden.
+9. **CALLOWAY:** stated to be an earlier shipment's ship, rotted for years, not the protagonist's boat.
+10. **STORY.md** is still stale (marked historical, not rewritten).
+Also the ending's closing beats: the "witness aboard a transport" lines were replaced by a beat about the stolen gold and diamonds washed ashore in the same storm. The document index (`resources/story/documents`) was regenerated with `tools/gen_document_index.gd`; only the eight changed documents were kept.

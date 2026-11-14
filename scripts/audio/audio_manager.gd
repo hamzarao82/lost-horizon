@@ -13,6 +13,12 @@ const SFX_NAMES: Array[StringName] = [
 const POOL_SIZE: int = 8
 const MUSIC_DB: float = -14.0
 const MUSIC_NAME: StringName = &"music_loop"
+## Music mode -> stream name. The 3 MB audio budget leaves no room for more loops, so boss and ending reuse the
+## explore loop at another pitch (which also changes the tempo). "silent" (the death screen) has no track.
+const MUSIC_PITCH: Dictionary = {&"explore": 1.0, &"boss": 1.25, &"ending": 0.75, &"silent": 1.0}
+const MUSIC_TRACKS: Dictionary = {
+	&"explore": &"music_loop", &"boss": &"music_loop", &"ending": &"music_loop", &"silent": &"",
+}
 const LAZY_START_FRAMES: int = 90
 const AMBIENCE_NAME: StringName = &"ambience_loop"
 const AMBIENCE_DB: float = -24.0
@@ -35,6 +41,10 @@ var _ambience_b: AudioStreamPlayer  ## second slot: the incoming loop of a regio
 var _slot_streams: Array[StringName] = [AMBIENCE_NAME, &""]
 var _slot_gain: Array[float] = [1.0, 0.0]  ## linear, 1.0 = AMBIENCE_DB
 var _duck: float = 1.0
+var _music_mode: StringName = &"explore"
+var _music_stream_name: StringName = &"music_loop"
+var _music_tween: Tween
+var _bosses_engaged: Dictionary = {}
 var _active_slot: int = 0
 var _region_ambience: StringName = &"outpost"
 var _amb_tween: Tween
@@ -156,6 +166,8 @@ func _load_stream(stream_name: StringName) -> AudioStream:
 
 
 func _on_node_added(node: Node) -> void:
+	if node is Enemy or node is Player or node is MainMenu:
+		_wire_music_node.call_deferred(node)
 	# A node can re-enter the tree (a region returning from being detached): connect each signal only once.
 	if node is Enemy:
 		if node.has_signal(&"swing_started") and not node.is_connected(&"swing_started", _on_enemy_swing.bind(node)):
@@ -373,4 +385,96 @@ func set_ambience_duck(linear: float) -> void:
 	_apply_slot_volume(0)
 	_apply_slot_volume(1)
 	if _music:
-		_music.volume_db = MUSIC_DB + linear_to_db(maxf(_duck, 0.0001))
+		_apply_music_volume()
+
+
+# --- music modes (explore, boss, ending, silent) ---------------------------------------------------------
+# State is plain data (music_state) so the transitions are testable without a sound device.
+
+func set_music_mode(mode: StringName, fade_seconds: float = 0.8) -> void:
+	if not MUSIC_TRACKS.has(mode) or mode == _music_mode:
+		return
+	_music_mode = mode
+	_music_stream_name = MUSIC_TRACKS[mode]
+	if _music != null:
+		_music.pitch_scale = MUSIC_PITCH[mode]
+	if _music == null:
+		return
+	if _music_tween != null and _music_tween.is_valid():
+		_music_tween.kill()
+	_music.stop()
+	_music.stream = null
+	if _music_stream_name != &"":
+		var stream := _load_stream(_music_stream_name)
+		if stream is AudioStreamWAV:
+			var wav := stream as AudioStreamWAV
+			wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			wav.loop_begin = 0
+			wav.loop_end = _loop_end_frames(wav)
+		_music.stream = stream
+		_apply_music_volume()
+		if stream != null and DisplayServer.get_name() != "headless":
+			_music.volume_db = -60.0
+			_music.play()
+			if fade_seconds > 0.0:
+				_music_tween = create_tween()
+				_music_tween.tween_property(_music, "volume_db", _music_target_db(), fade_seconds)
+			else:
+				_apply_music_volume()
+
+
+func music_state() -> Dictionary:
+	return {"mode": _music_mode, "stream": _music_stream_name, "pitch": MUSIC_PITCH[_music_mode], "has_stream": _music != null and _music.stream != null}
+
+
+func _music_target_db() -> float:
+	var duck := 1.0 if _music_mode == &"ending" else _duck
+	return MUSIC_DB + linear_to_db(maxf(duck, 0.0001))
+
+
+func _apply_music_volume() -> void:
+	if _music:
+		_music.volume_db = _music_target_db()
+
+
+func _on_boss_damaged(_amount: float, _position: Vector3, _was_kill: bool, boss: Enemy) -> void:
+	if _bosses_engaged.has(boss.get_instance_id()):
+		return
+	_bosses_engaged[boss.get_instance_id()] = true
+	set_music_mode(&"boss")
+
+
+func _on_boss_defeated(boss: Enemy) -> void:
+	_bosses_engaged.erase(boss.get_instance_id())
+	if _bosses_engaged.is_empty():
+		set_music_mode(&"explore", 2.0)
+
+
+func _on_boss_exited(boss: Enemy) -> void:
+	if _bosses_engaged.has(boss.get_instance_id()):
+		_on_boss_defeated(boss)
+
+
+func _on_player_died() -> void:
+	set_music_mode(&"silent", 0.5)
+
+
+func _wire_music_node(node: Node) -> void:
+	if not is_instance_valid(node) or not node.is_inside_tree():
+		return
+	if node is Enemy and AIScheduler.is_boss(node as Enemy):
+		var boss := node as Enemy
+		if not boss.has_meta(&"audio_music_wired"):
+			boss.set_meta(&"audio_music_wired", true)
+			boss.damaged.connect(_on_boss_damaged.bind(boss))
+			boss.defeated.connect(_on_boss_defeated.bind(boss))
+			boss.tree_exiting.connect(_on_boss_exited.bind(boss))
+	elif node is Player:
+		var player := node as Player
+		_bosses_engaged.clear()
+		set_music_mode(&"explore", 1.0)  # a new player is a fresh life: after a death reload or a new game
+		if player.health != null and not player.health.died.is_connected(_on_player_died):
+			player.health.died.connect(_on_player_died)
+	elif node is MainMenu:
+		_bosses_engaged.clear()
+		set_music_mode(&"explore", 0.5)

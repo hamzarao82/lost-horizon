@@ -7,7 +7,6 @@ script = ExtResource("1_ki37l")
 key = &"o17_command_terminal_d"
 source_id = &"command_terminal_d"
 title = "Command terminal"
-category = &"classified"
 body = "Uplink open. Relaying your position to the outside.
-Signal confirmed. Project Black Site is no longer a secret."
+Signal confirmed. The outside can hear you now."
 order = 6

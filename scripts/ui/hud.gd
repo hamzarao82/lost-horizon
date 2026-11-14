@@ -160,7 +160,7 @@ func _ready() -> void:
 	if not TouchControls.is_mobile_platform():
 		_hint = Label.new()
 		var hint := _hint
-		hint.text = "WASD move | Shift sprint | Space jump | Ctrl or C dodge | LMB light | RMB heavy | R medkit | F3 stats"
+		hint.text = hint_text()
 		hint.position = Vector2(16, 690)  # re-positioned every frame from the viewport height
 		HudTheme.style_label(hint, HudTheme.FONT_SMALL, 4, HudTheme.TEXT_DIM)
 		_root.add_child(hint)
@@ -214,6 +214,9 @@ func _process(delta: float) -> void:
 	_banner.position = Vector2((viewport_size.x - _banner.size.x) * 0.5, BANNER_Y)
 	if _hint:
 		_hint.position = Vector2(16, viewport_size.y - 30.0)
+		var current := hint_text()
+		if _hint.text != current:
+			_hint.text = current
 
 	if _banner_time > 0.0:
 		_banner_time -= delta
@@ -785,3 +788,15 @@ func _show_message(text: String, color: Color, seconds: float = 0.0) -> void:
 	_message.visible = true
 	_message_time = seconds
 	_message.position = (get_viewport().get_visible_rect().size - _message.size) * 0.5
+
+
+## The controls strip for keyboard and mouse, built from the player's current bindings.
+static func hint_text() -> String:
+	var move: Array[String] = []
+	for action in [&"move_forward", &"move_left", &"move_backward", &"move_right"]:
+		move.append(KeyBindings.key_name(action))
+	var long_name := false
+	for part in move:
+		long_name = long_name or part.length() > 1
+	var moves := (" " if long_name else "").join(move)
+	return KeyBindings.fill("%s move | {sprint} sprint | {jump} jump | {dodge} dodge | {attack_light} light | {attack_heavy} heavy | {use_item} medkit | F3 stats" % moves)

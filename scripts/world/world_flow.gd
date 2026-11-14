@@ -20,9 +20,9 @@ const SWITCH_SPOTS: Dictionary = {
 const RADIO_SPOT: Vector3 = Vector3(-7.0, 0.0, 60.4)
 const TERMINAL_SPOT: Vector3 = Vector3(0.0, 0.0, -27.6)
 const RADIO_LINES: Array[String] = [
-	"...static... Anyone out there? This is Outpost 17.",
-	"Our power is dead and the courtyard gate is locked down.",
-	"Throw the three breakers: behind the wreck, on the east fence, at the watchtower.",
+	"...static... a looping beacon from the compound: \"Anyone out there? This is Outpost 17.\"",
+	"The beacon repeats that the power is dead and the courtyard gate is locked down.",
+	"Whoever set the beacon left instructions: throw the three breakers behind the wreck, on the east fence, at the watchtower.",
 ]
 const CAPTION_SECONDS: float = 4.5
 

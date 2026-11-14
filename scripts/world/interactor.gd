@@ -100,7 +100,7 @@ func _refresh_prompt() -> void:
 		return
 	var text := target.current_prompt()
 	if not TouchControls.touch_active:
-		text = "[E] " + text if target.can_interact() else text
+		text = "[%s] " % KeyBindings.key_name(&"interact") + text if target.can_interact() else text
 	_label.text = text
 	_label.visible = true
 	var size := get_viewport().get_visible_rect().size
