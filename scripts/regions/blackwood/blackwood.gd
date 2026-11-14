@@ -167,6 +167,7 @@ func build() -> void:
 	_build_triggers()
 	_build_encounters()
 	_finish_meshes()
+	EliteStrongholds.add_to(self, REGION_ID)
 	var state := get_node_or_null("/root/WorldState")
 	if state:
 		state.area_entered.connect(_on_area_entered)

@@ -6,6 +6,7 @@ extends CanvasLayer
 
 signal new_game_pressed
 signal continue_pressed
+signal arena_mode_pressed
 signal quit_pressed
 
 const BUTTON_SIZE: Vector2 = Vector2(380, 60)
@@ -83,6 +84,7 @@ func set_loading(value: float) -> void:
 	button("continue").disabled = true
 	button("load_game").disabled = true
 	button("replay_ending").disabled = true
+	button("arena").disabled = true
 
 
 func is_loading() -> bool:
@@ -99,6 +101,7 @@ func set_ready() -> void:
 	_loading_progress = 1.0
 	_loading_label.visible = false
 	button("new_game").disabled = false
+	button("arena").disabled = false
 	refresh()
 	var b := button("new_game")
 	var tween := create_tween()
@@ -227,7 +230,7 @@ func _build_ui() -> void:
 
 func _build_main_page() -> VBoxContainer:
 	var page := VBoxContainer.new()
-	page.add_theme_constant_override("separation", 12)
+	page.add_theme_constant_override("separation", 8)
 	page.add_child(_label("LOST HORIZON", 56, Color(0.95, 0.9, 0.78)))
 	page.add_child(_label("BLACK SITE", 24, Color(0.9, 0.62, 0.2)))
 	page.add_child(Control.new())
@@ -240,6 +243,7 @@ func _build_main_page() -> VBoxContainer:
 	page.add_child(_loading_label)
 	_add_button(page, "load_game", "Load Game", open_load_screen)
 	_add_button(page, "replay_ending", "Replay Ending", replay_ending)
+	_add_button(page, "arena", "Arena Mode", func() -> void: arena_mode_pressed.emit())
 	_add_button(page, "settings", "Settings", func() -> void: _show_page(_settings_page))
 	_add_button(page, "credits", "Credits", func() -> void: _show_page(_credits_page))
 	if not OS.has_feature("web") and not TouchControls.is_mobile_platform():

@@ -796,10 +796,10 @@ func _run_intro(player: Player) -> void:
 	# Boot adds Main with processing disabled behind its loading screen; wait for the hand-over.
 	while is_instance_valid(player) and not player.can_process():
 		await get_tree().process_frame
-	if not is_instance_valid(player):
-		return
+	if not is_instance_valid(player) or ArenaMode.active:
+		return  # Arena Mode skips the opening
 	await get_tree().create_timer(INTRO_SETTLE_SECONDS, true, false, true).timeout
-	if not is_instance_valid(player) or _intro != null:
+	if not is_instance_valid(player) or _intro != null or ArenaMode.active:
 		return
 	# The opening: a speedboat/storm cinematic, then the shipwreck and injured-recovery beach sequence.
 	# `INTRO_SCENE` (the older black-screen-and-captions intro) stays in the project and under test

@@ -71,6 +71,7 @@ func build() -> void:
 	_build_entries_and_exits()
 	_wire()
 	BarrelPlacement.build(self, REGION_ID)
+	EliteStrongholds.add_to(self, REGION_ID)
 	_refresh_groups.call_deferred()
 
 
