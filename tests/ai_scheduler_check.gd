@@ -254,6 +254,7 @@ func _test_spacing() -> void:
 		var q := _spawn(PLAYER_AT + Vector3(0.5, 0.0, 3.4), SOLDIER, false)
 		for e in [p, q]:
 			e.spacing = spaced
+			e._strafe_sign = 1.0  # otherwise the instance-id parity picks it and opposite signs pull the pair apart on their own
 			e.aggro()
 			e._cooldown = 99.0  # waiting on the ring, no token
 		await _frames(20)

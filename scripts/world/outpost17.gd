@@ -53,6 +53,7 @@ func _ready() -> void:
 	_build_encounter()
 	_build_patrols()
 	_build_boss_encounter()
+	BarrelPlacement.build(self, &"outpost_17")
 	# The HUD shows the area-name banner now (Hud.show_location); a second label here doubled the text.
 	# _build_banner() is kept for headless use but not called.
 	var state := get_node_or_null("/root/WorldState")

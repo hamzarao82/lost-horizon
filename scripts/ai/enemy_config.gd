@@ -28,6 +28,8 @@ extends Resource
 @export var spacing: bool = false
 @export_range(0.0, 1.0) var retreat_health_fraction: float = 0.0
 @export var reinforcement_cap: int = 0
+@export_range(0.0, 0.9) var guard_reduction: float = 0.0
+@export var guard_vulnerable_seconds: float = 1.0
 ## A unique item (resource path) dropped once per save: skipped when the player already owns the claim.
 @export var unique_drop_path: String = ""
 ## Extra exports of the enemy class, applied by name when the enemy has the property (for example a stage
@@ -57,6 +59,8 @@ func apply(enemy: Enemy) -> void:
 	enemy.spacing = spacing
 	enemy.retreat_health_fraction = retreat_health_fraction
 	enemy.reinforcement_cap = reinforcement_cap
+	enemy.guard_reduction = guard_reduction
+	enemy.guard_vulnerable_seconds = guard_vulnerable_seconds
 	for key: Variant in extras:
 		if enemy.get(String(key)) != null:
 			enemy.set(String(key), extras[key])

@@ -99,10 +99,21 @@ func explode() -> int:
 			other.light()
 	if _persisted():
 		PersistentIds.claim(region_id, _claim_id())
+	_play_blast_effects()
 	exploded.emit(victims)
 	collision_layer = 0
 	queue_free()
 	return victims
+
+
+func _play_blast_effects() -> void:
+	var fx := get_node_or_null("/root/Fx")
+	if fx != null:
+		fx.death_burst(global_position + Vector3(0.0, 0.6, 0.0), FUSE_COLOR)
+		fx.ring(global_position, radius, FUSE_COLOR, 0.5)
+	var audio := get_node_or_null("/root/AudioManager")
+	if audio != null:
+		audio.play(&"explosion", -2.0)
 
 
 func _damage(target: Node3D, blast: AttackData) -> int:

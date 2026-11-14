@@ -32,11 +32,29 @@ Chase decisions run every 0.1 s (within 6 m of the target), 0.2 s (within 12 m) 
 
 ## Tests
 
-`ai_scheduler_check` (38): pure helpers, defaults, scheduler on vs off (first attack within 30 frames, same damage taken), crowd think count (36 thinks for 12 far enemies in 1 s instead of 720, never above 4 in a frame), flank fan-out, spacing, retreat, boss immunity, reinforcement cap. `explosive_barrel_check` (26): falloff, fuse, enemy and player damage, one shot, chain reaction, persistence.
+`ai_scheduler_check` (38), `explosive_barrel_check` (26), `guard_stance_check` (20), `tactics_live_check` (51).
+
+## Guard stance
+
+`Enemy.guard_reduction` (0 = off, max 0.9) and `guard_vulnerable_seconds` (default 1.0), also on `EnemyConfig` and `FacilityEnemyConfig`. Rule: while an enemy is chasing (not attacking, staggered, idle or retreating) and the attacker stands inside its front 120 degrees, a light hit does `(1 - guard_reduction)` of its damage and never staggers it; that block opens a vulnerability window in which hits land in full and stagger as normal. Attacks whose id starts with `heavy` or `sprint`, ring (`aoe_radius > 0`) attacks, and hits from the side or behind bypass the guard. `Enemy._guard_blocks` holds the rule; `tests/guard_stance_check.gd` (20) covers the default, the block, the window, every bypass and every non-chasing state.
+
+## Live in the real configs
+
+| Config | Region | Tactics on |
+|---|---|---|
+| Security Guard (`facility_security_guard`) | Research Complex | scheduler, flank slots, spacing, retreat at 20% health, reinforcement cap 1 |
+| Heavy Facility Guard (`facility_heavy_guard`) | Research Complex | scheduler, spacing, guard 0.4 (1.2 s window), reinforcement cap 1 |
+| Fortress Infantry, Elite Security Soldier | Iron Fortress | reinforcement cap 2 (ranged: only the alert call applies, the ranged brain has its own movement) |
+| Heavy Assault Unit | Iron Fortress | guard 0.5 (1.0 s window), reinforcement cap 1 |
+
+Bosses (Warden, Director, Captain, stage bosses, Subject Zero, the Commanders) have everything off, asserted by `tests/tactics_live_check.gd` (51 checks). The same test runs fights: four tactics guards all die within 3000 frames with the retreat triggered, a retreater is back in the chase after 2.5 s and can be finished off, a guarding heavy still dies to light hits, and five idle allies yield exactly `reinforcement_cap` responders, once. Dead Coast, Blackwood and the Outpost 17 patrols spawn bare scenes (`PatrolSoldier.tscn`, `HeavySoldier.tscn`) and have no config, so they still play as before.
+
+## Barrels placed
+
+`scripts/world/barrel_placement.gd` (`BarrelPlacement.LAYOUTS`) places four barrels in each of Outpost 17 (arena flanks and the beach approach), the Research Complex laboratory and the Iron Fortress barracks, each region adding one hook line (`BarrelPlacement.build`). Ids are `[a-z0-9_]`, unique, and persisted through `PersistentIds` with the region id. The test checks every barrel is at least 3 m from the main route, inside the region walls, not inside another solid (a physics query of the built regions), and that a destroyed barrel stays gone after the region is rebuilt. The route probes and keep-clear checks of both regions still pass. The explosion has a procedural sound (`explosion.wav`, appended to `tools/gen_sfx.gd`; every earlier wav is byte-identical, checked by md5) and reuses the pooled death burst and ground ring from `Fx`; it has never been listened to.
 
 ## Not done
 
-- No barrel is placed in any region; the component and its tests are provided, placement belongs to the region builders.
-- No enemy config enables any tactic yet, so the shipped game behaves as before. Turning them on per region is a balance decision that needs a playtest.
-- Defensive guard stance (block with a vulnerability window) from the plan is not built.
-- No sounds, effects or explosion animation beyond the blinking fuse and ring; no performance measurement on web or Android.
+- Guard stance and tactics have never been played by a person; values are conservative guesses.
+- Ranged enemies do not retreat, flank or space (their brain owns movement); Dead Coast, Blackwood and Outpost 17 enemies have no config, so no tactics there.
+- No web or Android performance measurement.

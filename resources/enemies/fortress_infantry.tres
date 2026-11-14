@@ -37,3 +37,4 @@ cooldown_min = 1.0
 cooldown_max = 1.6
 coordinate_alarm = false
 ranged = SubResource("Resource_ranged")
+reinforcement_cap = 2
