@@ -414,7 +414,7 @@ func _state_dodge(delta: float) -> void:
 
 
 func _state_attack(delta: float) -> void:
-	var data := _chain[_attack_idx]
+	var data := _weapon_attack(_attack_idx)
 	_attack_frames += delta * FPS * _attack_speed()
 	var active_start := float(data.startup_frames)
 	var active_end := active_start + data.active_frames
@@ -455,7 +455,7 @@ func _state_attack(delta: float) -> void:
 ## Buffered presses during an attack. Dodge may cancel from the end of the active window once the
 ## swing has connected, or any time in recovery; chains, jumps and the special wait for recovery.
 func _handle_attack_action(action: StringName) -> int:
-	var data := _chain[_attack_idx]
+	var data := _weapon_attack(_attack_idx)
 	var active_start := float(data.startup_frames)
 	var active_end := active_start + data.active_frames
 	var can_chain := _attack_frames >= active_end
@@ -509,6 +509,11 @@ func _aoe_strike(data: AttackData, scale: float) -> int:
 			hits += 1
 			_on_hit_landed(enemy, data)
 	return hits
+
+
+## The chain entry as the equipped weapon changes it (stagger, recovery, heavy damage); the base data for a neutral weapon.
+func _weapon_attack(idx: int) -> AttackData:
+	return WeaponProfiles.scaled(_chain[idx], inventory.weapon if inventory else null)
 
 
 func _attack_speed() -> float:
@@ -569,7 +574,7 @@ func _next_attack(heavy: bool) -> int:
 
 
 func _start_attack(idx: int) -> bool:
-	var data := _chain[idx]
+	var data := _weapon_attack(idx)
 	if stamina < data.stamina_cost:
 		return false
 	_spend_stamina(data.stamina_cost)
