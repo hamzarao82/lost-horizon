@@ -8,6 +8,7 @@ const SFX_NAMES: Array[StringName] = [
 	&"pickup", &"equip", &"heal", &"enemy_swing_windup", &"enemy_death", &"wave_start",
 	&"teleport", &"boss_slam", &"boss_charge", &"boss_leap", &"boss_roar", &"boss_fire", &"mission_complete", &"ui_click",
 	&"footstep", &"radio_static", &"radio_beep", &"bird_flush", &"metal_creak",
+	&"enemy_windup_heavy", &"armor_break",
 ]
 const POOL_SIZE: int = 8
 const MUSIC_DB: float = -14.0
@@ -157,8 +158,8 @@ func _load_stream(stream_name: StringName) -> AudioStream:
 func _on_node_added(node: Node) -> void:
 	# A node can re-enter the tree (a region returning from being detached): connect each signal only once.
 	if node is Enemy:
-		if node.has_signal(&"swing_started") and not node.is_connected(&"swing_started", _on_enemy_swing):
-			node.connect(&"swing_started", _on_enemy_swing)
+		if node.has_signal(&"swing_started") and not node.is_connected(&"swing_started", _on_enemy_swing.bind(node)):
+			node.connect(&"swing_started", _on_enemy_swing.bind(node))
 		if node.has_signal(&"was_hit") and not node.is_connected(&"was_hit", _on_enemy_hit):
 			node.connect(&"was_hit", _on_enemy_hit)
 		if node.has_signal(&"defeated") and not node.is_connected(&"defeated", _on_enemy_defeated):
@@ -168,8 +169,16 @@ func _on_node_added(node: Node) -> void:
 			node.wave_started.connect(_on_wave_started)
 
 
-func _on_enemy_swing() -> void:
-	play(&"enemy_swing_windup", -6.0)
+## Bosses keep the light windup (they have their own boss sounds); other tough enemies get a heavier one.
+func windup_sound_for(enemy: Node) -> StringName:
+	var e := enemy as Enemy
+	if e != null and not AIScheduler.is_boss(e) and e.hit_points >= EliteBar.ELITE_MIN_HEALTH:
+		return &"enemy_windup_heavy"
+	return &"enemy_swing_windup"
+
+
+func _on_enemy_swing(enemy: Node = null) -> void:
+	play(windup_sound_for(enemy), -6.0)
 
 
 # Landed hits are played by the player (it knows light vs heavy); only a dodge needs a sound here.
