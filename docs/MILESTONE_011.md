@@ -81,3 +81,8 @@ Every item in the brief's "definition of done" is **not started**. Rules for thi
 **Needs your decision:** the arena completion reward (100 XP, 120 credits, once) was chosen by the agent, not requested.
 
 **Not started:** weapon differentiation (reach, recovery, combo per weapon), the AI scheduler and tactical modes, the encounter director, the shared boss fairness test across all bosses (each boss has its own), explosive and cover environment objects, feedback and animation mapping, combat UI additions, the balance simulation, optional elite strongholds, performance budgets for AI and effects. Milestone 11 is roughly 25% done.
+
+## 9. Status after the AI and environment pass (2026-11-14)
+**Implemented and verified:** the AI scheduler (staggered 0.1 to 0.3 s chase thinking, a four-thinks-per-frame budget, token holder and attack states untouched), flank slots, spacing, low-health retreat for non-bosses, a capped reinforcement call through the existing ally-alert hook, all opt-in through `Enemy` and `EnemyConfig` fields that default to the old behaviour, and the explosive barrel component (fuse, warning ring, radius falloff, enemy and player damage, chain reaction, one shot, persistence through `PersistentIds`). Tests: `ai_scheduler_check` 38 and `explosive_barrel_check` 26; the scheduler-on and scheduler-off fights start the first attack within half a second of each other and deal the same damage. Details in `AI_SCHEDULER.md`.
+
+**Still not done in this area:** no region builder places barrels, no enemy config enables a tactic yet (so the shipped game plays as before), defensive guard stance, destructible cover, the shared boss fairness test, feedback and combat UI, the balance simulation.
