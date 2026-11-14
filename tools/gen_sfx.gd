@@ -48,6 +48,8 @@ func _initialize() -> void:
 	_write("menu_thunder", _menu_thunder())
 	_write("menu_wind", _menu_wind())
 	_write("menu_waves", _menu_waves())
+	# Milestone 11: explosive barrel, appended last so every earlier sound keeps its exact bytes.
+	_write("explosion", _explosion())
 	quit()
 
 
@@ -471,6 +473,14 @@ func _menu_thunder() -> PackedFloat32Array:
 		shaped[i] = rumble[i] * roll * exp(-t * 1.15) * minf(t * 25.0, 1.0)
 	var crack := _env(_highpass(_noise(0.18), 900.0), 0.003, 22.0)
 	return _normalize(_mix(shaped, crack, 0.45, 0.0), 0.7)
+
+
+## Barrel blast: a sharp crack, a pitch-dropping thud and a short rumbling tail.
+func _explosion() -> PackedFloat32Array:
+	var thud := _env(_sweep(0.5, 120.0, 34.0, 6.0, 0.02), 0.003, 6.5)
+	var crack := _env(_highpass(_noise(0.25), 700.0), 0.002, 14.0)
+	var tail := _env(_lowpass(_noise(0.55), 420.0, 140.0), 0.01, 4.5)
+	return _normalize(_mix(_mix(thud, crack, 0.5, 0.0), tail, 0.45, 0.05), 0.9)
 
 
 ## 8 s loop: a low wind bed with slow gusts (seamless: the tail is folded into the head).

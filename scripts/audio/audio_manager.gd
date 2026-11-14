@@ -8,6 +8,7 @@ const SFX_NAMES: Array[StringName] = [
 	&"pickup", &"equip", &"heal", &"enemy_swing_windup", &"enemy_death", &"wave_start",
 	&"teleport", &"boss_slam", &"boss_charge", &"boss_leap", &"boss_roar", &"boss_fire", &"mission_complete", &"ui_click",
 	&"footstep", &"radio_static", &"radio_beep", &"bird_flush", &"metal_creak",
+	&"explosion",
 ]
 const POOL_SIZE: int = 8
 const MUSIC_DB: float = -14.0

@@ -21,6 +21,14 @@ extends Resource
 @export var loot_table_path: String = ""
 ## Subjects never patrol; guards may be given a route by their spawn point.
 @export var patrols: bool = true
+## Milestone 11 tactics (all off by default; see Enemy).
+@export var scheduled: bool = false
+@export var flank_slots: bool = false
+@export var spacing: bool = false
+@export_range(0.0, 1.0) var retreat_health_fraction: float = 0.0
+@export var reinforcement_cap: int = 0
+@export_range(0.0, 0.9) var guard_reduction: float = 0.0
+@export var guard_vulnerable_seconds: float = 1.0
 ## Unique reward that a cleared enemy owes the player until it is picked up (empty = none).
 @export var reward_item_path: String = ""
 
@@ -40,6 +48,13 @@ func apply(enemy: Enemy) -> void:
 	enemy.dodge_chance = dodge_chance
 	enemy.attack_range = attack_range
 	enemy.detection_range = detection_range
+	enemy.scheduled = scheduled
+	enemy.flank_slots = flank_slots
+	enemy.spacing = spacing
+	enemy.retreat_health_fraction = retreat_health_fraction
+	enemy.reinforcement_cap = reinforcement_cap
+	enemy.guard_reduction = guard_reduction
+	enemy.guard_vulnerable_seconds = guard_vulnerable_seconds
 	if loot_table_path != "":
 		enemy.loot_table_path = loot_table_path
 

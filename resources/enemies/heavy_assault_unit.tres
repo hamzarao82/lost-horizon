@@ -37,3 +37,6 @@ cooldown_min = 1.0
 cooldown_max = 1.6
 coordinate_alarm = false
 ranged = SubResource("Resource_ranged")
+reinforcement_cap = 1
+guard_reduction = 0.5
+guard_vulnerable_seconds = 1.0

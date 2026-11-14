@@ -86,6 +86,11 @@ var damage_mult: float = 1.0
 @export_range(0.0, 1.0) var retreat_health_fraction: float = 0.0
 ## Once hurt, call at most this many idle allies into the fight (0 = no call).
 @export var reinforcement_cap: int = 0
+## Guard stance (0 = off): while chasing and facing the attacker, light frontal hits are cut by this fraction and
+## do not stagger; each block opens a fixed vulnerability window. Heavy, sprint and ring attacks and hits from
+## the side or behind bypass the guard.
+@export_range(0.0, 0.9) var guard_reduction: float = 0.0
+@export var guard_vulnerable_seconds: float = 1.0
 
 @export var move_speed: float = 3.2
 @export var detection_range: float = 14.0
@@ -122,6 +127,7 @@ var _think_acc: float = 0.0
 var _retreat_left: float = 0.0
 var _retreated: bool = false
 var _reinforced: bool = false
+var _guard_vuln_left: float = 0.0
 
 
 func _ready() -> void:
@@ -179,6 +185,8 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 	_cooldown -= delta
+	if _guard_vuln_left > 0.0:
+		_guard_vuln_left -= delta
 	match state:
 		State.IDLE:
 			_state_idle()
@@ -444,7 +452,11 @@ func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float
 		_sidestep(from_position)
 		was_hit.emit(true)
 		return false
-	var interrupts := _hit_interrupts(attack)
+	var blocked := _guard_blocks(attack, from_position)
+	var interrupts := _hit_interrupts(attack) and not blocked
+	if blocked:
+		_guard_vuln_left = guard_vulnerable_seconds
+		damage_scale *= 1.0 - guard_reduction
 	if interrupts:
 		var away := global_position - from_position
 		away.y = 0.0
@@ -470,6 +482,23 @@ func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float
 			if _ranged_brain != null:
 				_ranged_brain.cancel()  # an interrupted telegraph or burst never fires
 	return true
+
+
+## True when the guard stance absorbs this hit: opt-in, chasing (not attacking or staggered), outside the
+## vulnerability window, a light attack, and the attacker inside the front 120 degrees.
+func _guard_blocks(attack: AttackData, from_position: Vector3) -> bool:
+	if guard_reduction <= 0.0 or state != State.CHASE or _guard_vuln_left > 0.0 or _retreat_left > 0.0:
+		return false
+	var id := String(attack.id)
+	if id.begins_with("heavy") or id.begins_with("sprint") or attack.aoe_radius > 0.0:
+		return false
+	var to_attacker := from_position - global_position
+	to_attacker.y = 0.0
+	if to_attacker.length_squared() < 0.001:
+		return true
+	var yaw := _visual_root.rotation.y
+	var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
+	return forward.dot(to_attacker.normalized()) >= 0.5
 
 
 ## Override: return false for hits that should not interrupt (super armor).
