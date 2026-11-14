@@ -22,6 +22,12 @@ extends Resource
 ## Opt-in ally alert: when this enemy notices the player, nearby idle allies join the fight.
 @export var coordinate_alarm: bool = false
 @export var ranged: RangedConfig
+## Milestone 11 tactics (all default to the original behaviour; see Enemy and scripts/ai/ai_scheduler.gd).
+@export var scheduled: bool = false
+@export var flank_slots: bool = false
+@export var spacing: bool = false
+@export_range(0.0, 1.0) var retreat_health_fraction: float = 0.0
+@export var reinforcement_cap: int = 0
 ## A unique item (resource path) dropped once per save: skipped when the player already owns the claim.
 @export var unique_drop_path: String = ""
 ## Extra exports of the enemy class, applied by name when the enemy has the property (for example a stage
@@ -46,6 +52,11 @@ func apply(enemy: Enemy) -> void:
 	enemy.cooldown_max = cooldown_max
 	enemy.coordinate_alarm = coordinate_alarm
 	enemy.ranged = ranged
+	enemy.scheduled = scheduled
+	enemy.flank_slots = flank_slots
+	enemy.spacing = spacing
+	enemy.retreat_health_fraction = retreat_health_fraction
+	enemy.reinforcement_cap = reinforcement_cap
 	for key: Variant in extras:
 		if enemy.get(String(key)) != null:
 			enemy.set(String(key), extras[key])

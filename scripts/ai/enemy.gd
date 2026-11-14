@@ -75,6 +75,17 @@ var damage_mult: float = 1.0
 @export var loot_table_path: String = ""
 ## Optional (Milestone 8): gives the enemy ranged behaviour (see scripts/ai/ranged). null = unchanged.
 @export var ranged: RangedConfig
+## Milestone 11 tactics, all opt-in (defaults keep the original behaviour; see scripts/ai/ai_scheduler.gd).
+## scheduled: chase decisions run on a staggered 0.1 to 0.3 s interval instead of every frame.
+@export var scheduled: bool = false
+## flank_slots: enemies chasing the same target take different approach angles.
+@export var flank_slots: bool = false
+## spacing: enemies waiting for a turn push away from crowding neighbours.
+@export var spacing: bool = false
+## Non-boss enemies back away for a moment once their health falls to this fraction (0 = never).
+@export_range(0.0, 1.0) var retreat_health_fraction: float = 0.0
+## Once hurt, call at most this many idle allies into the fight (0 = no call).
+@export var reinforcement_cap: int = 0
 
 @export var move_speed: float = 3.2
 @export var detection_range: float = 14.0
@@ -107,6 +118,10 @@ var _strafe_sign: float = 1.0
 var _token_age: float = 0.0
 var _label_filled: int = -1
 var _ranged_brain: RangedBrain
+var _think_acc: float = 0.0
+var _retreat_left: float = 0.0
+var _retreated: bool = false
+var _reinforced: bool = false
 
 
 func _ready() -> void:
@@ -171,7 +186,7 @@ func _physics_process(delta: float) -> void:
 			if _ranged_brain != null:
 				_ranged_brain.chase(delta)
 			else:
-				_state_chase(delta)
+				_chase_dispatch(delta)
 		State.RANGED_ATTACK:
 			if _ranged_brain != null:
 				_ranged_brain.attack_tick(delta)
@@ -273,6 +288,12 @@ func _state_chase(delta: float) -> void:
 	var dir := to.normalized()
 	_face(dir, delta)
 
+	if _retreat_left > 0.0:
+		_retreat_left -= delta
+		_move_horizontal(-dir, move_speed)
+		return
+	var approach := _approach_dir(dir, dist, player)
+
 	if _cooldown <= 0.0 and dist <= ring_distance + 1.0 and _try_take_token():
 		pass
 	if _has_token():
@@ -285,17 +306,65 @@ func _state_chase(delta: float) -> void:
 			_start_attack()
 			return
 		else:
-			_move_horizontal(dir, move_speed)
+			_move_horizontal(approach, move_speed)
 			return
 
 	# Waiting for a turn: hold a ring around the player.
 	if dist > ring_distance + 0.6:
-		_move_horizontal(dir, move_speed)
+		_move_horizontal(approach, move_speed)
 	elif dist < ring_distance - 0.6:
 		_move_horizontal(-dir, move_speed * 0.6)
 	else:
 		var side := Vector3(-dir.z, 0.0, dir.x) * _strafe_sign
 		_move_horizontal(side, move_speed * 0.5)
+	if spacing:
+		var push := AIScheduler.separation(self)
+		velocity.x += push.x * move_speed * 0.8
+		velocity.z += push.z * move_speed * 0.8
+
+
+func _chase_dispatch(delta: float) -> void:
+	if scheduled:
+		_scheduled_chase(delta)
+	else:
+		_state_chase(delta)
+
+
+## Opt-in (scheduled): the chase decision runs every 0.1 to 0.3 s by distance, within a per-frame budget;
+## the token holder and every attack state still run each frame. Between thinks the last velocity carries on.
+func _scheduled_chase(delta: float) -> void:
+	_think_acc += delta
+	var player := _target()
+	var dist := _flat_to(player).length() if player != null else 0.0
+	var interval := AIScheduler.interval_for(dist, _has_token())
+	if _think_acc < interval:
+		return
+	if interval > 0.0 and not AIScheduler.take_budget():
+		return
+	var elapsed := _think_acc
+	_think_acc = 0.0
+	_state_chase(elapsed)
+
+
+func _approach_dir(dir: Vector3, dist: float, player: Player) -> Vector3:
+	if flank_slots and dist > attack_range + 1.5:
+		var slot := AIScheduler.flank_slot(self, player.global_position)
+		return dir.rotated(Vector3.UP, AIScheduler.flank_angle(slot.x, slot.y))
+	return dir
+
+
+## Called after a hit that did not kill: low-health retreat and the one-time reinforcement call.
+func _after_tactical_hit() -> void:
+	if AIScheduler.is_boss(self):
+		return
+	if retreat_health_fraction > 0.0 and not _retreated \
+			and _health.health / _health.max_health <= retreat_health_fraction:
+		_retreated = true
+		_retreat_left = AIScheduler.RETREAT_SECONDS
+		_release_token()
+	if reinforcement_cap > 0 and not _reinforced:
+		_reinforced = true
+		_raise_alarm()
 
 
 func _start_attack() -> void:
@@ -391,6 +460,7 @@ func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float
 	_make_noise(global_position)  # the fight is where the victim stands
 	if state != State.DEAD:
 		_on_damaged()
+		_after_tactical_hit()
 		if interrupts and state != State.DEAD:
 			_hitbox.deactivate()
 			_weapon_pivot.visible = false
@@ -686,9 +756,12 @@ func _state_return(delta: float) -> void:
 
 
 func _raise_alarm() -> void:
-	if not coordinate_alarm:
+	if not coordinate_alarm and reinforcement_cap <= 0:
 		return
+	var called := 0
 	for node in get_tree().get_nodes_in_group("enemies"):
+		if reinforcement_cap > 0 and called >= reinforcement_cap:
+			break
 		var other := node as Enemy
 		if other == null or other == self or other.is_dead():
 			continue
@@ -697,6 +770,7 @@ func _raise_alarm() -> void:
 		if other.state == State.IDLE or other.state == State.PATROL or other.state == State.SUSPICIOUS \
 				or other.state == State.SEARCH or other.state == State.RETURN:
 			other.receive_ally_alert()
+			called += 1
 
 
 ## An ally noticed the player: join the chase (does not alarm further allies).
