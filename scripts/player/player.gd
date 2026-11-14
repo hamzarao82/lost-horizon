@@ -5,6 +5,8 @@ extends CharacterBody3D
 signal stamina_changed(current: float, maximum: float)
 ## Fired when an armed counterattack swing starts; `bonus` is the extra damage fraction (for FX).
 signal counter_triggered(bonus: float)
+## Fired when an enemy hit lands; `from_position` is the attacker's world position (damage-direction cue).
+signal hit_from(from_position: Vector3)
 
 enum State { FREE, DODGE, ATTACK, HIT, DEAD }
 
@@ -766,6 +768,7 @@ func receive_hit(attack: AttackData, from_position: Vector3, damage_scale: float
 	velocity.x = away.x * attack.knockback
 	velocity.z = away.z * attack.knockback
 	health.take_damage(attack.damage * damage_scale * _incoming_scale())  # armor is a bar in HealthComponent now
+	hit_from.emit(from_position)
 	_sfx(&"hurt")
 	if state != State.DEAD:
 		state = State.HIT

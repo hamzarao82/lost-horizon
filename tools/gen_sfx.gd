@@ -48,6 +48,9 @@ func _initialize() -> void:
 	_write("menu_thunder", _menu_thunder())
 	_write("menu_wind", _menu_wind())
 	_write("menu_waves", _menu_waves())
+	# Milestone 11 combat feedback, appended last so every earlier sound keeps its exact bytes.
+	_write("enemy_windup_heavy", _windup_heavy())
+	_write("armor_break", _armor_break())
 	quit()
 
 
@@ -504,3 +507,17 @@ func _menu_waves() -> PackedFloat32Array:
 		var swell := pow(0.5 + 0.5 * sin(TAU * t / 4.0 - 1.0), 2.4)
 		bed[i] = surf[i] * (0.2 + 1.0 * swell) + foam[i] * 0.4 * swell
 	return _normalize(bed, 0.55)
+
+
+## A slower, lower windup for heavy enemies (the light one is a quick rising saw).
+func _windup_heavy() -> PackedFloat32Array:
+	var tone := _lowpass(_saw(0.38, 90.0, 240.0), 500.0, 900.0)
+	var rumble := _env(_lowpass(_noise(0.38), 400.0, 200.0), 0.04, 3.5)
+	return _normalize(_bell(_mix(tone, rumble, 0.5)), 0.65)
+
+
+## Armor giving way: a metallic crack and a short falling clank.
+func _armor_break() -> PackedFloat32Array:
+	var crack := _env(_highpass(_noise(0.18), 1800.0), 0.001, 16.0)
+	var clank := _env(_sweep(0.2, 900.0, 260.0), 0.002, 14.0)
+	return _normalize(_mix(crack, clank, 0.7), 0.8)

@@ -93,3 +93,12 @@ Every item in the brief's "definition of done" is **not started**. Rules for thi
 - **Balance simulation** (`scripts/balance/balance_table.gd`, `tests/balance_sim_check.gd` 30 checks, `docs/COMBAT_BALANCE.md`): per-region enemy and boss health, damage, detection and a time to kill for all nine weapons, from the real resources and the real damage pipeline. The Iron Fortress is the hardest by data (threat 416.5 vs 177.7 for the next). Findings the numbers expose: the Claymore is barely ahead of the Combat Knife per second; the Research Complex bosses total less health than Blackwood's; the Director's damage per second is the lowest of any boss.
 
 **Still not done in Milestone 11:** the AI scheduler and tactical modes, the encounter director, explosive and cover environment objects, feedback and animation mapping, combat UI additions, optional elite strongholds, AI/effects performance budgets, and any human playtest of these numbers. The expected player level per region is an assumption, not a measured value.
+
+## Combat feedback and UI (2026-11-14)
+**Implemented, verified by `combat_ui_check` (77 checks):**
+- **Boss telegraph strip** (`TelegraphIndicator`): a thin strip between the boss bar and the banner (its own `telegraph` rectangle in `Hud.plan_layout`) that fills while a boss winds up. Progress is exact for the base melee swing and the Director; the Warden specials, Elite subjects and the ranged burst only report "winding up" (full strip). It only reads boss state; no combat code changed.
+- **Elite health bars** (`EliteBar`): billboard bars above bosses and any enemy with 150+ HP, attached by the HUD's enemy tick. Shown when damaged or within 12 m, hidden beyond 40 m and when dead.
+- **Damage direction + low-health warning** (`DamageDirection`): a red wedge at the screen edge toward the attacker (camera heading only, so the third-person tilt cannot bend it), and a pulsing red frame at 25% health or less. Needs one additive signal, `Player.hit_from(from_position)`, emitted in `receive_hit`.
+- **Sounds:** `enemy_windup_heavy` (non-boss enemies with 150+ HP) and `armor_break` (player armor reaching zero), appended to `tools/gen_sfx.gd`; all 33 earlier wavs are byte-identical (md5 before and after).
+
+**Not done:** a ranged-attack windup sound (ranged enemies emit no `swing_started`); nobody has seen or heard any of this in a real window or listened to the sounds; the boss telegraph for the Warden specials, Elite subjects and ranged bursts has no fill progress.

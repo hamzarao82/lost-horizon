@@ -48,6 +48,8 @@ var _player: Player
 var _waves: WaveManager
 var _boss: Enemy
 var _boss_bar: HudBar
+var _telegraph: TelegraphIndicator
+var _damage_dir: DamageDirection
 var _boss_name: Label
 var _quests: Node
 var _tracker_title: Label
@@ -82,6 +84,7 @@ static func plan_layout(viewport: Vector2, touch: bool) -> Dictionary:
 		"wave": Rect2((viewport.x - WAVE_LABEL_SIZE.x) * 0.5, 12, WAVE_LABEL_SIZE.x, WAVE_LABEL_SIZE.y),
 		"boss_name": Rect2((viewport.x - 300.0) * 0.5, 40, 300, 22),
 		"boss_bar": Rect2((viewport.x - boss_width) * 0.5, 66, boss_width, 20),
+		"telegraph": Rect2((viewport.x - boss_width) * 0.5, 87, boss_width, 10),  # between the boss bar (66-86) and the banner (98)
 		"banner": Rect2((viewport.x - BANNER_SIZE.x) * 0.5, BANNER_Y, BANNER_SIZE.x, BANNER_SIZE.y),
 		"equipment": Rect2(viewport.x - EQUIPMENT_SIZE.x - 16.0, 12, EQUIPMENT_SIZE.x, EQUIPMENT_SIZE.y),
 		"tracker": Rect2(16, TRACKER_TALL_Y, TRACKER_MAX_WIDTH, 72),
@@ -148,6 +151,11 @@ func _ready() -> void:
 	_boss_bar = _make_bar(Vector2.ZERO, Vector2(520, 20), HudTheme.BOSS, &"", 14)
 	_boss_bar.show_text = false
 	_boss_bar.visible = false
+	_telegraph = TelegraphIndicator.new()
+	_root.add_child(_telegraph)
+	_damage_dir = DamageDirection.new()
+	_root.add_child(_damage_dir)
+	_root.move_child(_damage_dir, 0)  # behind every widget
 
 	if not TouchControls.is_mobile_platform():
 		_hint = Label.new()
@@ -163,6 +171,10 @@ func _ready() -> void:
 		_player.health.armor_changed.connect(_on_armor_changed)
 		_on_armor_changed(_player.health.armor, _player.health.max_armor)  # may be restored from a save
 		_player.stamina_changed.connect(_on_stamina_changed)
+		_player.hit_from.connect(func(from_pos: Vector3) -> void: _damage_dir.on_hit(_player.global_position, from_pos))
+		_player.health.changed.connect(_damage_dir.set_health)
+		_player.health.armor_changed.connect(_damage_dir.on_armor_changed)
+		_damage_dir.set_health(_player.health.health, _player.health.max_health)
 		_on_health_changed(_player.health.health, _player.health.max_health)  # may be restored from a save
 		_on_stamina_changed(_player.max_stamina, _player.max_stamina)
 		if _player.inventory:
@@ -254,6 +266,8 @@ func _update_boss_bar(viewport_size: Vector2) -> void:
 	var show_boss := _boss != null and is_instance_valid(_boss) and not _boss.is_dead()
 	_boss_bar.visible = show_boss
 	_boss_name.visible = show_boss
+	var telegraph_rect: Rect2 = plan_layout(viewport_size, TouchControls.touch_active)["telegraph"]
+	_telegraph.update_for(_boss if show_boss else null, telegraph_rect, get_process_delta_time())
 	if not show_boss:
 		return
 	var health := _boss.get_node("HealthComponent") as HealthComponent
@@ -430,6 +444,8 @@ func _update_enemy_labels() -> void:
 	var locked: Node3D = _player.lock_target() if _player.has_method("lock_target") else null
 	for node in enemies:
 		var enemy := node as Enemy
+		if enemy != null and not enemy.is_dead():
+			EliteBar.attach(enemy)  # no-op unless an elite or boss that has none yet
 		if enemy == null or enemy.is_dead():
 			continue
 		var distance := _player.global_position.distance_to(enemy.global_position)
