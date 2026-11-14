@@ -108,7 +108,7 @@ func _test_data() -> void:
 	bad.shot_path = "res://resources/attacks/enemy_swing.tres"  # 30 frame startup = 0.5 s
 	_check(not bad.validate().is_empty(), "a too-short telegraph is rejected by validate()")
 	var shove := load("res://resources/attacks/ranged_shove.tres") as AttackData
-	_check(shove.startup_frames >= 24, "the close-range shove is telegraphed %d frames (>= 24 = 0.4 s)" % shove.startup_frames)
+	_check(shove.startup_frames >= 36, "the close-range shove is telegraphed %d frames (>= 36 = 0.6 s)" % shove.startup_frames)
 	_check(Projectile.LIVE_CAP == 12, "the live projectile cap is 12")
 
 

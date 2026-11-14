@@ -107,3 +107,6 @@ Each weapon now carries `stagger_power`, `recovery_scale` and `heavy_multiplier`
 
 ## Boss fairness
 `tests/boss_fairness_check.gd` reads every attack of the Warden, Subject Zero, the Facility Commander, the Fortress Captain and the Director. All obey the rule (telegraph at least 0.6 s, punish window at least 0.5 s, rushes and dashes at least 0.8 s, no hit above 25 damage, one hit per target per swing) **except three documented attacks**: the Warden's flurry (14-frame telegraph, a chained follow-up to the slam), the Warden's shockwave (an effect the slam spawns, not an attack of its own) and the Facility Commander's close-range shove (28-frame, 0.47 s telegraph, below the 0.6 s rule; `ranged_check` only requires 0.4 s). These are listed by name in the test and fail it if they are fixed silently.
+
+## Update (2026-11-14)
+`warden_flurry` telegraph/recovery 14/20 -> 36/30 frames and `ranged_shove` telegraph 28 -> 36 frames, so every boss attack meets the 0.6 s / 0.5 s rule. Damage values are unchanged, so the time-to-kill numbers above are unaffected.
