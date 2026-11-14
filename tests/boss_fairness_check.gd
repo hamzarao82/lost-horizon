@@ -16,19 +16,19 @@ const MAX_HIT: float = 25.0
 
 ## boss -> attack ids. "rush" attacks (charge, dash) need the longer telegraph.
 const BOSSES: Dictionary = {
-	"Warden": ["warden_slam", "warden_charge", "warden_leap", "warden_fire", "warden_flurry", "warden_shockwave"],
+	"Warden": ["warden_slam", "warden_charge", "warden_leap", "warden_fire", "warden_flurry"],
 	"Subject Zero": ["experimental_claw", "experimental_ring", "experimental_charge"],
 	"Facility Commander": ["ranged_shot", "ranged_shove"],
 	"Fortress Captain": ["fortress_captain_slam", "fortress_captain_charge", "fortress_captain_volley"],
 	"The Director": ["director_sweep", "director_volley", "director_barrage", "director_dash", "director_ring", "director_counter"],
 }
 const RUSH_ATTACKS: Array[String] = ["warden_charge", "experimental_charge", "fortress_captain_charge", "director_dash"]
-## attack id -> why it is allowed to break the telegraph/punish rule.
-const KNOWN_EXCEPTIONS: Dictionary = {
-	"warden_flurry": "a quick follow-up chained after the slam (documented in warden_design_check); the slam's own telegraph and recovery frame it",
-	"warden_shockwave": "an effect the slam spawns on impact (1/1/1 frames), never selected as an attack of its own",
-	"ranged_shove": "the Commander's close-range counter, a 28-frame (0.47 s) telegraph; ranged_check only requires 24 frames",
-}
+## attack id -> why it may break the telegraph/punish rule. Empty: every boss attack complies.
+const KNOWN_EXCEPTIONS: Dictionary = {}
+## Damage effects spawned by an already-telegraphed attack, never selected as attacks of their own, so the rule does
+## not apply: the slam that spawns the warden_shockwave carries a 36-frame telegraph and 40-frame recovery, and the
+## ring expands visibly over Warden.SHOCK_TIME. Damage and validity are still checked.
+const SPAWNED_EFFECTS: Array[String] = ["warden_shockwave"]
 
 var _failures: int = 0
 var _checks: int = 0
@@ -83,6 +83,10 @@ func _test_table() -> void:
 			_check(a.damage > 0.0 and a.damage <= MAX_HIT, "%s: one hit deals %.0f (never above %.0f, so never a quarter of the player's health)" % [id, a.damage, MAX_HIT])
 			_check(a.validate().is_empty(), "%s validates" % id)
 	_check(seen_exceptions.size() == KNOWN_EXCEPTIONS.size(), "every listed exception is still in the table (%d of %d attacks are exceptions)" % [seen_exceptions.size(), total])
+	for id in SPAWNED_EFFECTS:
+		var fx := _attack(id)
+		_check(fx != null and fx.damage > 0.0 and fx.damage <= MAX_HIT and fx.validate().is_empty(), "spawned effect %s is valid and deals <= %.0f" % [id, MAX_HIT])
+		_check(_attack("warden_slam").startup_frames >= MIN_TELEGRAPH and Warden.SHOCK_TIME >= 0.5, "%s is telegraphed by the slam and expands over %.1f s" % [id, Warden.SHOCK_TIME])
 	for id in ["warden_slam", "warden_charge", "warden_leap"]:
 		_check(_attack(id).recovery_frames >= MIN_PUNISH, "%s punish window protects the flurry chain too" % id)
 

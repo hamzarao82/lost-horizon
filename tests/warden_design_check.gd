@@ -106,11 +106,11 @@ func _test_frame_data() -> void:
 	_check(slam.damage == 22.0 and slam.startup_frames == 36 and slam.active_frames == 8 and slam.recovery_frames == 40,
 			"baseline slam numbers are unchanged (22 damage, 36/8/40)")
 	_check(charge.damage == 18.0 and leap.damage == 20.0, "charge 18 damage, leap 20 damage")
-	# The flurry is the documented exception: a quick chained follow-up to the slam (baseline numbers kept).
+	# The flurry is chained after a slam and now carries a full telegraph and punish window like every other attack.
 	var scene := load("res://scenes/enemies/Warden.tscn") as PackedScene
 	var cooldown_min := 1.6 * Warden.PHASE2_COOLDOWN_SCALE  # phase 2 minimum cooldown
-	_check(flurry.startup_frames == 14 and (flurry.recovery_frames / 60.0 + cooldown_min) >= 0.5,
-			"flurry stays 14 startup but is chained after a slam and leaves >= 0.5 s before the next attack")
+	_check(flurry.startup_frames >= 36 and flurry.recovery_frames >= 30 and (flurry.recovery_frames / 60.0 + cooldown_min) >= 0.5,
+			"flurry has a %d-frame telegraph, is chained after a slam and leaves >= 0.5 s before the next attack" % flurry.startup_frames)
 	_check(scene != null and Warden.PHASE2_THRESHOLD == 0.4, "phase 2 threshold is 40%")
 
 
