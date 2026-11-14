@@ -273,12 +273,23 @@ func _on_save() -> void:
 		save_manager.save_game("manual")
 
 
-func _on_load() -> void:
+## Opens the Load Game list over the pause menu; the chosen file is loaded like the single Load used to.
+func _on_load() -> LoadScreen:
+	var screen := LoadScreen.new()
+	screen.slot_chosen.connect(_on_slot_chosen.bind(screen))
+	screen.closed.connect(_refresh_load_button)
+	add_child(screen)
+	return screen
+
+
+func _on_slot_chosen(slot_number: int, screen: LoadScreen) -> void:
 	var save_manager := _save_manager()
-	if save_manager and save_manager.load_game():
+	if save_manager and save_manager.load_slot(slot_number):
+		screen.queue_free()
 		close()
 		get_tree().reload_current_scene()
 	else:
+		screen.refresh()  # a file that failed to load is set aside, so the list updates
 		_refresh_load_button()
 
 

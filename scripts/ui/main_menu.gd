@@ -22,6 +22,9 @@ var _loading: bool = false
 var _loading_progress: float = 0.0
 var _intro_active: bool = false
 var _intro_tween: Tween
+var _replay_slot: int = 0
+var _ending_playing: bool = false
+var _load_screen: LoadScreen
 
 ## Fade-in of the title and buttons when the menu first appears (Escape, Space or Enter skips it).
 const INTRO_SECONDS: float = 1.0
@@ -78,6 +81,8 @@ func set_loading(value: float) -> void:
 	_loading_label.visible = true
 	button("new_game").disabled = true
 	button("continue").disabled = true
+	button("load_game").disabled = true
+	button("replay_ending").disabled = true
 
 
 func is_loading() -> bool:
@@ -125,6 +130,16 @@ func refresh() -> void:
 	continue_button.text = "Continue" if available else "Continue (no save)"
 	_continue_info.text = describe_save(data) if available else ""
 	_continue_info.visible = _continue_info.text != ""
+	var listed: Array[Dictionary] = saves.list_saves() if saves != null else ([] as Array[Dictionary])
+	_replay_slot = 0
+	for entry in listed:
+		if bool(entry["usable"]) and bool(entry["campaign_complete"]):
+			_replay_slot = int(entry["slot"])
+			break
+	button("load_game").visible = not listed.is_empty()
+	button("load_game").disabled = _loading
+	button("replay_ending").visible = _replay_slot > 0
+	button("replay_ending").disabled = _loading or _ending_playing
 	if _main_page.visible:
 		_focus_first()
 
@@ -223,6 +238,8 @@ func _build_main_page() -> VBoxContainer:
 	_loading_label = _label("", 18, HudTheme.GOLD)
 	_loading_label.visible = false
 	page.add_child(_loading_label)
+	_add_button(page, "load_game", "Load Game", open_load_screen)
+	_add_button(page, "replay_ending", "Replay Ending", replay_ending)
 	_add_button(page, "settings", "Settings", func() -> void: _show_page(_settings_page))
 	_add_button(page, "credits", "Credits", func() -> void: _show_page(_credits_page))
 	if not OS.has_feature("web") and not TouchControls.is_mobile_platform():
@@ -249,10 +266,62 @@ func _label(text: String, size: int, color: Color) -> Label:
 	return label
 
 
-func _add_button(page: Control, key: String, text: String, handler: Callable) -> void:
+## Opens the Load Game list. Choosing a file makes it the active slot and then goes through the same path as
+## Continue (Boot loads it), so a file that fails to load turns the buttons off like Continue does.
+func open_load_screen() -> LoadScreen:
+	if _load_screen != null and is_instance_valid(_load_screen):
+		return _load_screen
+	_load_screen = LoadScreen.new()
+	_load_screen.slot_chosen.connect(_on_slot_chosen)
+	_load_screen.closed.connect(func() -> void:
+		_load_screen = null
+		refresh())
+	add_child(_load_screen)
+	return _load_screen
+
+
+func _on_slot_chosen(slot_number: int) -> void:
+	var saves := get_node_or_null("/root/SaveManager")
+	if saves == null:
+		return
+	saves.slot = slot_number
+	if _load_screen != null and is_instance_valid(_load_screen):
+		_load_screen.queue_free()
+		_load_screen = null
+	continue_pressed.emit()
+
+
+## Plays the closing sequence again from a finished save: statistics come from that file, nothing is loaded into
+## the game, no flag is set and no reward is given.
+func replay_ending() -> CampaignEnding:
+	var saves := get_node_or_null("/root/SaveManager")
+	if saves == null or _replay_slot <= 0 or _ending_playing:
+		return null
+	var previous: int = saves.slot
+	saves.slot = _replay_slot
+	var path: String = saves.save_path()
+	saves.slot = previous
+	if not FileAccess.file_exists(path):
+		return null
+	var json := JSON.new()
+	if json.parse(FileAccess.get_file_as_string(path)) != OK or not json.data is Dictionary:
+		return null
+	var ending := CampaignEnding.start(get_tree(), true, CampaignEnding.stats_from_save(json.data))
+	if ending == null:
+		return null
+	_ending_playing = true
+	_root.visible = false
+	ending.finished.connect(func(_choice: StringName) -> void:
+		_ending_playing = false
+		_root.visible = true
+		refresh())
+	return ending
+
+
+func _add_button(page: Control, key: String, text: String, handler: Callable, size: Vector2 = BUTTON_SIZE) -> void:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = BUTTON_SIZE
+	b.custom_minimum_size = size
 	b.add_theme_font_size_override("font_size", FONT_SIZE)
 	b.pressed.connect(handler)
 	page.add_child(b)

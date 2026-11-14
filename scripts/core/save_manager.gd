@@ -109,6 +109,104 @@ func has_save() -> bool:
 	return FileAccess.file_exists(save_path())
 
 
+## Read-only summary of every save file on disk for the Load Game screen: [{slot, path, usable, note,
+## saved_at, region, checkpoint_id, seconds, campaign_complete}]. A slot file that cannot be read, or is from a
+## newer version, is listed as unusable (the file is never touched, renamed or deleted here). A ".bak"
+## (a corrupt save set aside by load_game) is listed only when its slot has no live file.
+func list_saves() -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	var seen: Dictionary = {}
+	var names: Array = []
+	var dir := DirAccess.open("user://")
+	if dir != null:
+		names = Array(dir.get_files())
+	names.sort()
+	for file_name in names:
+		var slot_number := _slot_of_file(str(file_name), ".json")
+		if slot_number > 0:
+			seen[slot_number] = true
+			entries.append(inspect_save_file("user://" + str(file_name), slot_number))
+	for file_name in names:
+		var slot_number := _slot_of_file(str(file_name), ".json.bak")
+		if slot_number > 0 and not seen.has(slot_number):
+			entries.append({"slot": slot_number, "path": "user://" + str(file_name), "usable": false,
+					"note": "damaged save set aside", "saved_at": 0, "region": "", "checkpoint_id": "",
+					"seconds": 0.0, "campaign_complete": false})
+	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["slot"]) < int(b["slot"]))
+	return entries
+
+
+## The slot number of a save file name in this process's naming scheme, or 0 when it is not one.
+func _slot_of_file(file_name: String, suffix: String) -> int:
+	var prefix := "save_test_%d_slot_" % OS.get_process_id() if test_mode else "save_slot_"
+	if not file_name.begins_with(prefix) or not file_name.ends_with(suffix):
+		return 0
+	var middle := file_name.trim_prefix(prefix).trim_suffix(suffix)
+	return int(middle) if middle.is_valid_int() and int(middle) > 0 else 0
+
+
+## Describes one save file without loading it. Never throws and never changes anything.
+func inspect_save_file(path: String, slot_number: int = 0) -> Dictionary:
+	var info := {"slot": slot_number, "path": path, "usable": false, "note": "", "saved_at": 0, "region": "",
+			"checkpoint_id": "", "seconds": 0.0, "campaign_complete": false}
+	if not FileAccess.file_exists(path):
+		info["note"] = "missing"
+		return info
+	var json := JSON.new()
+	if json.parse(FileAccess.get_file_as_string(path)) != OK or not json.data is Dictionary:
+		info["note"] = "damaged save"
+		return info
+	var data: Dictionary = json.data
+	var raw_version: Variant = data.get("version", 0)
+	if typeof(raw_version) != TYPE_INT and typeof(raw_version) != TYPE_FLOAT:
+		info["note"] = "damaged save"
+		return info
+	if int(raw_version) > CURRENT_VERSION:
+		info["note"] = "from a newer version"
+		return info
+	if not data.get("inventory", {}) is Dictionary or not data.get("player", {}) is Dictionary:
+		info["note"] = "damaged save"
+		return info
+	info["usable"] = true
+	info["saved_at"] = _whole(data.get("saved_at"), 0)
+	var regions: Variant = data.get("regions", {})
+	var region_id := "outpost_17"
+	if regions is Dictionary and (regions as Dictionary).get("current") is String:
+		region_id = str((regions as Dictionary)["current"])
+	var region_data := RegionStore.load_data(StringName(region_id))
+	info["region"] = region_data.display_name if region_data != null else "Outpost 17"
+	var world: Variant = data.get("world", {})
+	if world is Dictionary:
+		info["checkpoint_id"] = str((world as Dictionary).get("checkpoint_id", "")).substr(0, 64)
+	var stats: Variant = data.get("stats", {})
+	if stats is Dictionary:
+		info["seconds"] = maxf(_num((stats as Dictionary).get("seconds"), 0.0), 0.0)
+	info["campaign_complete"] = save_has_flag(data, &"campaign_complete")
+	return info
+
+
+## True when a raw save dictionary has the world flag set (flags live in quests.world.flags).
+static func save_has_flag(data: Dictionary, flag: StringName) -> bool:
+	var quests: Variant = data.get("quests", {})
+	if not quests is Dictionary:
+		return false
+	var world: Variant = (quests as Dictionary).get("world", {})
+	if not world is Dictionary:
+		return false
+	var flags: Variant = (world as Dictionary).get("flags", [])
+	return flags is Array and (flags as Array).has(String(flag))
+
+
+## Loads one listed slot (the same path as Continue). The active slot is restored when the load fails.
+func load_slot(slot_number: int) -> bool:
+	var previous := slot
+	slot = slot_number
+	var ok := load_game()
+	if not ok:
+		slot = previous
+	return ok
+
+
 func delete_save() -> void:
 	for path in [save_path(), save_path() + ".tmp"]:
 		if FileAccess.file_exists(path):
