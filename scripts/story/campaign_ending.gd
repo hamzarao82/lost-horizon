@@ -36,6 +36,8 @@ var beat_index: int = -1
 var replay: bool = false
 ## Tests turn this off so choosing the main menu does not really change scenes.
 var go_to_menu_scene: bool = true
+## Replay from the main menu: statistics read from the chosen save (nothing is loaded into the running game).
+var stats_override: Dictionary = {}
 
 
 var _beat_left: float = 0.0
@@ -70,7 +72,7 @@ static func watch(world: Node) -> void:
 			start(world.get_tree()))
 
 
-static func start(tree: SceneTree, as_replay: bool = false) -> CampaignEnding:
+static func start(tree: SceneTree, as_replay: bool = false, stats: Dictionary = {}) -> CampaignEnding:
 	if tree == null:
 		return null
 	var existing := tree.root.get_node_or_null("CampaignEnding")
@@ -79,6 +81,7 @@ static func start(tree: SceneTree, as_replay: bool = false) -> CampaignEnding:
 	var ending := CampaignEnding.new()
 	ending.name = "CampaignEnding"
 	ending.replay = as_replay
+	ending.stats_override = stats
 	tree.root.add_child(ending)
 	return ending
 
@@ -112,6 +115,35 @@ static func collect_stats(tree: SceneTree) -> Dictionary:
 	return out
 
 
+## Statistics for a replay, read from a raw save dictionary only (the running game is not touched). The optional
+## discovery counters live in autoloads that a menu session has not loaded, so they are left out.
+static func stats_from_save(data: Dictionary) -> Dictionary:
+	var out := {"time_played": 0.0, "enemies": 0, "campaign": {}, "optional": {}}
+	var stats: Variant = data.get("stats", {})
+	if stats is Dictionary:
+		out["time_played"] = maxf(float((stats as Dictionary).get("seconds", 0.0)) if (stats as Dictionary).get("seconds") is float or (stats as Dictionary).get("seconds") is int else 0.0, 0.0)
+		out["enemies"] = maxi(int((stats as Dictionary).get("kills", 0)) if (stats as Dictionary).get("kills") is float or (stats as Dictionary).get("kills") is int else 0, 0)
+	var world := load("res://scripts/core/world_state.gd").new() as Node
+	var quests: Variant = data.get("quests", {})
+	var missions := 0
+	if quests is Dictionary:
+		var world_raw: Variant = (quests as Dictionary).get("world", {})
+		if world_raw is Dictionary:
+			world.call("from_dict", world_raw)
+		var done: Variant = (quests as Dictionary).get("completed", [])
+		missions = (done as Array).size() if done is Array else 0
+	var regions := 0
+	var names: Array[String] = []
+	for index in REGION_ORDER.size():
+		if region_complete(world, index):
+			regions += 1
+			names.append(String(REGION_NAMES[REGION_ORDER[index]]))
+	out["campaign"] = {"regions_completed": regions, "regions_total": REGION_ORDER.size(), "region_names": names,
+			"missions_completed": missions, "campaign_complete": world.call("has_flag", FLAG_COMPLETE)}
+	world.free()
+	return out
+
+
 ## A region counts as complete when the next region's unlock flag (or its aliases) is set; the last one
 ## completes with the campaign flag.
 static func region_complete(world: Node, index: int) -> bool:
@@ -139,12 +171,12 @@ static func format_time(seconds: float) -> String:
 # --- life cycle ----------------------------------------------------------------
 
 func _ready() -> void:
-	layer = 170
+	layer = 230 if replay else 170  # a replay runs over the main menu (layer 210)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_was_paused = get_tree().paused
 	get_tree().paused = true
 	_hide_huds()
-	_stats = collect_stats(get_tree())
+	_stats = stats_override if not stats_override.is_empty() else collect_stats(get_tree())
 	_build_ui()
 	if not replay:
 		var world := get_tree().root.get_node_or_null("WorldState")
@@ -217,11 +249,11 @@ func _show_stats() -> void:
 		"Missions completed: %d" % int(campaign.get("missions_completed", 0)),
 		"Time played: %s" % format_time(float(_stats["time_played"])),
 		"Enemies defeated: %d" % int(_stats["enemies"]),
-		"",
-		"Optional discoveries (tracked separately)",
-		"Secrets found: %d / %d" % [int(optional.get("secrets_found", 0)), int(optional.get("secrets_total", 0))],
-		"Documents read: %d" % int(optional.get("documents", 0)),
 	]
+	if not optional.is_empty():  # a replay from a save has no discovery counters to show
+		lines.append_array(["", "Optional discoveries (tracked separately)",
+			"Secrets found: %d / %d" % [int(optional.get("secrets_found", 0)), int(optional.get("secrets_total", 0))],
+			"Documents read: %d" % int(optional.get("documents", 0))])
 	_show_text("CAMPAIGN COMPLETE", "\n".join(lines), false)
 	_set_buttons([["Continue", _show_credits]])
 
