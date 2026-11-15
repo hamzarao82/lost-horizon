@@ -57,7 +57,12 @@ func _on_area_entered(id: StringName) -> void:
 		_say_later("The Warden is gone. Only his command room remains.", 3.5)
 		return
 	if warden != null and is_instance_valid(warden) and not warden.is_dead():
-		return  # already fighting him
+		# Coming back after leaving mid-fight (a teleport can carry the player out): a Warden that has been
+		# hurt is replaced by a fresh one at full health, so a retry never starts against a wounded boss.
+		if warden._health.health >= warden._health.max_health:
+			return
+		warden.free()
+		warden = null
 	_run_encounter()
 
 
@@ -67,6 +72,7 @@ func _run_encounter() -> void:
 	_make_seal()
 	if not quick:
 		_say_later("The Warden: This is as far as you go.", 3.0)
+		_play_entrance(intro_seconds)
 	var scene := load(WARDEN_SCENE) as PackedScene
 	var host := get_parent().get_parent() if get_parent() else null
 	if scene == null or host == null:
@@ -99,6 +105,10 @@ func _on_any_warden_defeated(which: Warden) -> void:
 		_state.set_flag(&"warden_d_defeated", true)
 		_release_seal()
 		Outpost17.say(self, "The Warden falls.", 3.5)
+		# The lead only; the payment is not recovered here (it is behind the command room).
+		get_tree().create_timer(FALL_LEAD_DELAY).timeout.connect(func() -> void:
+			if is_inside_tree():
+				Outpost17.say(self, FALL_LEAD, 4.0))
 
 
 func _make_seal() -> void:
@@ -135,9 +145,33 @@ func _release_seal() -> void:
 
 ## Captions wait until the "Command Center" location banner has faded, so the two never overlap.
 const CAPTION_DELAY: float = 2.7
+const FALL_LEAD: String = "Whatever they moved is behind the command room."
+const FALL_LEAD_DELAY: float = 3.8
+const DIP_ALPHA: float = 0.45
 
 
 func _say_later(text: String, seconds: float) -> void:
 	get_tree().create_timer(CAPTION_DELAY).timeout.connect(func() -> void:
 		if is_inside_tree():
 			Outpost17.say(self, text, seconds))
+
+
+## A brief dip of the screen and the existing roar sound at the start of the full introduction. The overlay
+## frees itself; nothing here changes the introduction's length.
+func _play_entrance(seconds: float) -> void:
+	var audio := get_node_or_null("/root/AudioManager")
+	if audio != null:
+		audio.play(&"boss_roar", -6.0)
+	var layer := CanvasLayer.new()
+	layer.name = "EntranceDip"
+	layer.layer = 90
+	var dim := ColorRect.new()
+	dim.color = Color(0.0, 0.0, 0.0, 0.0)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(dim)
+	add_child(layer)
+	var tween := layer.create_tween()
+	tween.tween_property(dim, "color:a", DIP_ALPHA, seconds * 0.4)
+	tween.tween_property(dim, "color:a", 0.0, seconds * 0.6)
+	tween.tween_callback(layer.queue_free)
