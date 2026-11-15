@@ -174,7 +174,13 @@ func inspect_save_file(path: String, slot_number: int = 0) -> Dictionary:
 	if regions is Dictionary and (regions as Dictionary).get("current") is String:
 		region_id = str((regions as Dictionary)["current"])
 	var region_data := RegionStore.load_data(StringName(region_id))
-	info["region"] = region_data.display_name if region_data != null else "Outpost 17"
+	var saved_known := false
+	var q: Variant = data.get("quests", {})
+	if q is Dictionary and (q as Dictionary).get("world") is Dictionary:
+		var flags: Variant = ((q as Dictionary)["world"] as Dictionary).get("flags", [])
+		saved_known = flags is Array and (flags as Array).has(String(RegionLabel.KNOWN_FLAG))
+	var shown_name: String = region_data.display_name if region_data != null else "Outpost 17"
+	info["region"] = RegionLabel.name_for(StringName(region_id), shown_name, saved_known)
 	var world: Variant = data.get("world", {})
 	if world is Dictionary:
 		info["checkpoint_id"] = str((world as Dictionary).get("checkpoint_id", "")).substr(0, 64)

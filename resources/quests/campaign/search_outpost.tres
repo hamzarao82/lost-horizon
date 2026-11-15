@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_search"]
+script = ExtResource("2_obj")
+id = &"search_compound"
+text = "Search Outpost 17"
+type = 1
+targets = PackedStringArray("area_c_research")
+count = 0
+progress_label = ""
+
+[resource]
+script = ExtResource("1_quest")
+id = &"search_outpost"
+title = "Search Outpost 17"
+description = "Whoever took the bag brought it somewhere with walls and guards. Look for where they went."
+prerequisites = PackedStringArray()
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_search")])
+rewards = PackedStringArray()
+reward_text = ""
+next_quest = &""
+start_captions = PackedStringArray()
+complete_captions = PackedStringArray()
+caption_seconds = 3.5
+category = 0
+location_hint = "The compound"
+show_mission_banner = false
+strict_order = false

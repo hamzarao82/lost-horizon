@@ -338,6 +338,7 @@ func _test_dead_coast_screen() -> void:
 	_check(known == 1 and screen.detail_entries()[0]["name"] == "Wreckage Beach", "only the arrival area is known on arrival")
 	_world.emit_area_entered(&"dc_cove")
 	_check(_entry(screen.detail_entries(), "dc_cove")["name"] == "Smuggler's Cove", "entering the cove reveals it through the builder's area id")
+	_world.set_flag(RegionLabel.KNOWN_FLAG, true)  # the Dead Coast comes after the compound sign: the name is known
 	var exits := screen.detail_exits()
 	_check(exits.size() == 2 and exits[0]["label"] == "To Outpost 17" and exits[1]["label"] == "To Blackwood", "the real exits are drawn with their targets")
 	_check(not exits[0]["locked"] and exits[1]["locked"], "the way back is open and Blackwood is locked until it is unlocked")

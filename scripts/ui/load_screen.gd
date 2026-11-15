@@ -92,7 +92,7 @@ static func describe(entry: Dictionary) -> String:
 	if bool(entry.get("campaign_complete", false)):
 		parts.append("Campaign complete")
 	var region := str(entry.get("region", ""))
-	return "Slot %d - %s\n%s" % [slot_number, region if region != "" else "Outpost 17",
+	return "Slot %d - %s\n%s" % [slot_number, region if region != "" else RegionLabel.MASKED_NAME,
 			"  |  ".join(parts) if not parts.is_empty() else "No details in this save"]
 
 

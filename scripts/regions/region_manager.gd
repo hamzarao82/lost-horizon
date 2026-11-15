@@ -113,7 +113,7 @@ func unlock(region_id: StringName) -> void:
 func refuse(region_id: StringName) -> void:
 	travel_refused.emit(region_id, "locked")
 	var data := RegionStore.load_data(region_id)
-	var name := data.display_name if data else String(region_id)
+	var name := RegionLabel.visible_name(region_id, data.display_name if data else "")
 	var quests := get_node_or_null("/root/QuestManager")
 	if quests != null and quests.has_method("say"):
 		var custom := CampaignFlow.refusal_text(region_id)

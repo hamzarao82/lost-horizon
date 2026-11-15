@@ -67,7 +67,7 @@ func detail_exits() -> Array[Dictionary]:
 			var target_info := RegionStore.load_data(target_id)
 			out.append({
 				"pos": raw["pos"],
-				"label": "To %s" % (target_info.display_name if target_info != null else String(target_id)),
+				"label": "To %s" % RegionLabel.visible_name(target_id, target_info.display_name if target_info != null else ""),
 				"locked": not MapData.is_unlocked(target_id),
 			})
 		return out
@@ -88,7 +88,7 @@ func detail_exits() -> Array[Dictionary]:
 		var target_data := RegionStore.load_data(target)
 		out.append({
 			"pos": pos,
-			"label": "To %s" % (target_data.display_name if target_data != null else String(target)),
+			"label": "To %s" % RegionLabel.visible_name(target, target_data.display_name if target_data != null else ""),
 			"locked": not MapData.is_unlocked(target),
 		})
 	return out
@@ -151,7 +151,7 @@ func show_detail() -> void:
 	_update_buttons()
 	var map := MapData.load_for(detail_region)
 	var total := map.landmarks.size()
-	set_status("%s: %d of %d places explored." % [data.display_name if data else String(detail_region), map.discovered_count(), total])
+	set_status("%s: %d of %d places explored." % [RegionLabel.visible_name(detail_region, data.display_name if data else ""), map.discovered_count(), total])
 
 
 func refresh() -> void:
