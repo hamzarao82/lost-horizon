@@ -298,8 +298,18 @@ func objective_progress(quest_id: StringName, objective_index: int) -> int:
 
 # --- starting and completing -----------------------------------------------
 
+## True while a real (windowed) New Game has not yet reached the compound sign: the opening plays and the
+## First Signal waits. Headless runs never wait, so every automated suite still starts it as before.
+func opening_pending() -> bool:
+	var known: bool = _world != null and _world.has_method("has_flag") and _world.has_flag(RegionLabel.KNOWN_FLAG)
+	return RegionLabel.opening_pending_for(DisplayServer.get_name() == "headless", intro_done, known)
+
+
+
 func _ensure_progress() -> void:
 	if active.is_empty() and completed.is_empty():
+		if opening_pending():
+			return  # the First Signal starts at the compound sign, after the opening
 		start_quest(FIRST_QUEST)
 		return
 	if active.is_empty():
@@ -336,6 +346,8 @@ func start_quest(quest_id: StringName, ignore_prerequisites: bool = false) -> bo
 		seen.append([])
 		done.append(false)
 	active[quest_id] = {"progress": progress, "seen": seen, "done": done}
+	if quest_id == FIRST_QUEST and _world != null and _world.has_method("set_flag"):
+		_world.set_flag(RegionLabel.KNOWN_FLAG, true)  # the mission names the place, so the name is known
 	_replay_history(quest_id)
 	quest_started.emit(quest_id)
 	say_lines(quest.start_captions, quest.caption_seconds)
@@ -891,6 +903,14 @@ func from_dict(raw: Variant) -> void:
 func on_game_loaded(raw: Variant) -> void:
 	from_dict(raw)
 	intro_done = true  # a continued game never replays the opening
+	# A save from before the flag existed (or any mission progress) keeps the real name.
+	if _world != null and _world.has_method("set_flag") and not _world.has_flag(RegionLabel.KNOWN_FLAG):
+		var progressed := active.has(FIRST_QUEST)
+		for done_id: StringName in completed:
+			if done_id != &"opening_survival":
+				progressed = true
+		if progressed:
+			_world.set_flag(RegionLabel.KNOWN_FLAG, true)
 	reconcile_active()
 
 
