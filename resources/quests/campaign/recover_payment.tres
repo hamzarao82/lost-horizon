@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_payment"]
+script = ExtResource("2_obj")
+id = &"recover_payment"
+text = "Recover your payment."
+type = 5
+targets = PackedStringArray("payment_recovered")
+count = 0
+progress_label = ""
+
+[resource]
+script = ExtResource("1_quest")
+id = &"recover_payment"
+title = "Your Payment"
+description = "A guard and two workers carried your bag off the beach. Get it back, then find a way off this island."
+prerequisites = PackedStringArray()
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_payment")])
+rewards = PackedStringArray()
+reward_text = ""
+next_quest = &""
+start_captions = PackedStringArray()
+complete_captions = PackedStringArray()
+caption_seconds = 4.0
+category = 0
+location_hint = ""

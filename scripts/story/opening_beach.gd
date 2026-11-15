@@ -22,6 +22,7 @@ const SUPPLIES_ID: StringName = &"health_potion"
 const JACKET_ID: StringName = &"salvaged_jacket"
 const STICK_ID: StringName = &"wooden_stick"
 const SURVIVAL_QUEST: StringName = &"opening_survival"
+const PAYMENT_QUEST: StringName = &"recover_payment"
 
 var _age: float = 0.0
 var _done: bool = false
@@ -31,6 +32,7 @@ var _skip_requested: bool = false
 var _skip_button: Button
 var _black: ColorRect
 var _caption: Label
+var _blur: ColorRect
 var _player: Player
 var _world_flags: Node
 var _quest_manager: Node
@@ -97,8 +99,15 @@ func skip() -> void:
 # --- sequence ----------------------------------------------------------------
 
 func _run() -> void:
+	_clear_blur_over(WAKE_FADE_SECONDS + 3.0)  # the "blurred vision clearing" beat: a pale veil that lifts
 	await _fade(_black, 0.0, WAKE_FADE_SECONDS)
-	await _hold(EVENT_HOLD_SECONDS)  # the guard and the workers take the bag (visual only on a real run)
+	await _hold(EVENT_HOLD_SECONDS * 0.6)
+	if not _skip_requested:
+		_caption.text = "My bag."
+		await _fade(_caption, 1.0, 0.4)
+		await _hold(1.4)
+		await _fade(_caption, 0.0, 0.4)
+	await _hold(EVENT_HOLD_SECONDS * 0.4)  # the guard and the workers take the bag (visual only on a real run)
 	if not _skip_requested:
 		_npc_leaving = true
 		await _hold(NPC_LEAVE_SECONDS)
@@ -110,6 +119,14 @@ func _run() -> void:
 	await _fade(_black, 0.0, 0.8)
 	_hand_off()
 	_finish()
+
+
+func _clear_blur_over(seconds: float) -> void:
+	if _blur == null:
+		return
+	_blur.modulate.a = 0.65
+	var tween := create_tween()
+	tween.tween_property(_blur, "modulate:a", 0.0, seconds)
 
 
 func _hold(seconds: float) -> void:
@@ -182,6 +199,8 @@ func _start_survival_quest() -> void:
 	if _quest_manager.has_method("start_quest"):
 		_quest_manager.start_quest(SURVIVAL_QUEST, true)
 	_quest_manager.tracker_first = SURVIVAL_QUEST
+	if _quest_manager.has_method("start_quest") and not _quest_manager.is_completed(PAYMENT_QUEST):
+		_quest_manager.start_quest(PAYMENT_QUEST, true)  # listed under the survival quest; completes on `payment_recovered`
 	if _quest_manager.has_signal("quest_completed"):
 		_quest_manager.quest_completed.connect(_on_quest_completed)
 	var tree := Engine.get_main_loop() as SceneTree
@@ -258,6 +277,13 @@ func _build_ui() -> void:
 	_black.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_black)
 
+	_blur = ColorRect.new()
+	_blur.color = Color(0.82, 0.84, 0.86)
+	_blur.modulate.a = 0.0
+	_blur.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_blur.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_blur)
+
 	_caption = Label.new()
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -286,6 +312,7 @@ func _build_scene() -> void:
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(container)
 	container.move_to_front()
+	_blur.move_to_front()
 	_black.move_to_front()
 	_caption.move_to_front()
 	_skip_button.move_to_front()
@@ -369,6 +396,8 @@ func _build_scene() -> void:
 	_viewport.add_child(_guard)
 	for i in 2:
 		var worker := _build_capsule(Color(0.45, 0.4, 0.35))
+		worker.scale.y = 0.88  # a little shorter and stooped: tired, not upright like the guard
+		worker.rotation_degrees.x = 12.0
 		worker.position = Vector3(-9.0, 0.55, -4.0 + (i - 0.5) * 1.2)
 		_viewport.add_child(worker)
 		_workers.append(worker)
@@ -414,10 +443,13 @@ func _step_scene(delta: float) -> void:
 	var approach: float = clampf(_event_clock / EVENT_HOLD_SECONDS, 0.0, 1.0)
 	if is_instance_valid(_guard):
 		_guard.position.x = lerp(-8.0, -1.5, approach)
+		if approach > 0.5:
+			_guard.rotation.z = sin(_event_clock * 5.0) * 0.12  # a pointing, ordering jab at the workers
 	for i in _workers.size():
 		var worker := _workers[i]
 		if is_instance_valid(worker):
-			worker.position.x = lerp(-9.0, -0.5, approach)
+			worker.position.x = lerp(-9.0, -0.5, pow(approach, 1.2))  # they drag behind the guard
+			worker.position.y = 0.55 + absf(sin(_event_clock * 2.0 + i)) * 0.03
 	if approach >= 0.95 and is_instance_valid(_bag):
 		_bag.position.y = 0.6  # lowered into a worker's hands once they arrive
 	if _npc_leaving and is_instance_valid(_guard):

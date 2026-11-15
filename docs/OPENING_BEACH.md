@@ -31,3 +31,8 @@ Given the scope of this milestone, several things were simplified rather than bu
 
 ## Not verified
 Nobody has played the sequence. The beach mini-scene's camera framing, the NPC walk timing, and the caption wording have been looked at once via windowed screenshots (see the final report) but not iterated on for feel.
+
+## Update (2026-11-15): payment quest and wake polish
+- **Quest `recover_payment`** (`resources/quests/campaign/recover_payment.tres`, objective text exactly "Recover your payment.") starts at the handoff and is listed under the pinned survival quest. It is a FLAG objective that completes only when `payment_recovered` is set, so it stays open through this whole arc. (At present `first_signal` auto-starts earlier and is listed between the two; the planned gating of the First Signal puts the payment quest directly under the survival quest.)
+- **Wake:** a pale full-screen `ColorRect` veil lifts over the first seconds (an alpha ramp, no shader), the caption "My bag." fades in at the glimpse, the guard sways in a pointing gesture as the group arrives, and the workers are stooped (`scale.y` 0.88, leaning 12 degrees) and lag behind the guard. No new animations.
+- Tests: `opening_beach_check` now 33 checks (quest start and order, exact objective text, stays open after the survival quest, completes only on the flag).
