@@ -69,6 +69,7 @@ func _run() -> void:
 		quit(1)
 		return
 	_test_data()
+	await _test_existing_objects_reachable()
 	await _test_routes()
 	await _test_screen_and_ramp()
 	await _test_quests()
@@ -216,3 +217,60 @@ func _test_patrols_and_walkers() -> void:
 	walker._check = 0.0
 	walker.advance(0.1)
 	_check(not walker.awake, "far away they sleep")
+
+
+## The existing beach objects (power switch 2 on the east fence, supply crate 2 by the west fence) must stay reachable on foot
+## from the spawn with a 1 m body WITHOUT using the crank gate or the hidden cut: a 1 m grid flood fill (the method of
+## dressing_check) with both openings plugged. Also proves the plugs seal the fence, so the premise holds.
+func _test_existing_objects_reachable() -> void:
+	print("-- existing objects on the beach side")
+	var plugs: Array[StaticBody3D] = []
+	for spec: Array in [["PlugCut", Vector3(19.0, 1.1, OpeningApproach.FENCE_Z), Vector3(3.2, 2.2, 0.6)],
+			["PlugGate", Vector3(0.0, 1.1, OpeningApproach.FENCE_Z), Vector3(OpeningApproach.GATE_WIDTH + 0.4, 2.2, 0.6)]]:
+		var plug := StaticBody3D.new()
+		plug.name = spec[0]
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = spec[2]
+		shape.shape = box
+		plug.add_child(shape)
+		plug.position = spec[1]
+		_main.add_child(plug)
+		plugs.append(plug)
+	await _frames(2)
+	var visited: Dictionary = {}
+	var queue: Array[Vector2i] = [Vector2i(0, 64)]
+	visited[Vector2i(0, 64)] = true
+	while not queue.is_empty():
+		var c: Vector2i = queue.pop_back()
+		for step in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = c + step
+			if n.x < -41 or n.x > 41 or n.y < 31 or n.y > 79 or visited.has(n):
+				continue
+			if _clear(Vector3(float(n.x), 0.9, float(n.y)), 0.5):
+				visited[n] = true
+				queue.append(n)
+	var leaked := false
+	for cell: Vector2i in visited:
+		if cell.y <= 43:
+			leaked = true
+	_check(not leaked, "with the gate and the cut plugged the fence is sealed (the flood stays south of it)")
+	var found := {}
+	for node in _main.find_children("*", "Interactable", true, false):
+		var item := node as Interactable
+		if item != null and (item.interaction_id == &"switch_2" or item.interaction_id == &"crate_2"):
+			found[item.interaction_id] = item
+	for id in [&"switch_2", &"crate_2"]:
+		_check(found.has(id), "%s exists in the world" % id)
+		if not found.has(id):
+			continue
+		var pos: Vector3 = (found[id] as Node3D).global_position
+		var near := false
+		for cell: Vector2i in visited:
+			if Vector2(float(cell.x) - pos.x, float(cell.y) - pos.z).length() <= 1.8:
+				near = true
+				break
+		_check(near, "%s can be reached on foot from the spawn without the crank gate or the cut" % id)
+	for plug in plugs:
+		plug.queue_free()
+	await _frames(2)

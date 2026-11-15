@@ -200,8 +200,8 @@ func _build_clues() -> void:
 		_b.box(stump + Vector3(0.0, 0.17, 0.0), Vector3(0.5, 0.34, 0.5), ArenaDecor.WOOD_DARK)
 		_b.box(stump + Vector3(0.0, 0.35, 0.0), Vector3(0.4, 0.04, 0.4), ArenaDecor.WOOD.lightened(0.1))
 	# The bypass is fouled by a fallen log you jump or walk round.
-	_b.box(Vector3(24.0, 0.4, 48.4), Vector3(12.0, 0.8, 0.9), ArenaDecor.WOOD_DARK)
-	_box("FallenLog", Vector3(24.0, 0.4, 48.4), Vector3(12.0, 0.8, 0.9))
+	_b.box(Vector3(24.0, 0.4, 47.4), Vector3(12.0, 0.8, 0.9), ArenaDecor.WOOD_DARK)
+	_box("FallenLog", Vector3(24.0, 0.4, 47.4), Vector3(12.0, 0.8, 0.9))
 
 
 # --- fence, gate, yard ---------------------------------------------------------
@@ -286,9 +286,9 @@ func _build_props() -> void:
 		var yaw := atan2(span.x, span.z)
 		_b.box(mid, Vector3(0.04, 0.04, Vector2(span.x, span.z).length()), Color(0.1, 0.1, 0.1), Basis(Vector3.UP, yaw))
 	# A guard shed west of the direct gap: a solid box with a roof and a lamp.
-	_solid("GuardShed", Vector3(-24.0, 1.2, 47.8), Vector3(2.6, 2.4, 2.6), ArenaDecor.WOOD_DARK)
-	_b.box(Vector3(-24.0, 2.55, 47.8), Vector3(3.2, 0.2, 3.2), ArenaDecor.RUST)
-	_b.box(Vector3(-24.0, 1.6, 46.45), Vector3(0.6, 0.5, 0.06), Color(0.9, 0.8, 0.45))
+	_solid("GuardShed", Vector3(-33.0, 1.2, 47.8), Vector3(2.6, 2.4, 2.6), ArenaDecor.WOOD_DARK)
+	_b.box(Vector3(-33.0, 2.55, 47.8), Vector3(3.2, 0.2, 3.2), ArenaDecor.RUST)
+	_b.box(Vector3(-33.0, 1.6, 46.45), Vector3(0.6, 0.5, 0.06), Color(0.9, 0.8, 0.45))
 
 
 func _build_bushes() -> void:
