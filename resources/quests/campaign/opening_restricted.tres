@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_1"]
+script = ExtResource("2_obj")
+id = &"op_clear_gate_hall"
+text = "Deal with the guards in the hall"
+type = 5
+targets = PackedStringArray("op_gate_hall_cleared")
+count = 0
+progress_label = ""
+optional = true
+
+[sub_resource type="Resource" id="Obj_2"]
+script = ExtResource("2_obj")
+id = &"op_take_supplies"
+text = "Take the supplies from the cache"
+type = 5
+targets = PackedStringArray("op_prep_cache_taken")
+count = 0
+progress_label = ""
+optional = false
+
+[sub_resource type="Resource" id="Obj_3"]
+script = ExtResource("2_obj")
+id = &"op_save_checkpoint"
+text = "Activate the checkpoint before the door"
+type = 5
+targets = PackedStringArray("checkpoint_op_predoor")
+count = 0
+progress_label = ""
+optional = false
+
+[resource]
+script = ExtResource("1_quest")
+id = &"opening_restricted"
+title = "Prepare to face the Warden."
+description = "The command door is guarded, and the log says the Warden holds the room behind it. Get ready."
+prerequisites = PackedStringArray()
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_1"), SubResource("Obj_2"), SubResource("Obj_3")])
+rewards = PackedStringArray()
+reward_text = ""
+next_quest = &""
+start_captions = PackedStringArray("Whatever holds the command room, go in ready.")
+complete_captions = PackedStringArray()
+caption_seconds = 4.5
+category = 0
+location_hint = "Dispatch hall, before the command door"

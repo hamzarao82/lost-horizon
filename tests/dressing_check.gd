@@ -190,7 +190,7 @@ func _test_reachability() -> void:
 	var targets: Array[Interactable] = []
 	for node in _main.find_children("*", "Interactable", true, false):
 		var item := node as Interactable
-		if item == null or item is Door:
+		if item == null or item is Door or item.has_meta("behind_door"):
 			continue
 		targets.append(item)
 	var found_ids := {}

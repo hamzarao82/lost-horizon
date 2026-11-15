@@ -9,6 +9,7 @@ const LAYOUTS: Dictionary = {
 		{"id": "op17_arena_e", "pos": Vector3(17.0, 0.0, 12.0)},
 		{"id": "op17_approach_w", "pos": Vector3(-12.0, 0.0, 52.0)},
 		{"id": "op17_approach_e", "pos": Vector3(13.0, 0.0, 60.0)},
+		{"id": "op17_gate_hall", "pos": Vector3(-6.0, 0.0, -60.2)},
 	],
 	&"research_complex": [
 		{"id": "rc_lab_nw", "pos": Vector3(-15.0, 0.0, -142.0)},

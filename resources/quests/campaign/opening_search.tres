@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_1"]
+script = ExtResource("2_obj")
+id = &"op_read_roster"
+text = "Read the duty roster at the guard station"
+type = 5
+targets = PackedStringArray("doc_op_duty_roster_found")
+count = 0
+progress_label = ""
+optional = false
+
+[sub_resource type="Resource" id="Obj_2"]
+script = ExtResource("2_obj")
+id = &"op_take_lab_pass"
+text = "Take the lab pass"
+type = 5
+targets = PackedStringArray("has_lab_pass")
+count = 0
+progress_label = ""
+optional = false
+
+[resource]
+script = ExtResource("1_quest")
+id = &"opening_search"
+title = "Search the compound."
+description = "Somebody carried your bag in here. Somebody on this site knows where it went."
+prerequisites = PackedStringArray()
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_1"), SubResource("Obj_2")])
+rewards = PackedStringArray()
+reward_text = ""
+next_quest = &"opening_research"
+start_captions = PackedStringArray("Your bag came through here. Somebody knows where it went.")
+complete_captions = PackedStringArray()
+caption_seconds = 4.5
+category = 0
+location_hint = "The compound, south of the research annex"

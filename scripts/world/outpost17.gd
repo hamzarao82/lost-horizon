@@ -57,6 +57,7 @@ func _ready() -> void:
 	EliteStrongholds.add_to(self, &"outpost_17")
 	OpeningApproach.build(self)
 	PaymentStore.build(self)
+	OpeningCompound.build(self)
 	# The HUD shows the area-name banner now (Hud.show_location); a second label here doubled the text.
 	# _build_banner() is kept for headless use but not called.
 	var state := get_node_or_null("/root/WorldState")
