@@ -26,6 +26,7 @@ var _intro_tween: Tween
 var _replay_slot: int = 0
 var _ending_playing: bool = false
 var _load_screen: LoadScreen
+var hero: MenuHero
 
 ## Fade-in of the title and buttons when the menu first appears (Escape, Space or Enter skips it).
 const INTRO_SECONDS: float = 1.0
@@ -199,8 +200,11 @@ func _build_ui() -> void:
 	background.color = Color(0.04, 0.05, 0.07)
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(background)
-	_root.add_child(MenuStorm.new())
+	var storm := MenuStorm.new()
+	_root.add_child(storm)
 	_root.add_child(MenuEmbers.new())
+	hero = MenuHero.new(storm)
+	_root.add_child(hero)
 
 	# Which build is this? Dim text in the bottom-left corner (stamped by tools/stamp_build.ps1 at export).
 	var build_label := Label.new()
