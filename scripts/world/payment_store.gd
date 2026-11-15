@@ -134,6 +134,7 @@ func _build_store() -> void:
 	recovery = PaymentRecovery.new()
 	recovery.name = "PaymentRecovery"
 	recovery.position = SHELF_POS + Vector3(0.9, 0.7, 0.0)
+	recovery.set_meta("behind_door", true)  # sealed until the Area D Warden falls; reachability tests skip it
 	add_child(recovery)
 	if not recovered:
 		var bag := PaymentBag.build()
