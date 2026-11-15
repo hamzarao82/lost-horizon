@@ -55,3 +55,13 @@ Upgrade the main menu into a cinematic presentation: dark ocean, distant island,
 6. Run the web build once and confirm the loading progress bar still advances.
 
 Steps 2 to 4 are the real work. Steps 1, 5 and 6 are small.
+
+## 7. Status update (2026-11-15)
+Built and checked since section 2:
+- **The real player model in the menu** (`scripts/ui/menu_hero.gd`, class `MenuHero`): the same `assets/characters/player.glb` that `SkinnedVisual` loads, looping its own `idle` clip in a private `World3D` inside a `SubViewport`, turned to side profile and facing the title. A dim blue key light is brightened by `MenuStorm`'s lightning flash. Nothing is built on a headless run, on the LOW quality preset, or in a web build.
+- **Hover sound:** every button now plays the existing `ui_click` at -24 dB on mouse hover (no new file).
+- **Sizes:** `tests/ui_layout_check.gd` now checks the main page against the virtual height at 800x360, 1280x720 and 1600x720 (the project stretches a 1280x720 base with `canvas_items` and `expand`), and that the hero strip stays left of the button column. A real window capture at 800x360 shows all seven buttons visible and not overlapping.
+- **Screenshots looked at:** `docs/screenshots/menu_1280x720.png` and `menu_800x360.png`. The figure is recognisable as the player (face, tactical vest, boots) in clean side profile. It is dark against the dark sea, which is intended for the mood but means the figure is easiest to read during a lightning flash.
+- **Tests:** `menu_hero_check` (14) and `ui_layout_check` (now 68).
+- **Not built:** brief combat imagery (the optional item). The Replay Ending button was hidden in the captures (it only shows for a finished save). A hover sound for keyboard focus was not added (initial focus would click). Web is deliberately excluded; a web run of the menu was not done.
+- Capture and measurement tool: `tools/menu_shot.gd` (windowed, prints frame time and draw calls).

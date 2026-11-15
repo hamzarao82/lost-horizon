@@ -237,6 +237,7 @@ func _on_mission_completed(_quest_id: StringName) -> void:
 func _wire_button(node: Node) -> void:
 	if node is BaseButton:
 		(node as BaseButton).pressed.connect(play.bind(&"ui_click", -6.0))
+		(node as BaseButton).mouse_entered.connect(play.bind(&"ui_click", -24.0))  # a faint tick on hover, the same existing sound
 
 
 func _install_ambience() -> void:

@@ -40,6 +40,7 @@ func _run() -> void:
 	await _test_labels()
 	await _test_widgets()
 	_test_icons_and_theme()
+	await _test_menu_sizes()
 	print("\n%d checks, %d failed" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
 
@@ -316,3 +317,22 @@ func _test_icons_and_theme() -> void:
 	var plan: Dictionary = Hud.plan_layout(Vector2(1280, 720), false)
 	var bars: Rect2 = plan["bars"]
 	_check(bars.end.y <= 134.0 and bars.size.x == 240.0, "the bars block still fits the layout contract (y %d-%d)" % [bars.position.y, bars.end.y])
+
+
+## The title menu at the three window sizes the project cares about. The project stretches a 1280x720 base with
+## "canvas_items" and "expand", so the virtual size is the window divided by min(w/1280, h/720). The main page
+## must fit that virtual height, and the hero's strip must stay left of the centred button column.
+func _test_menu_sizes() -> void:
+	var menu := MainMenu.new()
+	root.add_child(menu)
+	await _frames(2)
+	var page := menu.get("_main_page") as Control
+	var min_size := page.get_combined_minimum_size()
+	for window in [Vector2(800, 360), Vector2(1280, 720), Vector2(1600, 720)]:
+		var scale := minf(window.x / 1280.0, window.y / 720.0)
+		var virtual_size: Vector2 = window / scale
+		_check(min_size.y <= virtual_size.y, "menu page fits %dx%d (needs %.0f of %.0f virtual px)" % [int(window.x), int(window.y), min_size.y, virtual_size.y])
+		var column_left := (virtual_size.x - MainMenu.BUTTON_SIZE.x) * 0.5
+		_check(24.0 + float(MenuHero.VIEW_SIZE.x) <= column_left, "the hero strip stays left of the buttons at %dx%d (%.0f <= %.0f)" % [int(window.x), int(window.y), 24.0 + float(MenuHero.VIEW_SIZE.x), column_left])
+	menu.queue_free()
+	await _frames(1)

@@ -72,3 +72,11 @@ A budget miss is recorded in `PERFORMANCE.md` with the cause and either fixed or
 
 ## 6. Unverified
 Everything about Android; web on phones; the combined cost of merged `milestone-002` + `milestone-003` content (never built together); texture memory and RAM peaks (not profiled).
+
+## Main menu with the player model (2026-11-15, Windows, windowed 1280x720, vsync off, this development machine)
+Measured with `tools/menu_shot.gd`, 180 frames after a 90-frame warm-up, run twice per case:
+| Case | Average frame time | Draw calls per frame |
+|---|---|---|
+| Menu without the hero (storm background only) | 4.39 ms and 4.58 ms | 75 |
+| Menu with the hero (real player model, idle clip, two lights) | 5.93 ms and 5.47 ms | 77 |
+The hero adds about 1.0 to 1.5 ms per frame and 2 draw calls on this machine. These are desktop numbers only: the hero is not built on LOW quality, on web or headless, and **no Android or web measurement of the menu exists**. The vsync-on figure is 16.67 ms (capped at 60 Hz) in both cases, so the cap hides the difference.
