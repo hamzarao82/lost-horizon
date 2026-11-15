@@ -46,7 +46,8 @@ func _run() -> void:
 	var headless_probe := OpeningBeach.new()
 	root.add_child(headless_probe)
 	await _frames(2)
-	_check(headless_probe.get_child_count() <= 3, "headless OpeningBeach builds only the UI overlay (%d children)" % headless_probe.get_child_count())
+	_check(headless_probe.get_child_count() <= 4, "headless OpeningBeach builds only the UI overlay (%d children)" % headless_probe.get_child_count())
+	_check(headless_probe._blur != null and headless_probe._blur.modulate.a <= 0.65, "the wake veil exists as a cheap overlay (a ColorRect alpha ramp, no shader)")
 	headless_probe.queue_free()
 	await _frames(1)
 
@@ -66,6 +67,11 @@ func _run() -> void:
 	_check(_qm.is_active(&"opening_survival"), "the survival quest starts")
 	_check(_qm.tracker_first == &"opening_survival", "and is pinned at the top of the tracker")
 	_check(_world.has_flag(&"opening_event_seen"), "the wake/treasure event is marked seen (<=48 chars, [a-z0-9_]: %s)" % "opening_event_seen")
+	_check(_qm.is_active(&"recover_payment"), "'Recover your payment.' starts at the handoff")
+	var order: Array = _qm._tracker_order()
+	_check(order.size() >= 2 and order[0] == &"opening_survival" and order.find(&"recover_payment") > 0, "the survival quest is first and the payment quest is listed under it (%s)" % str(order))
+	var payment_quest: QuestData = _qm.get_quest(&"recover_payment")
+	_check(payment_quest != null and payment_quest.objectives.size() == 1 and payment_quest.objectives[0].text == "Recover your payment.", "the objective text is exactly 'Recover your payment.'")
 
 	# Fighting is really blocked: an attack input does nothing while locked.
 	var before_state: int = player.state
@@ -132,6 +138,14 @@ func _run() -> void:
 	await _frames(3)
 	_check(_qm.is_completed(&"opening_survival"), "the failsafe grants every missing item and completes the quest")
 	_check(not player3.attacks_locked, "and attacks unlock even if no pickup was ever found")
+
+	# The payment is not recovered in this arc: the quest stays open after the survival quest and the pickups,
+	# and completes only when the story sets `payment_recovered`.
+	_check(_qm.is_active(&"recover_payment") and not _qm.is_completed(&"recover_payment"), "the payment quest is still open after the survival quest is done")
+	_world.set_flag(&"payment_recovered", true)
+	await _frames(3)
+	_check(_qm.is_completed(&"recover_payment"), "it completes only when `payment_recovered` is set")
+	_world.reset()
 
 	# Flag and id safety: everything this feature writes obeys WorldState's rule.
 	for id in [&"opening_event_seen", &"opening_survival", &"wooden_stick", &"salvaged_jacket", &"health_potion"]:

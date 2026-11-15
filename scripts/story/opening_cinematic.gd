@@ -15,6 +15,12 @@ signal finished(skipped: bool)
 
 const SKIP_GRACE_SECONDS: float = 0.4
 const FINAL_FADE_SECONDS: float = 1.0
+const SHAKE_MAX: float = 0.07
+const MUFFLE_CUTOFF_HZ: float = 700.0
+const BAG_REST: Vector3 = Vector3(0.6, 0.55, 1.4)
+const BAG_SLID: Vector3 = Vector3(-0.5, 0.55, 0.5)
+const BAG_RAIL: Vector3 = Vector3(0.95, 0.65, 0.3)
+const BAG_OVERBOARD: Vector3 = Vector3(2.8, -0.6, 0.0)
 
 var is_done: bool = false
 var _age: float = 0.0
@@ -34,6 +40,8 @@ var _skip_button: Button
 var _ocean_mat: StandardMaterial3D
 var _last_scene_index: int = -1
 var _wind_player: AudioStreamPlayer
+var _sea_player: AudioStreamPlayer
+var _muffle_effect: AudioEffectLowPassFilter
 var _rng := RandomNumberGenerator.new()
 var _next_strike: float = 2.0
 var _from_cam_pos: Vector3 = OpeningTimeline.SCENES[0]["cam_pos"]
@@ -63,8 +71,65 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	_clear_muffle()
 	if get_tree() != null and not is_done:
 		get_tree().paused = _was_paused
+
+
+## Camera shake amplitude in metres for a storm level: zero when calm, rising with the storm, never above
+## SHAKE_MAX so the shot stays readable.
+static func shake_amplitude(storm: float) -> float:
+	return clampf(storm, 0.0, 1.0) * SHAKE_MAX
+
+
+## Where the payment bag is, in boat-local space, in a given scene: it rests until the waves hit, slides
+## across the deck, is pinned at the rail while the boat is overwhelmed, then leaves the boat.
+static func bag_position(scene_id: StringName, progress: float) -> Vector3:
+	var p := clampf(progress, 0.0, 1.0)
+	var index := _scene_index(scene_id)
+	var waves := _scene_index(&"waves_hit")
+	var over := _scene_index(&"overwhelmed")
+	var thrown := _scene_index(&"thrown_overboard")
+	if index < waves:
+		return BAG_REST
+	if index == waves:
+		return BAG_REST.lerp(BAG_SLID, ease(p, 0.5))
+	if index == over:
+		return BAG_SLID.lerp(BAG_RAIL, ease(p, 0.5))
+	if index == thrown:
+		return BAG_RAIL.lerp(BAG_OVERBOARD, p)
+	return BAG_OVERBOARD
+
+
+static func _scene_index(scene_id: StringName) -> int:
+	for i in OpeningTimeline.SCENES.size():
+		if OpeningTimeline.SCENES[i]["id"] == scene_id:
+			return i
+	return -1
+
+
+func muffle_active() -> bool:
+	return _muffle_effect != null
+
+
+## A low-pass on the Master bus for the underwater moment. Always removed again: on finish, on skip, and when
+## the node is freed early (see `_clear_muffle`). Idempotent both ways.
+func _set_muffle() -> void:
+	if _muffle_effect != null:
+		return
+	_muffle_effect = AudioEffectLowPassFilter.new()
+	_muffle_effect.cutoff_hz = MUFFLE_CUTOFF_HZ
+	AudioServer.add_bus_effect(0, _muffle_effect)
+
+
+func _clear_muffle() -> void:
+	if _muffle_effect == null:
+		return
+	for i in AudioServer.get_bus_effect_count(0):
+		if AudioServer.get_bus_effect(0, i) == _muffle_effect:
+			AudioServer.remove_bus_effect(0, i)
+			break
+	_muffle_effect = null
 
 
 func _process(delta: float) -> void:
@@ -113,6 +178,7 @@ func advance(seconds: float) -> void:
 
 
 func _apply_skip_jump() -> void:
+	_clear_muffle()
 	if not _headless:
 		if is_instance_valid(_black):
 			_black.modulate.a = 1.0
@@ -135,6 +201,10 @@ func _on_scene_entered(_index: int, scene: Dictionary) -> void:
 		var previous: Dictionary = OpeningTimeline.SCENES[_last_scene_index]
 		_from_cam_pos = previous["cam_pos"]
 		_from_cam_look = previous["cam_look"]
+	if scene["id"] == &"thrown_overboard":
+		_set_muffle()
+	elif scene["id"] == &"to_black" or scene["id"] == &"ambience_crossfade":
+		_clear_muffle()
 	if _headless:
 		return
 	if scene["id"] == &"to_black":
@@ -148,6 +218,7 @@ func _finish(skipped: bool) -> void:
 	if is_done:
 		return
 	is_done = true
+	_clear_muffle()
 	get_tree().paused = _was_paused
 	if not _finished_emitted:
 		_finished_emitted = true
@@ -343,6 +414,15 @@ func _build_audio() -> void:
 		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_wind_player.stream = stream
 	_wind_player.play()
+	_sea_player = AudioStreamPlayer.new()
+	_sea_player.bus = "Master"
+	_sea_player.volume_db = -12.0
+	add_child(_sea_player)
+	var sea := load("res://assets/audio/menu_waves.wav") as AudioStream
+	if sea is AudioStreamWAV:
+		(sea as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_sea_player.stream = sea
+	_sea_player.play()
 
 
 func _crossfade_to_beach_ambience() -> void:
@@ -353,6 +433,10 @@ func _crossfade_to_beach_ambience() -> void:
 		var tween := create_tween()
 		tween.tween_property(_wind_player, "volume_db", -40.0, 2.5)
 		tween.tween_callback(_wind_player.stop)
+	if is_instance_valid(_sea_player):
+		var sea_tween := create_tween()
+		sea_tween.tween_property(_sea_player, "volume_db", -40.0, 2.0)
+		sea_tween.tween_callback(_sea_player.stop)
 
 
 func _update_visuals(scene: Dictionary, progress: float) -> void:
@@ -366,6 +450,18 @@ func _update_visuals(scene: Dictionary, progress: float) -> void:
 		_boat.position.y = sin(_clock * 2.1) * storm * 0.25
 	if is_instance_valid(_cam) and _last_scene_index >= 0:
 		_place_camera(scene, progress)
+		_shake_camera(storm, scene["id"] == &"waves_hit")
+	var bag: Node3D = null
+	if is_instance_valid(_boat):
+		bag = _boat.get_node_or_null("TreasureBag") as Node3D
+	if bag != null:
+		bag.position = bag_position(scene["id"], progress)
+		if scene["id"] == &"thrown_overboard":
+			bag.rotation.z = progress * 2.4
+	if is_instance_valid(_wind_player) and _wind_player.playing and scene["id"] != &"ambience_crossfade":
+		_wind_player.volume_db = lerpf(-18.0, -6.0, storm)
+	if is_instance_valid(_sea_player) and _sea_player.playing and scene["id"] != &"ambience_crossfade":
+		_sea_player.volume_db = lerpf(-12.0, -30.0, storm)
 	if is_instance_valid(_rain):
 		_rain.emitting = storm > 0.3
 	_update_lightning(storm)
@@ -395,6 +491,17 @@ func _place_camera(scene: Dictionary, progress: float) -> void:
 	var look := _boat.to_global(local_look)
 	if _cam.global_position.distance_to(look) > 0.01:
 		_cam.look_at(look, Vector3.UP)
+
+
+## A small, capped shake that grows with the storm and kicks harder when the big waves hit.
+func _shake_camera(storm: float, big_hit: bool) -> void:
+	var amp := shake_amplitude(storm) * (1.5 if big_hit else 1.0)
+	amp = minf(amp, SHAKE_MAX)
+	if amp <= 0.0:
+		return
+	var t := _clock
+	_cam.global_position += Vector3(sin(t * 37.0), sin(t * 43.0 + 1.0), sin(t * 29.0 + 2.0)) * amp
+	_cam.rotation.z += sin(t * 31.0) * amp * 0.4
 
 
 func _update_lightning(storm: float) -> void:

@@ -22,3 +22,11 @@
 **Screenshots:** a handful of frames were captured from the real renderer (not just logic) and looked at; the boat, protagonist stand-in, treasure bag and nav light render correctly, and the camera-arc fix removed the hull-clipping bug. Full shot-by-shot art direction (lighting balance per scene, wave visual quality, rain density tuning) was not reviewed in detail — this is a first functional pass, not a polished cut.
 
 **Not done:** no voice acting or spoken lines (captions are not part of this cinematic — the beach sequence may add a short muttered line); the guard-and-workers event is built separately in the beach sequence, not here; the ocean is a flat-colored plane (no per-vertex wave shader) to keep this simple and Compatibility-renderer-safe.
+
+## Update (2026-11-15): storm polish
+- **Camera shake:** `OpeningCinematic.shake_amplitude(storm)`, zero when calm, growing with the storm, capped at 0.07 m (and 1.5x on `waves_hit`, still capped). Deterministic sines, no RNG.
+- **The payment bag moves:** `bag_position(scene_id, progress)` rests until `waves_hit`, slides across the deck, is pinned at the rail in `overwhelmed`, and leaves the boat in `thrown_overboard`.
+- **Underwater muffle:** a low-pass (700 Hz) on the Master bus during `thrown_overboard`. Always removed: at `to_black`, on skip, on finish, and on early free (`_exit_tree`). Covered by tests that count bus effects.
+- **Audio:** the wind bed now ramps with the storm (-18 to -6 dB); `menu_waves.wav` (an existing file, no new audio) is the open-sea bed in the calm scenes and fades as the storm rises, and fades out in the final crossfade.
+- **Engine sound:** not added. No engine sound exists and a faked one from existing files could not be judged without listening, so it was skipped.
+- Tests: `opening_cinematic_check` now 28 checks.

@@ -96,5 +96,61 @@ func _run() -> void:
 	await process_frame
 	_check(record_c[0] == 0, "freeing early does not itself emit finished (%d)" % record_c[0])
 
+	# Camera shake: zero when calm, grows with the storm, never above the cap.
+	_check(OpeningCinematic.shake_amplitude(0.0) == 0.0, "no camera shake in calm weather")
+	_check(OpeningCinematic.shake_amplitude(0.5) > 0.0 and OpeningCinematic.shake_amplitude(0.9) > OpeningCinematic.shake_amplitude(0.5), "shake grows with the storm")
+	_check(OpeningCinematic.shake_amplitude(5.0) <= OpeningCinematic.SHAKE_MAX + 0.0001 and OpeningCinematic.SHAKE_MAX <= 0.1, "shake is capped so shots stay readable (%.3f m)" % OpeningCinematic.shake_amplitude(5.0))
+
+	# The payment bag: rests in calm scenes, slides when the waves hit, ends overboard, and is stable after.
+	_check(OpeningCinematic.bag_position(&"aerial", 0.5) == OpeningCinematic.BAG_REST, "the bag rests in the calm scenes")
+	_check(OpeningCinematic.bag_position(&"waves_hit", 0.0) == OpeningCinematic.BAG_REST and not OpeningCinematic.bag_position(&"waves_hit", 1.0).is_equal_approx(OpeningCinematic.BAG_REST), "the bag starts sliding on waves_hit")
+	_check(OpeningCinematic.bag_position(&"overwhelmed", 1.0).is_equal_approx(OpeningCinematic.BAG_RAIL), "it is pinned at the rail while the boat is overwhelmed")
+	_check(OpeningCinematic.bag_position(&"thrown_overboard", 1.0).is_equal_approx(OpeningCinematic.BAG_OVERBOARD), "it leaves the boat on thrown_overboard")
+	_check(OpeningCinematic.bag_position(&"to_black", 0.3) == OpeningCinematic.BAG_OVERBOARD, "and stays gone afterwards")
+
+	# The underwater muffle on the Master bus is added in thrown_overboard and ALWAYS removed again:
+	# on a normal finish, on a skip, and when the node is freed early.
+	var base_effects := AudioServer.get_bus_effect_count(0)
+	var m1 := OpeningCinematic.play(self)
+	await process_frame
+	var g1 := 0
+	while m1.current_scene_id() != &"thrown_overboard" and g1 < 200:
+		m1.advance(0.5)
+		g1 += 1
+	_check(m1.muffle_active() and AudioServer.get_bus_effect_count(0) == base_effects + 1, "the muffle is on during thrown_overboard")
+	var g1b := 0
+	while not m1.is_done and g1b < 200:
+		m1.advance(0.5)
+		g1b += 1
+	await process_frame
+	_check(AudioServer.get_bus_effect_count(0) == base_effects, "the muffle is gone after a normal finish")
+
+	var m2 := OpeningCinematic.play(self)
+	await process_frame
+	var g2 := 0
+	while m2.current_scene_id() != &"thrown_overboard" and g2 < 200:
+		m2.advance(0.5)
+		g2 += 1
+	m2.skip()
+	var g2b := 0
+	while not m2.is_done and g2b < 60:
+		m2.advance(0.5)
+		g2b += 1
+	await process_frame
+	_check(AudioServer.get_bus_effect_count(0) == base_effects, "the muffle is gone after a skip in the middle of it")
+
+	var m3 := OpeningCinematic.play(self)
+	await process_frame
+	var g3 := 0
+	while m3.current_scene_id() != &"thrown_overboard" and g3 < 200:
+		m3.advance(0.5)
+		g3 += 1
+	_check(AudioServer.get_bus_effect_count(0) == base_effects + 1, "the muffle is on again for a third run")
+	m3.queue_free()
+	await process_frame
+	await process_frame
+	_check(AudioServer.get_bus_effect_count(0) == base_effects, "the muffle is gone when the node is freed early")
+	paused = false
+
 	print("opening_cinematic_check: %d checks, %d failed" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)

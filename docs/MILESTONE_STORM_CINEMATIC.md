@@ -82,3 +82,6 @@ By the brief's own rule ("complete only when" all criteria hold), **this milesto
 7. Have a person watch it start to finish and judge pacing and clarity.
 
 Steps 1 to 3 are small and testable by the existing timeline test style. Step 4 is the real work. Steps 5 to 7 need a browser or a person.
+
+## Status update (2026-11-15)
+Closed: camera shake (capped), bag slide and loss overboard, an underwater muffle that is always cleaned up (tested for finish, skip and early free), the wind ramp, and the open-sea bed from the existing `menu_waves.wav`. **Still open:** boat engine, rain and storm-impact sounds (no files exist and the audio budget is full), the real protagonist model, browser run, frame-rate figures, and a person watching it.
