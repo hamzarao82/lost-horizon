@@ -66,3 +66,12 @@ Status date: 2026-11-14. This is the brief, the inspection it asks for (done her
 
 ## 7. Acceptance tracking
 Criteria 3, 4, 6 and 7 hold today by tests (boss and fairness suites). Criteria 8 and 9 (defeat and retry; victory once) are **partly verified** (no duplicate, reseal, seal release) and need the health-reset and single-victory tests first. Criterion 11 (payment unrecovered) holds. Criteria 2, 5, 10 and 12 need the work above or a person.
+
+## 8. Status of the polish pass (2026-11-15)
+- **Retry, found and fixed:** a player death rebuilds `Main`, so a fresh, full-health Warden always follows a death. The one real way to meet a *wounded* living Warden was to leave Area D mid-fight (a teleport can carry the player past the seal) and re-enter; `BossIntro` used to ignore that and resume against the wounded boss. It now replaces a hurt Warden with a fresh full-health one on re-entry and keeps an untouched one (no churn). `warden_retry_check`, 16 checks.
+- **Save and load mid-fight:** the saved world remembers the intro and claims no victory; after a load there is no Warden until Area D is entered, then exactly one at full health with the doorway sealed (same test).
+- **Victory once:** `warden_progression_check`, 12 checks: both defeat flags, "The Warden falls." once, the new lead caption once, kill XP once, loot dropped and not repeated on re-entry, no new Warden afterwards, `payment_recovered` unset.
+- **Which Warden sets which flag (decision 3):** the courtyard (wave 5) Warden sets `boss_warden_defeated` only (the Dead Coast road and the command terminal use it); only the Area D fight also sets `warden_d_defeated` (the payment store will use it). Asserted.
+- **Entrance:** the full (first) introduction now plays the existing `boss_roar` sound and a short screen dip (a self-freeing overlay at canvas layer 90, 45% at most). Lengths (3 s, quick 1.2 s) and the caption text are unchanged. The boss name already shows through the existing boss bar, so nothing was added to the HUD.
+- **After the fall:** a second caption "Whatever they moved is behind the command room." follows "The Warden falls." (Area D fight only). No payment is recovered and no objective was changed.
+- **Not changed:** attack data and mechanics (`boss_fairness_check` still 94/0). **Still unverified:** the fight has not been played by a person; the new roar and dip have not been seen or heard.
