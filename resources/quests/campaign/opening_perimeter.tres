@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_fence"]
+script = ExtResource("2_obj")
+id = &"find_way_inside"
+text = "Find a way inside"
+type = 1
+targets = PackedStringArray("opening_fence_reached")
+count = 0
+progress_label = ""
+
+[sub_resource type="Resource" id="Obj_past"]
+script = ExtResource("2_obj")
+id = &"get_past_perimeter"
+text = "Get past the security perimeter"
+type = 1
+targets = PackedStringArray("opening_perimeter_in")
+count = 0
+progress_label = ""
+
+[resource]
+script = ExtResource("1_quest")
+id = &"opening_perimeter"
+title = "The Perimeter"
+description = "Fences, guards and a gate with a crank. Whoever took the bag took it somewhere well kept."
+prerequisites = PackedStringArray()
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_fence"), SubResource("Obj_past")])
+rewards = PackedStringArray()
+reward_text = ""
+next_quest = &""
+start_captions = PackedStringArray()
+complete_captions = PackedStringArray("Past the fence. Now to find where they took it.")
+caption_seconds = 3.5
+category = 0
+location_hint = "The fence south of the compound"
+show_mission_banner = false
+strict_order = false

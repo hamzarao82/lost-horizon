@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_trail"]
+script = ExtResource("2_obj")
+id = &"follow_trail"
+text = "Follow the trail inland"
+type = 1
+targets = PackedStringArray("opening_trail_gap")
+count = 0
+progress_label = ""
+
+[sub_resource type="Resource" id="Obj_view"]
+script = ExtResource("2_obj")
+id = &"look_ahead"
+text = "Optional: climb the rise and look ahead"
+type = 1
+targets = PackedStringArray("opening_viewpoint")
+count = 0
+progress_label = ""
+optional = true
+
+[resource]
+script = ExtResource("1_quest")
+id = &"opening_trail"
+title = "The Trail"
+description = "Footprints and drag marks lead off the sand. Three people and a heavy bag do not vanish."
+prerequisites = PackedStringArray()
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_trail"), SubResource("Obj_view")])
+rewards = PackedStringArray()
+reward_text = ""
+next_quest = &"opening_perimeter"
+start_captions = PackedStringArray()
+complete_captions = PackedStringArray()
+caption_seconds = 3.5
+category = 0
+location_hint = "Inland from the beach"
+show_mission_banner = false
+strict_order = false

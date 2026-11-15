@@ -53,3 +53,6 @@ The player leaves the wilderness, sees signs of human occupation, gets a distant
 
 ## 6. Acceptance tracking
 All twelve criteria in the brief are **not started**. Criterion 10 (name not disclosed) currently **fails** against the shipped game by the audit above, even before any new content exists. Criterion 11 (previous systems remain functional) holds today by the full regression (97 suites).
+
+## 8. Status after implementation (2026-11-15)
+**Implemented and tested** in Area A (see `MILESTONE_TRAIL.md` section 7): a ramp up to a wooden rise on the berm (4.4 m, eye height above the 4 m courtyard wall) whose trigger shows one caption in the protagonist's voice about a place with fences and guards being another matter than three people and a bag, sets `settlement_seen`; from the rise the courtyard, its wall, the fence and a fenced work yard are in view (seen in windowed screenshots); four `WorkerWalker` figures (three hunched workers, two carrying crates, and an armed guard) walk loops in the yard, visual only (no AI, no collision), sleeping beyond 80 m; a few smoke puffs in the distance (16 on High, 8 on Medium, none on Low); utility poles and cables; an optional objective. **Not done:** the name masking and the "OUTPOST 17" sign belong to another worker; the walkers are capsule figures; no machinery, voice or generator sounds (audio budget).
