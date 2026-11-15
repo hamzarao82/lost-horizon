@@ -70,3 +70,24 @@ Recommendation: the hidden back room, extended with a sealed store door that ope
 
 ## 7. Acceptance tracking
 All twelve criteria in the brief are **not started**. Criteria 10 and 11 (save/load preserves the ending; Continue and menu intact) hold today for the existing campaign ending and saves by the regression, and would need new tests for the opening ending. Criterion 4 (visible recovery of gold and diamonds) is blocked until the bag item, the store and the recovery moment exist.
+
+## 8. Status after implementation (2026-11-15)
+Built on branch `m56` under the defaults in `OPENING_DECISIONS.md` (decision 1: the bag is in Area D's hidden north-west room). **Tested by headless suites; never seen in a real window or played by a person.**
+
+**What exists**
+- `scripts/world/payment_store.gd` (`PaymentStore`, one added line in `outpost17.gd`): a partition wall splits a 2.5 m store off the hidden room, with a sealed `Door` (`payment_store`, locked until `warden_d_defeated`), a shelf and crates, a "SALVAGE STORE" sign, and a "Salvage ledger" document outside (a gate guard and two workers brought one sealed bag in from the north shore; not to be opened without authorization).
+- `scripts/story/payment_bag.gd` (`PaymentBag`): the cinematic's bag shape as a prop, with a flap that lifts and a hidden stash of gold discs and diamonds revealed on opening.
+- `scripts/story/payment_recovery.gd` (`PaymentRecovery`, an `Interactable`, not a `SupplyCrate`): locked until the Warden is down and the store door is open. The scripted moment is the camera lock settling on the bag, "There you are.", the flap opening, "All of it.", then the grant. The grant is `payment_bag` (new unique quest item, `resources/items/payment_bag.tres`) plus **1,500 credits**, a `PersistentIds` claim and the flag `payment_recovered`, all at once, once.
+- The escape obstacle: after the recovery an alarm starts (flag `getaway_lockdown`). Two full-width shutters (`Door`, locked by `lockdown_lifted`) close the north service exit in Area D and the south beach exit, three guards (two `PatrolSoldier`, one `HunterElite`) come for the player in the Area D yard (no waves), and a breaker beside the north exit lifts the lockdown. Story justification: the compound reacts to the theft, using the doors and exits that already exist.
+- `scripts/story/opening_ending.gd` (`OpeningEnding`): two plain lines ("He has what he came for." / "He still has to leave the island."), fade to black and back, about 10 s, skippable, same pause pattern as the cinematic. It is not the campaign ending. It plays once, when the lockdown is lifted; `opening_arc_complete` is set before it plays, so it never replays and never plays on Continue. It starts no region and touches no audio or camera.
+- Quest `opening_getaway` (`resources/quests/campaign/opening_getaway.tres`): "Find your payment" (store door opened), "Recover the gold and diamonds" (completes only on `payment_recovered`), "Find a way out of Outpost 17" (`lockdown_lifted`), then `next_quest = leave_outpost`.
+
+**Verified (headless):** `payment_recovery_check` 57 and `opening_ending_check` 19, 0 failed, 0 script errors: nothing is granted before the Warden, before the door, before the interaction, or twice; the claim and the inventory's unique rule both stop a duplicate; a reload shows an empty shelf and no new lockdown; shutters, guards, breaker and the quest chain; the ending is due once and restores pause state on full play, skip, double skip and early free.
+
+**Not done / honest limits**
+- No animation: the recovery is a camera lock, two captions and a tweened flap, not a performance. Nobody has seen it.
+- The shutters span the whole width of the south beach (86 m) and the north yard (37 m) to stop walking round them; this was not probed against real geometry, and the `exit` triggers are guarded only by those shutters.
+- The lockdown's guards respawn if the player reloads during the lockdown; the breaker position is a guess, unverified against the real yard.
+- The ending's pacing and the 1,500-credit amount are unjudged.
+- It depends on the Area D Warden fight; the courtyard (wave 5) Warden does not open the store.
+- No browser or Windows run of this milestone beyond the headless suites; the Android device run still needs a device.

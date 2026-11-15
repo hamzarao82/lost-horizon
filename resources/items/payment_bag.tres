@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"payment_bag"
+display_name = "Payment Bag"
+kind = 5
+rarity = 3
+description = "A leather bag, heavy with gold and diamonds. What the job paid. Taken from the beach, and taken back."
+max_stack = 1
+unique = true
+quest_item = true

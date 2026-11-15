@@ -95,3 +95,6 @@ This is a first functional pass across the whole opening, not a polished cut. Ev
 - A 3D cinematic on web adds load and memory; it is built only on New Game and freed afterwards; the web load budget is already over (about 32 to 42 s).
 - Starting unarmed changes the first minutes for every New Game: attacks are locked until the stick is taken, with a failsafe.
 - Nobody has played it; pacing and length are unjudged. Target: about 60 s cinematic, 90 s beach recovery.
+
+## 9. Milestone 12 (The Getaway) status (2026-11-15)
+The payment store, the recovery, the escape lockdown and the closing `OpeningEnding` are implemented and covered by `payment_recovery_check` and `opening_ending_check`; see `MILESTONE_GETAWAY.md` section 8 for what was built, the numbers, and what was not seen or played.
