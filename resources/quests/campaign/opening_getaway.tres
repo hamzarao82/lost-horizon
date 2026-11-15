@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_find"]
+script = ExtResource("2_obj")
+id = &"find_store"
+text = "Find your payment"
+type = 5
+targets = PackedStringArray("door_payment_store_open")
+count = 0
+progress_label = ""
+
+[sub_resource type="Resource" id="Obj_recover"]
+script = ExtResource("2_obj")
+id = &"recover_payment"
+text = "Recover the gold and diamonds"
+type = 5
+targets = PackedStringArray("payment_recovered")
+count = 0
+progress_label = ""
+
+[sub_resource type="Resource" id="Obj_out"]
+script = ExtResource("2_obj")
+id = &"find_way_out"
+text = "Find a way out of Outpost 17"
+type = 5
+targets = PackedStringArray("lockdown_lifted")
+count = 0
+progress_label = ""
+
+[resource]
+script = ExtResource("1_quest")
+id = &"opening_getaway"
+title = "The Getaway"
+description = "The Warden is down, and something behind him was worth guarding. Find the bag, take it back, and get out."
+prerequisites = PackedStringArray()
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_find"), SubResource("Obj_recover"), SubResource("Obj_out")])
+rewards = PackedStringArray()
+reward_text = ""
+next_quest = &"leave_outpost"
+start_captions = PackedStringArray()
+complete_captions = PackedStringArray()
+caption_seconds = 4.5
+category = 0
+location_hint = "Area D, the hidden room behind the command building"
