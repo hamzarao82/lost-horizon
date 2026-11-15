@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_1"]
+script = ExtResource("2_obj")
+id = &"op_read_dispatch"
+text = "Read the dispatch terminal"
+type = 5
+targets = PackedStringArray("op_cargo_manifest_read")
+count = 0
+progress_label = ""
+optional = false
+
+[sub_resource type="Resource" id="Obj_2"]
+script = ExtResource("2_obj")
+id = &"op_reach_gate_hall"
+text = "Reach the hall before the command door"
+type = 5
+targets = PackedStringArray("op_gate_hall_reached")
+count = 0
+progress_label = ""
+optional = false
+
+[resource]
+script = ExtResource("1_quest")
+id = &"opening_command_hall"
+title = "Find the way to the command level."
+description = "Someone logged where the bag was sent. The trail leads toward the command wing."
+prerequisites = PackedStringArray()
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_1"), SubResource("Obj_2")])
+rewards = PackedStringArray()
+reward_text = ""
+next_quest = &"opening_restricted"
+start_captions = PackedStringArray("Find out where the cargo was sent.")
+complete_captions = PackedStringArray()
+caption_seconds = 4.5
+category = 0
+location_hint = "Dispatch hall, north end of the research wing"

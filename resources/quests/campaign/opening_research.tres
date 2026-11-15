@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/quests/objective_data.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Obj_1"]
+script = ExtResource("2_obj")
+id = &"op_enter_lab"
+text = "Enter the research annex"
+type = 5
+targets = PackedStringArray("op_lab_entered")
+count = 0
+progress_label = ""
+optional = false
+
+[sub_resource type="Resource" id="Obj_2"]
+script = ExtResource("2_obj")
+id = &"op_read_lab_records"
+text = "Read the lab terminal"
+type = 5
+targets = PackedStringArray("op_lab_records_read")
+count = 0
+progress_label = ""
+optional = false
+
+[sub_resource type="Resource" id="Obj_3"]
+script = ExtResource("2_obj")
+id = &"op_overhear_guards"
+text = "Listen to the guards by the annex"
+type = 5
+targets = PackedStringArray("op_overheard_guards")
+count = 0
+progress_label = ""
+optional = true
+
+[resource]
+script = ExtResource("1_quest")
+id = &"opening_research"
+title = "Search the research wing."
+description = "The annex behind the restricted door keeps records of what comes up from the harbor."
+prerequisites = PackedStringArray()
+objectives = Array[ExtResource("2_obj")]([SubResource("Obj_1"), SubResource("Obj_2"), SubResource("Obj_3")])
+rewards = PackedStringArray()
+reward_text = ""
+next_quest = &"opening_command_hall"
+start_captions = PackedStringArray("The pass opens the annex. See what they log.")
+complete_captions = PackedStringArray()
+caption_seconds = 4.5
+category = 0
+location_hint = "Research annex, east side of the research wing"
