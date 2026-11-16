@@ -15,6 +15,7 @@ const FLAG_BOSS: StringName = &"warden_d_defeated"
 const FLAG_RECOVERED: StringName = &"payment_recovered"
 const FLAG_LOCKDOWN: StringName = &"getaway_lockdown"
 const FLAG_LIFTED: StringName = &"lockdown_lifted"
+const FLAG_GUARDS_DOWN: StringName = &"lockdown_guards_down"
 const STORE_DOOR_ID: StringName = &"payment_store"
 
 # The hidden room spans x -22.2..-15.3 and z -91.4..-82.7. The partition splits a 2.5 m store off its west end.
@@ -223,6 +224,10 @@ func _shutter(shutter_id: StringName, at: Vector3, width: float) -> Door:
 
 
 func _spawn_guards() -> void:
+	if _world != null and _world.has_flag(FLAG_GUARDS_DOWN):
+		return  # they were already put down in an earlier life of this world: a reload never brings them back
+	if not guards.is_empty():
+		return  # one set per store, however many times the lockdown is started
 	for i in GUARD_SCENES.size():
 		var scene := load(GUARD_SCENES[i]) as PackedScene
 		if scene == null:
@@ -231,8 +236,18 @@ func _spawn_guards() -> void:
 		guard.position = GUARD_POSITIONS[i]
 		add_child(guard)
 		guards.append(guard)
+		if guard.has_signal("defeated"):
+			guard.connect("defeated", _on_guard_defeated)
 		if guard.has_method("aggro"):
 			guard.call("aggro")
+
+
+func _on_guard_defeated() -> void:
+	for guard in guards:
+		if is_instance_valid(guard) and not (guard.has_method("is_dead") and guard.is_dead()):
+			return
+	if _world != null:
+		_world.set_flag(FLAG_GUARDS_DOWN, true)
 
 
 func _lift_lockdown() -> void:
