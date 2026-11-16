@@ -17,7 +17,12 @@ const SKIP_GRACE_SECONDS: float = 0.4
 const FINAL_FADE_SECONDS: float = 1.0
 const SHAKE_MAX: float = 0.07
 const MUFFLE_CUTOFF_HZ: float = 700.0
-const BAG_REST: Vector3 = Vector3(0.6, 0.55, 1.4)
+const BAG_REST: Vector3 = Vector3(0.6, 0.9, 1.35)
+const PROTAGONIST_REST: Vector3 = Vector3(0.0, 0.3, -0.2)
+const SKY_CALM: Color = Color(0.48, 0.62, 0.76)
+const SKY_STORM: Color = Color(0.03, 0.04, 0.06)
+const OCEAN_CALM: Color = Color(0.08, 0.24, 0.34)
+const OCEAN_STORM: Color = Color(0.015, 0.025, 0.035)
 const BAG_SLID: Vector3 = Vector3(-0.5, 0.55, 0.5)
 const BAG_RAIL: Vector3 = Vector3(0.95, 0.65, 0.3)
 const BAG_OVERBOARD: Vector3 = Vector3(2.8, -0.6, 0.0)
@@ -38,6 +43,9 @@ var _flash_rect: ColorRect
 var _black: ColorRect
 var _skip_button: Button
 var _ocean_mat: StandardMaterial3D
+var _ocean_shader: ShaderMaterial
+var _env: Environment
+var _sun: DirectionalLight3D
 var _last_scene_index: int = -1
 var _wind_player: AudioStreamPlayer
 var _sea_player: AudioStreamPlayer
@@ -242,19 +250,21 @@ func _build_scene() -> void:
 	_viewport.size = get_viewport().get_visible_rect().size if get_viewport() else Vector2i(1280, 720)
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.05, 0.07, 0.10)
+	env.background_color = SKY_CALM
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.35, 0.38, 0.45)
-	env.ambient_light_energy = 0.6
+	env.ambient_light_color = Color(0.45, 0.5, 0.58)
+	env.ambient_light_energy = 1.0
+	_env = env
 	var cam_attrs := WorldEnvironment.new()
 	cam_attrs.environment = env
 	_viewport.add_child(cam_attrs)
 	container.add_child(_viewport)
 
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55.0, -30.0, 0.0)
-	sun.light_energy = 0.9
-	sun.light_color = Color(0.85, 0.85, 0.95)
+	sun.rotation_degrees = Vector3(-35.0, -30.0, 0.0)
+	sun.light_energy = 1.3
+	sun.light_color = Color(1.0, 0.95, 0.85)
+	_sun = sun
 	_viewport.add_child(sun)
 
 	var ocean := MeshInstance3D.new()
@@ -262,12 +272,19 @@ func _build_scene() -> void:
 	plane.size = Vector2(400.0, 400.0)
 	ocean.mesh = plane
 	_ocean_mat = StandardMaterial3D.new()
-	_ocean_mat.albedo_color = Color(0.05, 0.10, 0.15)
+	_ocean_mat.albedo_color = OCEAN_CALM
 	_ocean_mat.roughness = 0.25
 	_ocean_mat.metallic = 0.1
 	ocean.material_override = _ocean_mat
 	ocean.position = Vector3(0.0, -0.6, -10.0)
+	if _wave_grid_wanted():
+		ocean.position.y = -0.95  # the animated grid sits above this flat horizon plane
 	_viewport.add_child(ocean)
+	if _wave_grid_wanted():
+		var grid := OpeningArt.ocean_grid()
+		grid.position = Vector3(0.0, -0.6, -8.0)
+		_ocean_shader = grid.material_override as ShaderMaterial
+		_viewport.add_child(grid)
 
 	_boat = _build_boat()
 	_boat.position = Vector3(0.0, 0.0, -8.0)
@@ -298,58 +315,31 @@ func _build_scene() -> void:
 
 
 func _build_boat() -> Node3D:
-	var boat := Node3D.new()
-	var hull := MeshInstance3D.new()
-	var hull_mesh := BoxMesh.new()
-	hull_mesh.size = Vector3(2.0, 0.6, 4.5)
-	hull.mesh = hull_mesh
-	var hull_mat := StandardMaterial3D.new()
-	hull_mat.albedo_color = Color(0.82, 0.78, 0.68)
-	hull.material_override = hull_mat
-	boat.add_child(hull)
-
-	var bow := MeshInstance3D.new()
-	var bow_mesh := PrismMesh.new()
-	bow_mesh.size = Vector3(2.0, 0.6, 1.4)
-	bow.mesh = bow_mesh
-	bow.material_override = hull_mat
-	bow.position = Vector3(0.0, 0.0, -2.7)
-	bow.rotation_degrees = Vector3(0.0, 180.0, 0.0)
-	boat.add_child(bow)
-
-	var windshield := MeshInstance3D.new()
-	var ws_mesh := BoxMesh.new()
-	ws_mesh.size = Vector3(1.6, 0.7, 0.08)
-	windshield.mesh = ws_mesh
-	var ws_mat := StandardMaterial3D.new()
-	ws_mat.albedo_color = Color(0.55, 0.75, 0.85, 0.5)
-	ws_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	windshield.material_override = ws_mat
-	windshield.position = Vector3(0.0, 0.75, -0.9)
-	boat.add_child(windshield)
-
-	var nav_light := OmniLight3D.new()
-	nav_light.light_color = Color(0.3, 1.0, 0.4)
-	nav_light.light_energy = 0.6
-	nav_light.omni_range = 2.0
-	nav_light.position = Vector3(0.9, 0.5, -1.8)
-	boat.add_child(nav_light)
-
+	var boat := OpeningArt.boat()
 	var protagonist := _build_protagonist()
-	protagonist.position = Vector3(0.0, 0.6, -0.4)
+	protagonist.position = PROTAGONIST_REST
 	protagonist.name = "Protagonist"
 	boat.add_child(protagonist)
 
 	var bag := _build_bag()
-	bag.position = Vector3(0.6, 0.55, 1.4)
+	bag.position = BAG_REST
 	bag.name = "TreasureBag"
 	boat.add_child(bag)
 	return boat
 
 
-## A simple procedural stand-in for the protagonist: see the class doc. Milestone 13 can replace this
-## with the rigged `SkinnedVisual` player model.
+## The real rigged player model standing at the wheel on its idle clip. If the model file is missing the old
+## capsule stand-in is built instead, so the cinematic never breaks on a missing asset.
 func _build_protagonist() -> Node3D:
+	var model := OpeningArt.character(OpeningArt.PLAYER_MODEL, "idle")
+	if model != null:
+		var holder := Node3D.new()
+		holder.add_child(model)
+		return holder
+	return _build_capsule_protagonist()
+
+
+func _build_capsule_protagonist() -> Node3D:
 	var root := Node3D.new()
 	var body := MeshInstance3D.new()
 	var capsule := CapsuleMesh.new()
@@ -375,32 +365,8 @@ func _build_protagonist() -> Node3D:
 
 
 func _build_bag() -> Node3D:
-	var root := Node3D.new()
-	var sack := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = 0.22
-	sphere.height = 0.36
-	sack.mesh = sphere
-	var sack_mat := StandardMaterial3D.new()
-	sack_mat.albedo_color = Color(0.4, 0.3, 0.18)
-	sack.material_override = sack_mat
-	root.add_child(sack)
-	var gold_mat := StandardMaterial3D.new()
-	gold_mat.albedo_color = Color(0.95, 0.78, 0.2)
-	gold_mat.emission_enabled = true
-	gold_mat.emission = Color(0.7, 0.5, 0.1)
-	gold_mat.emission_energy_multiplier = 0.6
-	for i in 4:
-		var coin := MeshInstance3D.new()
-		var disc := CylinderMesh.new()
-		disc.top_radius = 0.05
-		disc.bottom_radius = 0.05
-		disc.height = 0.015
-		coin.mesh = disc
-		coin.material_override = gold_mat
-		coin.position = Vector3(0.1 * cos(i * 1.6), 0.18 + 0.03 * i, 0.1 * sin(i * 1.6))
-		root.add_child(coin)
-	return root
+	# The same bag the player recovers at the end (PaymentBag), closed: one look for both ends of the story.
+	return PaymentBag.build()
 
 
 func _build_audio() -> void:
@@ -441,8 +407,17 @@ func _crossfade_to_beach_ambience() -> void:
 
 func _update_visuals(scene: Dictionary, progress: float) -> void:
 	var storm: float = scene["storm"]
+	var ocean_color := OCEAN_CALM.lerp(OCEAN_STORM, storm)
 	if is_instance_valid(_ocean_mat):
-		_ocean_mat.albedo_color = Color(0.05, 0.10, 0.15).lerp(Color(0.015, 0.02, 0.03), storm)
+		_ocean_mat.albedo_color = ocean_color
+	if _ocean_shader != null:
+		_ocean_shader.set_shader_parameter("storm", storm)
+		_ocean_shader.set_shader_parameter("deep_color", ocean_color)
+	if _env != null:
+		_env.background_color = SKY_CALM.lerp(SKY_STORM, storm)
+		_env.ambient_light_energy = lerpf(1.0, 0.35, storm)
+	if is_instance_valid(_sun):
+		_sun.light_energy = lerpf(1.3, 0.45, storm)
 	if is_instance_valid(_boat):
 		var rock := storm * 0.12
 		_boat.rotation.z = sin(_clock * 1.7) * rock
@@ -469,7 +444,7 @@ func _update_visuals(scene: Dictionary, progress: float) -> void:
 		var p := progress
 		var proto := _boat.get_node_or_null("Protagonist")
 		if proto:
-			proto.position = Vector3(0.0, 0.6, -0.4).lerp(Vector3(1.6, -0.6, 1.2), p)
+			proto.position = PROTAGONIST_REST.lerp(Vector3(1.6, -0.6, 1.2), p)
 			proto.rotation.x = p * PI * 1.5
 
 
@@ -545,3 +520,9 @@ func _build_ui() -> void:
 	add_child(_skip_button)
 	var tween := create_tween()
 	tween.tween_property(_black, "modulate:a", 0.0, 1.2).set_delay(0.3)
+
+
+## The animated wave grid is worth its cost only above the LOW preset (it is skipped entirely on LOW).
+func _wave_grid_wanted() -> bool:
+	var settings := get_node_or_null("/root/Settings")
+	return settings == null or int(settings.get("quality")) != 0
