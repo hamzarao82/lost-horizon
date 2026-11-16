@@ -72,7 +72,7 @@ Rules:
 
 ## Opening and ending
 
-- **Opening** (about 22 s): captions on black, then a slow camera push toward the thief and the title card. Skip with any key, click, tap, gamepad button, or the Skip button (a 0.4 s grace period avoids accidental skips). The game is paused while it plays (the intro keeps running) and unpaused on exit.
+- **Opening** (a real New Game): the speedboat and storm cinematic (12 scenes, about 50 s), then the beach wake (the glimpse of the bag being taken, then the injured handoff with attacks locked until three survival items are found), then play begins at the beach with the quests "Recover your payment." and the survival quest. Each part pauses the game, can be skipped (any key, click, tap, gamepad button, or the Skip button, with a 0.4 s grace period) and restores the pause state on exit. The older short title intro (`StoryIntro`, about 22 s of captions on black) still exists and is covered by its own test, but a real New Game no longer plays it.
 - It plays only on a fresh game: not under the headless driver, not after loading a save, not after a death restart, not when quest progress exists, and only once per run (`intro_done`; a deliberate Restart or Play Again does not repeat it).
 - **Ending:** when the final quest completes, the final captions play, then a screen "Thanks for playing" with credits, **Play Again** (clears run state through `SaveManager.reset_runtime_state()`, which also restarts the quests and the world flags, then reloads) and **Quit** (hidden on web and mobile).
 
