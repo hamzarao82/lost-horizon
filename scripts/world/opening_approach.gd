@@ -41,6 +41,7 @@ var patrol_gate: PatrolGroup
 var walkers: Array[WorkerWalker] = []
 
 var _b: ArenaDecor.Builder
+var _smooth: Array = []  # ArrayMesh pieces of the berm and rise
 var _clock: float = 0.0
 var _started: bool = false
 
@@ -132,17 +133,23 @@ func _finish_mesh() -> void:
 	node.material_override = PbrMaterials.concrete()
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(node)
+	# Berm and rise: one vertex-coloured mesh (sand, scrub, rock) over the same footprints as their colliders.
+	var terrain := MeshInstance3D.new()
+	terrain.name = "ApproachTerrain"
+	terrain.mesh = OpeningArt.merge(_smooth)
+	terrain.material_override = OpeningArt.material(true, 0.95, 0.0)
+	terrain.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(terrain)
 
 
 # --- the berm: screens the compound, two gaps ---------------------------------
 
 func _berm_segment(seg_name: String, x0: float, x1: float, height: float) -> void:
+	# The visible mound is a smooth mesh over exactly the collision footprint (see _finish_mesh).
+	_smooth.append(OpeningArt.berm_mesh(x0, x1, BERM_Z0, BERM_Z1, height, seg_name.hash()))
 	var cx := (x0 + x1) * 0.5
-	var width := x1 - x0
 	var cz := (BERM_Z0 + BERM_Z1) * 0.5
-	_b.box(Vector3(cx, height * 0.25, cz), Vector3(width, height * 0.5, BERM_Z1 - BERM_Z0), EARTH)
-	_b.box(Vector3(cx, height * 0.5 + height * 0.02, cz), Vector3(width, height * 0.96, (BERM_Z1 - BERM_Z0) - 1.0), EARTH.lightened(0.04))
-	_b.box(Vector3(cx, height + 0.06, cz), Vector3(width, 0.14, (BERM_Z1 - BERM_Z0) - 1.0), EARTH_TOP)
+	var width := x1 - x0
 	_box(seg_name, Vector3(cx, height * 0.5, cz), Vector3(width, height, BERM_Z1 - BERM_Z0))
 
 
@@ -157,7 +164,7 @@ func _build_ramp_and_deck() -> void:
 	var cz := (BERM_Z0 + BERM_Z1) * 0.5
 	var cx := (DECK_X.x + DECK_X.y) * 0.5
 	var width := DECK_X.y - DECK_X.x
-	_b.box(Vector3(cx, DECK_H * 0.5, cz), Vector3(width, DECK_H, BERM_Z1 - BERM_Z0), EARTH.darkened(0.05))
+	_smooth.append(OpeningArt.berm_mesh(DECK_X.x, DECK_X.y, BERM_Z0, BERM_Z1, DECK_H, 3, false))  # flat-topped rise under the planks
 	_b.box(Vector3(cx, DECK_H + 0.07, cz), Vector3(width, 0.14, BERM_Z1 - BERM_Z0), ArenaDecor.WOOD)
 	_box("ViewDeck", Vector3(cx, DECK_H * 0.5, cz), Vector3(width, DECK_H, BERM_Z1 - BERM_Z0))
 	# A low rail along the north edge so a stumble does not drop the player off the rise.

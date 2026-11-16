@@ -87,6 +87,21 @@ func _build() -> void:
 	_body = Node3D.new()
 	_body.name = "Body"
 	add_child(_body)
+	# The real soldier model on its running clip, slowed to a walk pace (the model set has no walk clip).
+	var model := OpeningArt.character(OpeningArt.SOLDIER_MODEL, "run", Color(0.56, 0.7, 0.56) if guard else Color(0.86, 0.77, 0.62), clampf(speed * 0.3, 0.12, 0.6))
+	if model != null:
+		model.name = "SoldierModel"
+		model.rotation.y = PI  # the model faces -Z; a walker moves toward +Z
+		if not guard:
+			model.scale = Vector3(1.0, 0.94, 1.0)  # a worker stoops a little
+		_body.add_child(model)
+		_add_props()
+		return
+	_build_capsule()
+
+
+## Procedural fallback, used only if the model file is missing.
+func _build_capsule() -> void:
 	var torso := MeshInstance3D.new()
 	var capsule := CapsuleMesh.new()
 	capsule.radius = 0.27
@@ -108,6 +123,11 @@ func _build() -> void:
 	head.material_override = _material(Color(0.55, 0.42, 0.33))
 	head.position = Vector3(0.0, 1.72 if guard else 1.62, 0.0 if guard else 0.14)
 	_body.add_child(head)
+	_add_props()
+
+
+## What a guard carries (a rifle) or a worker carries (a crate of stores). Built on top of either body.
+func _add_props() -> void:
 	if guard:
 		var rifle := MeshInstance3D.new()
 		var box := BoxMesh.new()
@@ -120,8 +140,8 @@ func _build() -> void:
 	elif carrying:
 		var crate := MeshInstance3D.new()
 		var cbox := BoxMesh.new()
-		cbox.size = Vector3(0.5, 0.4, 0.5)
+		cbox.size = Vector3(0.5, 0.4, 0.42)
 		crate.mesh = cbox
 		crate.material_override = _material(ArenaDecor.WOOD)
-		crate.position = Vector3(0.0, 1.55, 0.25)
+		crate.position = Vector3(0.0, 1.02, 0.36)  # held at the chest, in front of the hands
 		_body.add_child(crate)
