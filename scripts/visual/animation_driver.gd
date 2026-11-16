@@ -10,11 +10,13 @@ extends RefCounted
 ##    (hit-stop, time scale and attack speed included) and a clip can never replay on its own.
 ## Clip names are canonical (idle, walk, light_1 ...); missing clips fall back along FALLBACKS.
 
-const LOOPING: PackedStringArray = ["idle", "walk", "run", "sprint", "fall", "guard"]
+const LOOPING: PackedStringArray = ["idle", "walk", "run", "sprint", "fall", "guard", "lying_idle", "hold_side", "limp_walk"]
 ## Where the strike lands inside every attack clip (art contract: 35 % of the clip length).
 const STRIKE_FRACTION: float = 0.35
 const XFADE: float = 0.12
-const TREE_STATES: PackedStringArray = ["loco", "fall", "jump_start", "land", "hit", "death", "guard"]
+const TREE_STATES: PackedStringArray = ["loco", "fall", "jump_start", "land", "hit", "death", "guard", "limp_walk"]
+## Story clips (opening arc, player rig only): a tree state is built only when the model really has the clip.
+const STORY_TREE_STATES: PackedStringArray = ["limp_walk"]
 ## Speed (m/s) at which each locomotion clip is at full weight.
 const LOCO_POINTS: Array = [["idle", 0.0], ["walk", 2.0], ["run", 5.0], ["sprint", 8.5]]
 const FALLBACKS: Dictionary = {
@@ -25,11 +27,20 @@ const FALLBACKS: Dictionary = {
 	"heavy": ["light_1"], "sprint_attack": ["heavy", "light_1"], "air_attack": ["heavy", "light_1"],
 	"spin": ["heavy", "light_1"], "slam": ["heavy", "light_1"], "flurry": ["light_2", "light_1"],
 	"shockwave_cast": ["heavy", "light_1"], "roar": ["idle"],
+	"limp_walk": ["walk", "idle"], "hold_side": ["idle"], "lying_idle": ["idle"], "wake": ["idle"], "sit_up": ["idle"],
+	"stand_up": ["idle"], "pickup": ["idle"], "open_bag": ["idle"],
 }
 
 var player: AnimationPlayer
 var tree: AnimationTree
 var scrubbing: bool = false
+## While true (injured), walking and running play limp_walk instead of the walk / run blend, when the model has it.
+var limp: bool = false
+
+var _speed: float = 0.0
+## A story clip (pickup, open_bag, or a held pose) owns the skeleton: 0 = none, > 0 = until this tick (ms),
+## -1 = until release_story().
+var _story_until_ms: int = 0
 
 var _names: Dictionary = {}      # canonical name -> actual animation name in the player
 var _tree_states: Array[StringName] = []
@@ -123,6 +134,8 @@ func _build_tree(host: Node) -> void:
 	for state in TREE_STATES:
 		if state == "loco":
 			continue
+		if STORY_TREE_STATES.has(state) and not _names.has(state):
+			continue
 		var actual := resolve(state)
 		if actual == &"":
 			continue
@@ -165,6 +178,9 @@ func has_tree() -> bool:
 
 ## Blend position of the locomotion blend space (horizontal speed in m/s).
 func set_speed(speed: float) -> void:
+	_speed = speed
+	if _story_busy():
+		return
 	if tree and _tree_states.has(&"loco"):
 		tree.set("parameters/loco/blend_position", clampf(speed, 0.0, 8.5))
 
@@ -173,6 +189,10 @@ func set_speed(speed: float) -> void:
 func play_state(state: StringName) -> void:
 	if not has_tree():
 		return
+	if _story_busy():
+		return
+	if limp and state == &"loco" and _speed > 0.4 and _tree_states.has(&"limp_walk"):
+		state = &"limp_walk"
 	if scrubbing:
 		end_scrub()
 	if not _tree_states.has(state):
@@ -196,6 +216,8 @@ func scrub(name: String, position: float) -> bool:
 	var actual := resolve(name)
 	if actual == &"":
 		return false
+	if _story_busy():
+		return true
 	if not scrubbing:
 		scrubbing = true
 		if tree:
@@ -228,3 +250,66 @@ func end_scrub() -> void:
 ## True only when the model really contains this clip (no fallback).
 func has_exact(name: String) -> bool:
 	return _names.has(name)
+
+
+# --- story one-shots -----------------------------------------------------------------
+
+## Plays a story clip (pickup, open_bag, ...) and hands the skeleton back to the tree when it ends. While it plays,
+## the per-frame play_state / scrub / set_speed calls are ignored. With `hold` the clip plays (looping if it loops)
+## until release_story(), and a one-shot keeps its last pose. Returns the clip length in seconds, or 0.0 when the
+## model does not have the clip (nothing changes in that case).
+func play_story_clip(clip_name: String, speed: float = 1.0, hold: bool = false) -> float:
+	if player == null or not has_exact(clip_name):
+		return 0.0
+	var actual := resolve(clip_name)
+	if tree:
+		tree.active = false
+	player.active = true
+	scrubbing = true
+	player.play(actual, 0.0, speed)
+	var length := player.get_animation(actual).length / maxf(speed, 0.01)
+	_story_until_ms = -1 if hold else Time.get_ticks_msec() + int(length * 1000.0)
+	return length
+
+
+## Hands the skeleton back to the tree (ends a held or running story clip).
+func release_story() -> void:
+	_story_until_ms = 0
+	end_scrub()
+
+
+## Adds a clip copied from another model that shares this rig (same bone paths), under a canonical name.
+func add_clip(clip_name: String, anim: Animation) -> bool:
+	if player == null or anim == null or _names.has(clip_name):
+		return false
+	var lib := player.get_animation_library(&"")
+	if lib == null:
+		lib = AnimationLibrary.new()
+		player.add_animation_library(&"", lib)
+	lib.add_animation(StringName(clip_name), anim)
+	_names[clip_name] = StringName(clip_name)
+	return true
+
+
+func _story_busy() -> bool:
+	if _story_until_ms == 0:
+		return false
+	if _story_until_ms < 0 or Time.get_ticks_msec() < _story_until_ms:
+		return true
+	_story_until_ms = 0
+	end_scrub()
+	return false
+
+
+## Finds the SkinnedVisual of a body (Player or Enemy scene layout: VisualRoot/SkinnedVisual) and plays a story clip
+## on it. Returns the clip length, or 0.0 when the body has no skinned model or the model lacks the clip.
+static func play_on(body: Node, clip_name: String, speed: float = 1.0) -> float:
+	if body == null:
+		return 0.0
+	var visual := body.get_node_or_null("VisualRoot/SkinnedVisual")
+	if visual == null:
+		return 0.0
+	var driver: Variant = visual.get("driver")
+	if driver == null or not (driver is AnimationDriver):
+		return 0.0
+	return (driver as AnimationDriver).play_story_clip(clip_name, speed)

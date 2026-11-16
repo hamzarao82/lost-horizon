@@ -197,6 +197,15 @@ func _load_model() -> bool:
 	return true
 
 
+## Loads the model for a cinematic stand-in with no gameplay body (the opening beach). Set `model_path` first.
+## Nothing is driven per frame here: the caller plays clips through `driver`. Returns false when the model is missing
+## or broken, and the caller falls back to its own drawing.
+func load_standalone(player_look: bool) -> bool:
+	set_process(false)
+	_is_player = player_look
+	return _load_model()
+
+
 func set_active(active: bool) -> void:
 	if not loaded:
 		return
@@ -384,6 +393,7 @@ func _sync_transform() -> void:
 
 func _drive_player(delta: float) -> void:
 	var player := body as Player
+	driver.limp = player.injured_speed_mult < 1.0
 	match player.state:
 		Player.State.DEAD:
 			driver.play_state(&"death")

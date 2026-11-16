@@ -209,4 +209,100 @@ CLIP_SPECS = {  # name: nominal length in seconds
     "light_1": 0.5, "light_2": 0.5, "light_3": 0.6, "heavy": 0.8, "sprint_attack": 0.6, "air_attack": 0.5,
     "spin": 0.7, "dodge": 0.5, "hit": 0.35, "death": 1.2, "guard": 1.0,
     "slam": 1.2, "flurry": 0.8, "shockwave_cast": 1.0, "roar": 1.5,
+    # Story clips (opening arc). PLAYER RIG ONLY: make_common.run() calls author_story() when the character is
+    # "player", so the other four GLBs stay byte-identical and keep the 22-clip contract. See STORY_CLIPS below.
+    "lying_idle": 3.0, "wake": 3.0, "sit_up": 2.0, "hold_side": 3.0, "stand_up": 1.8,
+    "limp_walk": 1.4, "pickup": 1.2, "open_bag": 3.0,
 }
+CORE_CLIPS = tuple(list(CLIP_SPECS)[:22])
+STORY_CLIPS = tuple(name for name in CLIP_SPECS if name not in CORE_CLIPS)
+STORY_LOOPS = ["lying_idle", "hold_side", "limp_walk"]
+# Lying poses tip the whole body about the hips: hips rx = +88 lays him on his back (head toward -Y, feet +Y).
+
+SUPINE = P(hips=(88, 0, 0), hips_loc=(0, -0.15, -0.78), ul_r=(2, 0, -8), ul_l=(0, 0, 8), ll_r=(-4, 0, 0),
+           ll_l=(-6, 0, 0), spine=(0, 0, 0), chest=(0, 0, 0), head=(0, 0, 12),
+           ua_r=(-6, -30, 0), ua_l=(-4, 30, 0), la_r=(8, 0, 0), la_l=(10, 0, 0))
+# propped on the elbows: torso half raised, legs still along the ground (hips + thigh angles add to 88)
+PROPPED = P(hips=(76, 0, 0), hips_loc=(0, -0.12, -0.78), ul_r=(12, 0, -8), ul_l=(12, 0, 8), ll_r=(-4, 0, 0),
+            ll_l=(-6, 0, 0), spine=(-20, 0, 0), chest=(-6, 0, 0), head=(-8, 0, 6),
+            ua_r=(-34, -18, 0), ua_l=(-34, 18, 0), la_r=(62, 0, 0), la_l=(62, 0, 0))
+SITTING = P(hips=(0, 0, 0), hips_loc=(0, 0, -0.80), ul_r=(86, 0, -8), ul_l=(86, 0, 8), ll_r=(-6, 0, 0),
+            ll_l=(-6, 0, 0), spine=(-8, 0, 0), chest=(-4, 0, 0), head=(16, 0, 0),
+            ua_r=(34, -4, 0), la_r=(48, 0, 0), ua_l=(30, -20, 0), la_l=(96, 0, 0))
+HUNCH_A = P(hips_loc=(0, 0.03, -0.07), hips=(0, 0, 2), spine=(-20, 0, -4), chest=(-6, 0, 8), head=(14, 0, -6),
+            ua_l=(10, -36, 0), la_l=(94, 0, 0), ua_r=(10, 10, 0), la_r=(24, 0, 0),
+            ul_r=(8, 0, -3), ul_l=(-2, 0, 4), ll_r=(-14, 0, 0), ll_l=(-8, 0, 0))
+HUNCH_B = P(hips_loc=(0, 0.03, -0.085), hips=(0, 0, 2), spine=(-23, 0, -4), chest=(-8, 0, 8), head=(17, 0, -6),
+            ua_l=(11, -36, 0), la_l=(96, 0, 0), ua_r=(11, 10, 0), la_r=(26, 0, 0),
+            ul_r=(8, 0, -3), ul_l=(-2, 0, 4), ll_r=(-15, 0, 0), ll_l=(-8, 0, 0))
+
+
+def _limp_cycle(n=14):
+    """Left leg is the hurt one: short stride, a dip on its stance, left hand held to the ribs."""
+    keys = []
+    for i in range(n + 1):
+        t = i / n
+        ph = 2 * math.pi * t
+        s, c = math.sin(ph), math.cos(ph)
+        dip = 0.07 * max(0.0, s)
+        keys.append((t, P(
+            hips_loc=(0, 0.02, -0.04 - dip - 0.02 * (1 - math.cos(2 * ph)) * 0.5),
+            hips=(0, 0, 3 * s),
+            ul_r=(28 * s, 0, -3), ul_l=(-9 * s, 0, 4),
+            ll_r=(-(10 + 34 * max(0.0, c)), 0, 0), ll_l=(-(8 + 14 * max(0.0, -c)), 0, 0),
+            spine=(-17, 0, 0), chest=(-4, 0, 6 + 5 * s), head=(14, 0, -3 - 3 * s),
+            ua_l=(10, -36, 0), la_l=(94, 0, 0), ua_r=(-16 * s, 6, 0), la_r=(22 + 6 * (1 - s), 0, 0),
+        ), 'lin'))
+    return keys
+
+
+def author_story(an):
+    """an: char_lib.Animator. Only the player rig calls this."""
+    breathe_a = P(**{**SUPINE, 'chest': (1.6, 0, 0), 'spine': (0.6, 0, 0)})
+    breathe_b = P(**{**SUPINE, 'chest': (-0.6, 0, 0), 'spine': (-0.3, 0, 0), 'head': (0, 0, 7)})
+    an.clip("lying_idle", 3.0, [(0.0, breathe_a), (0.5, breathe_b), (1.0, breathe_a)], loop=True)
+
+    # wake: a shudder, the head lifts and falls back once, then he props himself on his elbows
+    an.clip("wake", 3.0, [
+        (0.0, SUPINE),
+        (0.18, P(**{**SUPINE, 'head': (-10, 0, 20), 'chest': (2, 0, 6)})),
+        (0.32, P(**{**SUPINE, 'head': (3, 0, 14), 'ua_r': (-8, -30, 0), 'la_r': (30, 0, 0)})),
+        (0.55, P(**{**SUPINE, 'hips': (84, 0, 0), 'ul_r': (4, 0, -8), 'ul_l': (4, 0, 8), 'spine': (-10, 0, 0),
+                    'head': (-14, 0, 8), 'ua_r': (-24, -22, 0), 'la_r': (46, 0, 0), 'ua_l': (-18, 24, 0),
+                    'la_l': (40, 0, 0)})),
+        (0.8, P(**{**PROPPED, 'head': (-2, 0, 14), 'chest': (-3, 0, 8)})),
+        (1.0, PROPPED)])
+
+    mid = P(hips=(40, 0, 0), hips_loc=(0, -0.06, -0.78), ul_r=(48, 0, -8), ul_l=(48, 0, 8), ll_r=(-5, 0, 0),
+            ll_l=(-6, 0, 0), spine=(-34, 0, 0), chest=(-8, 0, 0), head=(6, 0, 0),
+            ua_r=(-26, -16, 0), ua_l=(-26, 16, 0), la_r=(34, 0, 0), la_l=(34, 0, 0))
+    an.clip("sit_up", 2.0, [(0.0, PROPPED), (0.5, mid, 'in'), (1.0, SITTING, 'out')])
+
+    an.clip("hold_side", 3.0, [(0.0, HUNCH_A), (0.5, HUNCH_B), (1.0, HUNCH_A)], loop=True)
+
+    push = P(hips=(0, 0, 0), hips_loc=(0, 0.10, -0.60), ul_r=(70, 0, -8), ul_l=(70, 0, 8), ll_r=(-96, 0, 0),
+             ll_l=(-96, 0, 0), spine=(-40, 0, 0), chest=(-6, 0, 0), head=(20, 0, 0),
+             ua_r=(62, -4, 0), ua_l=(60, 4, 0), la_r=(20, 0, 0), la_l=(20, 0, 0))
+    rise = P(hips=(0, 0, 0), hips_loc=(0, 0.06, -0.28), ul_r=(38, 0, -4), ul_l=(38, 0, 4), ll_r=(-62, 0, 0),
+             ll_l=(-62, 0, 0), spine=(-34, 0, 0), chest=(-6, 0, 4), head=(16, 0, 0),
+             ua_r=(34, -4, 0), ua_l=(32, -18, 0), la_r=(30, 0, 0), la_l=(90, 0, 0))
+    an.clip("stand_up", 1.8, [(0.0, SITTING), (0.3, push), (0.62, rise), (1.0, HUNCH_A, 'out')])
+
+    an.clip("limp_walk", 1.4, _limp_cycle(), loop=True)
+
+    crouch = P(hips_loc=(0, 0.08, -0.40), ul_r=(62, 0, -6), ul_l=(62, 0, 6), ll_r=(-100, 0, 0), ll_l=(-100, 0, 0),
+               spine=(-38, 0, 0), chest=(-4, 0, 0), head=(22, 0, 0), ua_r=(60, 0, 0), la_r=(20, 0, 0),
+               ua_l=(26, -6, 0), la_l=(60, 0, 0))
+    grab = P(**{**crouch, 'ua_r': (84, 0, 0), 'la_r': (6, 0, 0), 'spine': (-42, 0, 0)})
+    up = P(hips_loc=(0, 0.03, -0.10), ul_r=(14, 0, -3), ul_l=(14, 0, 3), ll_r=(-24, 0, 0), ll_l=(-24, 0, 0),
+           spine=(-16, 0, 0), head=(8, 0, 0), ua_r=(64, 6, 0), la_r=(88, 0, 0), ua_l=(10, -4, 0), la_l=(20, 0, 0))
+    an.clip("pickup", 1.2, [(0.0, IDLE_A), (0.28, crouch, 'in'), (0.5, grab), (0.75, up, 'out'), (1.0, IDLE_A)])
+
+    kneel = P(hips_loc=(0, 0.10, -0.52), ul_r=(70, 0, -6), ul_l=(70, 0, 6), ll_r=(-112, 0, 0), ll_l=(-112, 0, 0),
+              spine=(-30, 0, 0), head=(18, 0, 0), ua_r=(68, 6, 0), la_r=(32, 0, 0), ua_l=(68, -6, 0), la_l=(32, 0, 0))
+    spread = P(**{**kneel, 'ua_r': (62, -30, 0), 'la_r': (48, 0, 0), 'ua_l': (62, 30, 0), 'la_l': (48, 0, 0),
+                  'head': (26, 0, 0)})
+    lift = P(**{**kneel, 'ua_r': (112, -10, 0), 'la_r': (72, 0, 0), 'ua_l': (112, 10, 0), 'la_l': (72, 0, 0),
+                'spine': (-20, 0, 0), 'head': (-6, 0, 0)})
+    an.clip("open_bag", 3.0, [(0.0, IDLE_A), (0.22, kneel, 'in'), (0.45, spread), (0.7, lift, 'out'),
+                              (0.86, lift, 'lin'), (1.0, IDLE_A)])

@@ -13,6 +13,12 @@ const CLIPS: Dictionary = {
 	"slam": 1.2, "flurry": 0.8, "shockwave_cast": 1.0, "roar": 1.5,
 }
 const LOOPS: Array[String] = ["idle", "walk", "run", "sprint", "fall", "guard"]
+# Opening-arc story clips: authored for the player rig only (tools/blender/anim_clips.py STORY_CLIPS, in CLIP_SPECS).
+const STORY_CLIPS: Dictionary = {
+	"lying_idle": 3.0, "wake": 3.0, "sit_up": 2.0, "hold_side": 3.0, "stand_up": 1.8,
+	"limp_walk": 1.4, "pickup": 1.2, "open_bag": 3.0,
+}
+const STORY_LOOPS: Array[String] = ["lying_idle", "hold_side", "limp_walk"]
 # name: [expected height (m), tri budget]
 const SPEC: Dictionary = {
 	"player": [1.80, 8000], "soldier": [1.78, 6000], "heavy": [1.95, 7000], "elite": [1.82, 6000],
@@ -94,8 +100,27 @@ func _verify(n: String, socket: Dictionary) -> void:
 					var z: Quaternion = anim.track_get_key_value(t, anim.track_get_key_count(t) - 1)
 					worst = maxf(worst, 1.0 - absf(a.dot(z)))
 			_check(worst < 0.002, "%s: loop clip %s does not close (seam %.4f)" % [n, clip, worst])
+	if n == "player":
+		for clip in STORY_CLIPS:
+			if not ap.has_animation(clip):
+				_check(false, "player: missing story clip %s" % clip)
+				continue
+			clip_count += 1
+			var story_anim := ap.get_animation(clip)
+			var story_expect: float = STORY_CLIPS[clip]
+			_check(absf(story_anim.length - story_expect) <= story_expect * 0.10 + 0.034,
+					"player: story clip %s length %.3f vs %.2f" % [clip, story_anim.length, story_expect])
+			if STORY_LOOPS.has(clip):
+				var worst_story := 0.0
+				for t in story_anim.get_track_count():
+					if story_anim.track_get_type(t) == Animation.TYPE_ROTATION_3D and story_anim.track_get_key_count(t) > 1:
+						var a: Quaternion = story_anim.track_get_key_value(t, 0)
+						var z: Quaternion = story_anim.track_get_key_value(t, story_anim.track_get_key_count(t) - 1)
+						worst_story = maxf(worst_story, 1.0 - absf(a.dot(z)))
+				_check(worst_story < 0.002, "player: story loop %s does not close (seam %.4f)" % [clip, worst_story])
 	for anim_name in ap.get_animation_list():
-		if not CLIPS.has(anim_name) and anim_name != "RESET":
+		var is_story: bool = n == "player" and STORY_CLIPS.has(anim_name)
+		if not CLIPS.has(anim_name) and not is_story and anim_name != "RESET":
 			print("  note: %s has extra clip '%s'" % [n, anim_name])
 
 	var meshes := _find(root, "MeshInstance3D")

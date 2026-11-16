@@ -72,6 +72,7 @@ func recover(player: Node3D) -> void:
 	var camera := get_tree().get_first_node_in_group("camera_controller")
 	if camera != null and camera.has_method("set_lock_target"):
 		camera.call("set_lock_target", bag)
+	AnimationDriver.play_on(player, "open_bag", 0.7)  # kneel, spread the flap, lift both hands: about as long as the moment
 	Outpost17.say(self, LINE_ONE, SETTLE_SECONDS + 0.6)
 	await get_tree().create_timer(SETTLE_SECONDS).timeout
 	if not is_inside_tree():

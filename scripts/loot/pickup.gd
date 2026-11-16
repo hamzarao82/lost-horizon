@@ -72,6 +72,7 @@ func _on_body_entered(body: Node3D) -> void:
 	if player == null:
 		return
 	if guaranteed:
+		AnimationDriver.play_on(player, "pickup", 1.6)
 		player.inventory.collect(item)
 		if item.kind != ItemData.Kind.CONSUMABLE:
 			player.inventory.equip(item)

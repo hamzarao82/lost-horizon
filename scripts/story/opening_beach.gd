@@ -4,7 +4,8 @@ extends CanvasLayer
 ## cinematic. Same pause/skip pattern as `StoryIntro`. After this finishes, the real player (already
 ## spawned by Boot/Main) is left in an injured state until `opening_survival`'s three pickups are found,
 ## at which point `_lift_restrictions` removes them. See docs/OPENING_BEACH.md for what is simplified here
-## and why (no blur shader, no NPC AI, no skeletal "lying down" pose — a capsule stand-in and fades).
+## and why (no blur shader, no NPC AI; the mini-scene uses the real rigged models, with a capsule only if a model
+## fails to load).
 
 signal finished
 
@@ -17,6 +18,13 @@ const INJURED_HEALTH_FRACTION: float = 0.35
 const INJURED_SPEED_MULT: float = 0.55
 const FAILSAFE_SECONDS: float = 120.0
 const NUDGE_SECONDS: float = 60.0
+## The mini-scene's rigged models (res://assets/characters/).
+const PLAYER_MODEL: String = "res://assets/characters/player.glb"
+const SOLDIER_MODEL: String = "res://assets/characters/soldier.glb"
+## Protagonist timeline on the mini-scene clock: wake, then sit up (2 s), then stand hunched (1.8 s).
+const HERO_WAKE_AT: float = 4.0
+const HERO_STAND_AT: float = 9.0
+const WORKER_SCALE: float = 0.94
 
 const SUPPLIES_ID: StringName = &"health_potion"
 const JACKET_ID: StringName = &"salvaged_jacket"
@@ -40,6 +48,12 @@ var _viewport: SubViewport
 var _bag: Node3D
 var _guard: Node3D
 var _workers: Array[Node3D] = []
+var _hero: Node3D
+var _hero_visual: SkinnedVisual
+var _hero_stage: int = 0
+var _guard_visual: SkinnedVisual
+var _worker_visuals: Array[SkinnedVisual] = []
+var _workers_walking: bool = false
 var _event_clock: float = 0.0
 var _npc_leaving: bool = false
 
@@ -393,27 +407,126 @@ func _build_scene() -> void:
 	_bag.position = Vector3(3.0, 2.6, -4.0)
 	_viewport.add_child(_bag)
 
-	var lying := _build_capsule(Color(0.25, 0.27, 0.3))
-	lying.rotation_degrees.x = -90.0
-	lying.position = Vector3(0.0, 0.25, 1.5)
-	_viewport.add_child(lying)
+	# The real rigged characters. The protagonist is the player model (lying, waking, sitting, standing hunched).
+	# The guard is the soldier model. The two workers are soldier models, dulled and a little smaller, limping on the
+	# player's limp_walk clip (the soldier file has no limp clip of its own).
+	var hero := _spawn_visual(PLAYER_MODEL, true, Color.WHITE, Vector3(0.0, 0.0, 0.6), 0.0)
+	_hero = hero[0]
+	_hero_visual = hero[1]
+	if _hero_visual != null:
+		_hero_visual.driver.play_story_clip("lying_idle", 1.0, true)
 
-	_guard = _build_capsule(Color(0.2, 0.18, 0.15))
-	_guard.position = Vector3(-8.0, 0.55, -4.0)
-	_viewport.add_child(_guard)
+	var guard := _spawn_visual(SOLDIER_MODEL, false, Color.WHITE, Vector3(-8.0, 0.0, -4.0), -90.0)  # faces +X
+	_guard = guard[0]
+	_guard_visual = guard[1]
+	if _guard_visual != null:
+		_guard_visual.driver.set_speed(2.0)
+		_guard_visual.driver.play_state(&"loco")
+
+	var limp := _limp_clip()
 	for i in 2:
-		var worker := _build_capsule(Color(0.45, 0.4, 0.35))
-		worker.scale.y = 0.88  # a little shorter and stooped: tired, not upright like the guard
-		worker.rotation_degrees.x = 12.0
-		worker.position = Vector3(-9.0, 0.55, -4.0 + (i - 0.5) * 1.2)
-		_viewport.add_child(worker)
-		_workers.append(worker)
+		var worker := _spawn_visual(SOLDIER_MODEL, false, Color(0.62, 0.58, 0.5),
+				Vector3(-9.0, 0.0, -4.0 + (i - 0.5) * 1.2), -90.0)
+		var worker_node: Node3D = worker[0]
+		worker_node.scale = Vector3.ONE * WORKER_SCALE  # a little smaller and worn down next to the guard
+		_workers.append(worker_node)
+		var visual := worker[1] as SkinnedVisual
+		if visual != null:
+			_worker_visuals.append(visual)
+			if visual.hand_socket != null:
+				visual.hand_socket.hold(null)  # workers carry no weapon
+			if limp != null:
+				visual.driver.add_clip("limp_walk", limp.duplicate())
+	_set_workers_walking(true)
 
 	var cam := Camera3D.new()
 	cam.position = Vector3(0.0, 0.8, 4.5)
 	_viewport.add_child(cam)  # look_at() needs the node in the tree first (it reads global_transform)
 	cam.look_at(Vector3(1.5, 1.0, -3.0), Vector3.UP)
 	cam.current = true
+
+
+## Places a SkinnedVisual of a rigged GLB in the mini-scene, under its own holder node. Returns [holder, visual]; the
+## visual is null (and the holder carries a capsule) when the model is missing or broken, so the scene still plays.
+func _spawn_visual(path: String, player_look: bool, tint: Color, pos: Vector3, yaw_deg: float) -> Array:
+	var holder := Node3D.new()
+	holder.position = pos
+	holder.rotation_degrees.y = yaw_deg
+	_viewport.add_child(holder)
+	var visual := SkinnedVisual.new()
+	visual.model_path = path
+	holder.add_child(visual)
+	if not visual.load_standalone(player_look):
+		holder.remove_child(visual)
+		visual.free()
+		holder.add_child(_build_capsule(tint if tint != Color.WHITE else Color(0.3, 0.3, 0.32)))
+		return [holder, null]
+	if tint != Color.WHITE:
+		# A private copy per surface: the imported material is shared with the in-game characters and stays as it is.
+		for mi in visual.meshes:
+			if mi == null or mi.mesh == null:
+				continue
+			for surface in mi.mesh.get_surface_count():
+				var base := mi.get_active_material(surface) as BaseMaterial3D
+				if base == null:
+					continue
+				var copy := base.duplicate() as BaseMaterial3D
+				copy.albedo_color = tint
+				mi.set_surface_override_material(surface, copy)
+	return [holder, visual]
+
+
+## The player's limp_walk clip, copied for the soldier-model workers (same rig, same bone paths). Null if missing.
+func _limp_clip() -> Animation:
+	var scene := load(PLAYER_MODEL) as PackedScene
+	var inst := scene.instantiate() as Node3D if scene != null else null
+	if inst == null:
+		return null
+	var clip: Animation = null
+	var found := inst.find_children("*", "AnimationPlayer", true, false)
+	if not found.is_empty():
+		var source := found[0] as AnimationPlayer
+		if source.has_animation(&"limp_walk"):
+			clip = source.get_animation(&"limp_walk").duplicate() as Animation
+			clip.loop_mode = Animation.LOOP_LINEAR
+	inst.free()
+	return clip
+
+
+## The protagonist's wake, driven by the mini-scene clock: lying -> wake -> sit up -> stand, hunched, a hand to his side.
+## Each pose is held (the last frame stays) until the next one starts.
+func _step_hero() -> void:
+	if _hero_visual == null:
+		return
+	var clip := ""
+	if _hero_stage == 0 and _event_clock >= HERO_WAKE_AT:
+		clip = "wake"
+	elif _hero_stage == 1 and _event_clock >= HERO_WAKE_AT + 3.0:
+		clip = "sit_up"
+	elif _hero_stage == 2 and _event_clock >= HERO_STAND_AT:
+		clip = "stand_up"
+	elif _hero_stage == 3 and _event_clock >= HERO_STAND_AT + 1.8:
+		clip = "hold_side"
+	if clip == "":
+		return
+	_hero_stage += 1
+	_hero_visual.driver.play_story_clip(clip, 1.0, true)
+
+
+## Workers limp while they are dragged in and while they leave; they stand still once the guard has arrived.
+func _set_workers_walking(walking: bool) -> void:
+	if walking == _workers_walking:
+		return
+	_workers_walking = walking
+	for visual in _worker_visuals:
+		if not is_instance_valid(visual):
+			continue
+		if walking:
+			visual.driver.play_story_clip("limp_walk", 1.0, true)
+		else:
+			visual.driver.release_story()
+			visual.driver.set_speed(0.0)
+			visual.driver.play_state(&"loco")
 
 
 func _build_capsule(tint: Color) -> Node3D:
@@ -447,20 +560,28 @@ func _build_bag() -> Node3D:
 
 func _step_scene(delta: float) -> void:
 	_event_clock += delta
+	_step_hero()
 	var approach: float = clampf(_event_clock / EVENT_HOLD_SECONDS, 0.0, 1.0)
+	var arrived: bool = approach >= 0.95 and not _npc_leaving
+	var moving: bool = not arrived
+	_set_workers_walking(moving)
+	if _guard_visual != null:
+		_guard_visual.driver.set_speed(2.0 if moving else 0.0)
+		_guard_visual.driver.play_state(&"loco")
+	var leave_t: float = clampf((_event_clock - EVENT_HOLD_SECONDS) / NPC_LEAVE_SECONDS, 0.0, 1.0) if _npc_leaving else 0.0
+	var turn: float = lerp_angle(deg_to_rad(-90.0), 0.0, clampf(leave_t * 4.0, 0.0, 1.0))  # to face the treeline
 	if is_instance_valid(_guard):
 		_guard.position.x = lerp(-8.0, -1.5, approach)
-		if approach > 0.5:
-			_guard.rotation.z = sin(_event_clock * 5.0) * 0.12  # a pointing, ordering jab at the workers
-	for i in _workers.size():
-		var worker := _workers[i]
+		_guard.rotation.y = turn
+		if arrived and approach > 0.5:
+			_guard.rotation.y = turn + sin(_event_clock * 4.0) * 0.12  # an ordering jab at the workers
+	for worker in _workers:
 		if is_instance_valid(worker):
 			worker.position.x = lerp(-9.0, -0.5, pow(approach, 1.2))  # they drag behind the guard
-			worker.position.y = 0.55 + absf(sin(_event_clock * 2.0 + i)) * 0.03
+			worker.rotation.y = turn
 	if approach >= 0.95 and is_instance_valid(_bag):
 		_bag.position.y = 0.6  # lowered into a worker's hands once they arrive
 	if _npc_leaving and is_instance_valid(_guard):
-		var leave_t: float = clampf((_event_clock - EVENT_HOLD_SECONDS) / NPC_LEAVE_SECONDS, 0.0, 1.0)
 		_guard.position.z = lerp(-4.0, -14.0, leave_t)  # off along the treeline, never toward the camera
 		for worker in _workers:
 			if is_instance_valid(worker):
