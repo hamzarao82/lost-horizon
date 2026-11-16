@@ -30,6 +30,8 @@ def run(name):
     mesh_obj, arm = b.finish()
     an = L.Animator(arm, b.s)
     A.author_all(an)
+    if name == "player":
+        A.author_story(an)
     path = os.path.join(OUT_DIR, name + ".glb")
     L.export_glb(path, arm, mesh_obj)
     print("CHAR %s tris=%d size_kb=%d" % (name, b.tri_count(), os.path.getsize(path) // 1024))

@@ -95,3 +95,18 @@ unchanged damage and frame numbers. Fixture model: `tests/fixtures/make_fixture.
 ## Procedural fallback (HumanoidRig)
 Unchanged: nine box parts (pelvis, legs, head, visor, arms, forearms) posed procedurally from the same polled state; the torso is the
 existing `MeshInstance3D`; every part shares its material so hit flashes still work; `set_active(bool)` shows/hides it.
+
+## Story clips (opening arc, player rig only)
+`player.glb` also carries eight story clips, listed after the 22 core clips in `CLIP_SPECS` (tools/blender/anim_clips.py):
+lying_idle (loop), wake, sit_up, hold_side (loop), stand_up, limp_walk (loop), pickup, open_bag. The other four GLBs are
+built with the 22 core clips only and stay byte-identical (`make_common.run` authors the story clips for "player" alone).
+- `AnimationDriver.play_story_clip(name, speed, hold)` plays one on the skeleton and hands it back to the tree when it ends
+  (or holds it until `release_story()`); `AnimationDriver.play_on(body, name, speed)` does that for a body's SkinnedVisual.
+  Missing clips do nothing. While a story clip runs, gameplay's per-frame calls are ignored.
+- **Injured walk:** `SkinnedVisual` sets `driver.limp` while `Player.injured_speed_mult < 1.0`; walking or running then plays
+  limp_walk. Standing still keeps idle.
+- Users: the opening beach mini-scene (`OpeningBeach`), `Pickup` (guaranteed pickups play `pickup` at x1.6) and
+  `PaymentRecovery` (the recovery plays `open_bag`).
+- The beach uses `SkinnedVisual.load_standalone(player_look)` for stand-ins with no gameplay body. The workers are soldier
+  models limping on player.glb's limp_walk (copied in with `AnimationDriver.add_clip`), because the soldier file has no limp clip.
+- Preview sheets: `blender --background --python tools/blender/story_preview.py -- --render <dir>`.

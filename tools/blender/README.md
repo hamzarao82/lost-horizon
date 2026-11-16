@@ -7,7 +7,7 @@ Scripts that generate the game's art from code (Blender 4.5 LTS, run headless). 
 |---|---|
 | `char_lib.py` | Part builders (bevelled boxes, tapered limbs, spheres), 17-bone rig, vertex-colour painting, FK animation authoring, glTF export, preview renders, weapon-socket maths |
 | `char_designs.py` | Geometry for `player`, `soldier`, `heavy`, `elite`, `warden` (`DESIGNS` table: builder, height, bulk) |
-| `anim_clips.py` | The 22 animation clips (names and lengths are the engine contract) |
+| `anim_clips.py` | The 22 core animation clips (names and lengths are the engine contract) plus 8 story clips for the player only |
 | `make_common.py`, `make_<name>.py`, `make_all.py` | Build one or all characters -> `assets/characters/<name>.glb` + `sockets.json` |
 | `verify_glb.gd` | Godot headless contract check (bones, clips, facing -Z, one material, tris, height) |
 | `probe.py` | Dev tool: blade direction at key frames for several blade angles (this is how the -30 degree grip was chosen) |
