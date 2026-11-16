@@ -660,6 +660,9 @@ func _begin_fade() -> void:
 	report["frames"] = _frames
 	phase = Phase.FADING
 	_fade_left = FADE_SECONDS
+	# The opening cinematic pauses the tree as soon as `finished` fires, and this overlay (layer 200) sits above
+	# it: without ALWAYS the fade stops ticking and "Ready 100%" stays drawn over the whole opening.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	finished.emit(main_node)
 
 

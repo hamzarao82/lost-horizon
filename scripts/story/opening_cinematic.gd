@@ -544,7 +544,14 @@ func _build_ui() -> void:
 	_skip_button = Button.new()
 	_skip_button.text = "Skip"
 	_skip_button.custom_minimum_size = Vector2(120.0, 48.0)
-	_skip_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
+	_skip_button.anchor_left = 1.0
+	_skip_button.anchor_right = 1.0
+	_skip_button.anchor_top = 1.0
+	_skip_button.anchor_bottom = 1.0
+	_skip_button.offset_left = -136.0
+	_skip_button.offset_right = -16.0
+	_skip_button.offset_top = -64.0
+	_skip_button.offset_bottom = -16.0
 	_skip_button.pressed.connect(skip)
 	add_child(_skip_button)
 	var tween := create_tween()
