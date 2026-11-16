@@ -10,6 +10,7 @@ const SFX_NAMES: Array[StringName] = [
 	&"footstep", &"radio_static", &"radio_beep", &"bird_flush", &"metal_creak",
 	&"enemy_windup_heavy", &"armor_break",
 	&"explosion",
+	&"storm_impact", &"fence_rattle", &"guard_murmur", &"ranged_windup",
 ]
 const POOL_SIZE: int = 8
 const MUSIC_DB: float = -14.0

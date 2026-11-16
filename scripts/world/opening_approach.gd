@@ -71,6 +71,7 @@ func _ready() -> void:
 	var state := get_node_or_null("/root/WorldState")
 	if state != null:
 		state.area_entered.connect(_on_area_entered)
+	OpeningSoundscape.attach(self)
 
 
 func _process(delta: float) -> void:

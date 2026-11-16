@@ -143,7 +143,7 @@ func _begin_attack() -> void:
 	e._attack_frames = 0.0
 	e._move_horizontal(Vector3.ZERO, 0.0)
 	e.swing_started.emit()
-	_sfx(&"enemy_swing_windup", -4.0)
+	_sfx(&"ranged_windup", -4.0)
 	_show_aim()
 
 

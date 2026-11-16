@@ -200,6 +200,8 @@ static func interact_target_known(target: String) -> bool:
 ## Flag names built by format strings, each confirmed in code when this audit was written.
 const DYNAMIC_FLAGS: Array[Dictionary] = [
 	{"pattern": "^patrol_\\w+_cleared$", "how": "PatrolGroup sets patrol_<id>_cleared (patrol_group.gd:23)"},
+	{"pattern": "^checkpoint_\\w+$", "how": "Checkpoint sets checkpoint_<id> (checkpoint.gd:15)"},
+	{"pattern": "^doc_op_\\w+_found$", "how": "LoreDocument placed by opening_compound.gd sets doc_<id>_found"},
 	{"pattern": "^door_\\w+_open$", "how": "Door sets door_<id>_open (door.gd:41)"},
 	{"pattern": "^credential_\\w+$", "how": "AccessPanel sets credential_<level> (facility_ids.gd:10)"},
 	{"pattern": "^\\w+_taken$", "how": "SupplyCrate sets <crate_id>_taken (supply_crate.gd:32)"},

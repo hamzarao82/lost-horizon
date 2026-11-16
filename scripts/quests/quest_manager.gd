@@ -497,6 +497,61 @@ func restart_quest(quest_id: StringName) -> bool:
 	return true
 
 
+# --- impossible steps (docs/MISSION_RULES.md rule 6) ------------------------------------------------------
+
+## Runs after a save is loaded. Credits an active required step ONLY when persistent state proves it done, and
+## leaves every other step alone (it never invents progress):
+##   - an item step whose item the saved history records as collected (such an item cannot be found again);
+##   - a kill step whose named targets are all bosses that the saved world marks defeated ("boss_<id>_defeated"),
+##     and whose required count is no larger than the number of those targets.
+## Plain enemies leave no per-target record in a save, so their kill steps are never credited here.
+## Returns how many steps it credited.
+func reconcile_impossible() -> int:
+	var credited := 0
+	for quest_id: StringName in active.keys():
+		if not active.has(quest_id):
+			continue
+		var quest := get_quest(quest_id)
+		if quest == null:
+			continue
+		var before := (active[quest_id]["done"] as Array).count(true)
+		for index in quest.objectives.size():
+			var objective: ObjectiveData = quest.objectives[index]
+			if objective.optional or active[quest_id]["done"][index] or not _unlocked(quest_id, index):
+				continue
+			match objective.type:
+				ObjectiveData.Type.ITEM_COLLECTED:
+					for target in objective.targets:
+						if _history.has(_history_key(objective.type, StringName(target))):
+							_credit(quest_id, index, objective, StringName(target), false)
+				ObjectiveData.Type.KILL_COUNT:
+					if _kills_proven(objective):
+						_set_progress(quest_id, index, objective, objective.required(), false)
+		if active.has(quest_id):
+			if is_strict(quest_id):
+				_advance_strict(quest_id)
+			_check_complete(quest_id)
+		if active.has(quest_id):
+			credited += (active[quest_id]["done"] as Array).count(true) - before
+		else:
+			credited += 1  # it completed during reconciliation
+	if credited > 0:
+		tracker_changed.emit()
+	return credited
+
+
+## True only when every named target is a boss the saved world marks defeated, and there are enough of them.
+func _kills_proven(objective: ObjectiveData) -> bool:
+	if objective.targets.is_empty() or objective.targets.size() < objective.required():
+		return false
+	if _world == null or not _world.has_method("has_flag"):
+		return false
+	for target in objective.targets:
+		if not _world.has_flag(StringName("boss_%s_defeated" % boss_id_for(String(target)))):
+			return false
+	return true
+
+
 # --- rewards ---------------------------------------------------------------
 
 ## Hands queued reward items to the player. Items that cannot be delivered yet (no player in the
@@ -912,6 +967,9 @@ func on_game_loaded(raw: Variant) -> void:
 		if progressed:
 			_world.set_flag(RegionLabel.KNOWN_FLAG, true)
 	reconcile_active()
+	reconcile_impossible()
+
+
 
 
 func _clear_state() -> void:

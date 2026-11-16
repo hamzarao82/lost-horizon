@@ -319,6 +319,8 @@ func _test_outpost_barrels() -> void:
 	for node in barrels:
 		if _solid_overlaps(node as ExplosiveBarrel) == 0:
 			clear += 1
+		else:
+			print("    overlap: ", (node as ExplosiveBarrel).barrel_id, " at ", (node as ExplosiveBarrel).global_position)
 	_check(clear == barrels.size(), "none of the Outpost 17 barrels stands inside another solid (%d/%d clear)" % [clear, barrels.size()])
 
 

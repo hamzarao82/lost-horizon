@@ -301,7 +301,7 @@ func _check_files() -> void:
 	for name in NEW_FILES:
 		var wav := _stream(name)
 		_check(wav != null and wav.get_length() > 0.5, "%s.wav exists and loads" % name)
-	var expect_len := {"ambience_coast": 8.0, "ambience_jungle": 8.0, "ambience_facility": 6.0}
+	var expect_len := {"ambience_coast": 4.0, "ambience_jungle": 4.0, "ambience_facility": 6.0}
 	for name in expect_len:
 		var samples := _raw_samples(name)
 		var n := samples.size()

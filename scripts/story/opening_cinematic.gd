@@ -215,6 +215,7 @@ func _on_scene_entered(_index: int, scene: Dictionary) -> void:
 		_clear_muffle()
 	if _headless:
 		return
+	_play_impact(scene["id"])
 	if scene["id"] == &"to_black":
 		var tween := create_tween()
 		tween.tween_property(_black, "modulate:a", 1.0, FINAL_FADE_SECONDS)
@@ -389,9 +390,11 @@ func _build_audio() -> void:
 		(sea as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_sea_player.stream = sea
 	_sea_player.play()
+	_build_extra_audio()
 
 
 func _crossfade_to_beach_ambience() -> void:
+	_stop_extra_audio()
 	var audio := get_node_or_null("/root/AudioManager")
 	if audio != null and audio.has_method("set_region_ambience"):
 		audio.call("set_region_ambience", &"outpost", 3.0)
@@ -437,6 +440,7 @@ func _update_visuals(scene: Dictionary, progress: float) -> void:
 		_wind_player.volume_db = lerpf(-18.0, -6.0, storm)
 	if is_instance_valid(_sea_player) and _sea_player.playing and scene["id"] != &"ambience_crossfade":
 		_sea_player.volume_db = lerpf(-12.0, -30.0, storm)
+	_update_extra_audio(storm, scene["id"])
 	if is_instance_valid(_rain):
 		_rain.emitting = storm > 0.3
 	_update_lightning(storm)
@@ -526,3 +530,54 @@ func _build_ui() -> void:
 func _wave_grid_wanted() -> bool:
 	var settings := get_node_or_null("/root/Settings")
 	return settings == null or int(settings.get("quality")) != 0
+
+# --- extra audio: boat engine, rain bed and wave impacts (generated sounds, not listened to) ---------------
+
+var _engine_player: AudioStreamPlayer
+var _rain_player: AudioStreamPlayer
+
+
+func _build_extra_audio() -> void:
+	_engine_player = _loop_player("res://assets/audio/boat_engine.wav", -14.0)
+	_rain_player = _loop_player("res://assets/audio/rain_loop.wav", -60.0)
+
+
+func _loop_player(path: String, volume_db: float) -> AudioStreamPlayer:
+	var player := AudioStreamPlayer.new()
+	player.bus = "Master"
+	player.volume_db = volume_db
+	add_child(player)
+	var stream := load(path) as AudioStream
+	if stream is AudioStreamWAV:
+		var wav := stream as AudioStreamWAV
+		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		wav.loop_end = wav.data.size() / 2
+	player.stream = stream
+	player.play()
+	return player
+
+
+func _update_extra_audio(storm: float, scene_id: StringName) -> void:
+	if scene_id == &"ambience_crossfade":
+		return
+	if is_instance_valid(_engine_player) and _engine_player.playing:
+		_engine_player.volume_db = lerpf(-14.0, -34.0, storm)
+	if is_instance_valid(_rain_player) and _rain_player.playing:
+		_rain_player.volume_db = lerpf(-60.0, -9.0, clampf((storm - 0.2) / 0.6, 0.0, 1.0))
+
+
+func _stop_extra_audio() -> void:
+	for player in [_engine_player, _rain_player]:
+		if is_instance_valid(player):
+			var fade := create_tween()
+			fade.tween_property(player, "volume_db", -60.0, 2.0)
+			fade.tween_callback(player.stop)
+
+
+func _play_impact(scene_id: StringName) -> void:
+	var volume := {&"waves_hit": -6.0, &"overwhelmed": -3.0, &"thrown_overboard": 0.0}.get(scene_id, 99.0) as float
+	if volume > 50.0:
+		return
+	var audio := get_node_or_null("/root/AudioManager")
+	if audio != null and audio.has_method("play"):
+		audio.call("play", &"storm_impact", volume)
