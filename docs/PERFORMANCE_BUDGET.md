@@ -80,3 +80,5 @@ Measured with `tools/menu_shot.gd`, 180 frames after a 90-frame warm-up, run twi
 | Menu without the hero (storm background only) | 4.39 ms and 4.58 ms | 75 |
 | Menu with the hero (real player model, idle clip, two lights) | 5.93 ms and 5.47 ms | 77 |
 The hero adds about 1.0 to 1.5 ms per frame and 2 draw calls on this machine. These are desktop numbers only: the hero is not built on LOW quality, on web or headless, and **no Android or web measurement of the menu exists**. The vsync-on figure is 16.67 ms (capped at 60 Hz) in both cases, so the cap hides the difference.
+
+- 2026-11-16 web (headless Chromium, software GL): wasm 39,514,754 B, pck 10,978,552 B; menu visible ~7.6 s but New Game locked until the world loads (enabled before 60 s); about 15 fps headless, not a device number. See docs/WEB_VERIFICATION.md.
