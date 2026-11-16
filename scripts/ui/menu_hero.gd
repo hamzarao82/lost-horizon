@@ -10,17 +10,28 @@ const VIEW_SIZE: Vector2i = Vector2i(420, 640)
 const KEY_ENERGY_BASE: float = 0.8
 const KEY_ENERGY_FLASH: float = 2.4
 const FILL_ENERGY: float = 0.12
+const STRIKE_MIN: float = 10.0
+const STRIKE_MAX: float = 16.0
+const STRIKE_CLIPS: PackedStringArray = ["light_1", "heavy"]
 
 var storm: MenuStorm
 var active: bool = false
 var key_light: DirectionalLight3D
 var model: Node3D
+var strikes: int = 0  # attack clips played so far
 var _viewport: SubViewport
 var _anim: AnimationPlayer
+var _rng := RandomNumberGenerator.new()
+var _clock: float = 0.0
+var _next_strike: float = 0.0
+var _strike_scheduled: bool = false
+var _attack_until: float = -1.0
+var _last_flash: float = 0.0
 
 
 func _init(storm_ref: MenuStorm = null) -> void:
 	storm = storm_ref
+	_rng.randomize()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
@@ -114,8 +125,45 @@ func _build() -> void:
 	active = true
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	tick(delta)
 	if not active or key_light == null:
 		return
 	var flash := storm.flash_intensity() if storm != null else 0.0
 	key_light.light_energy = KEY_ENERGY_BASE + KEY_ENERGY_FLASH * flash
+
+
+## Advances the strike timer by `delta` seconds (a stepped clock in tests). Every 10 to 16 seconds the next
+## lightning flash plays an attack clip, then the model returns to idle. Does nothing unless the hero is built.
+func tick(delta: float) -> void:
+	if not active:
+		return
+	_clock += delta
+	if not _strike_scheduled:
+		_strike_scheduled = true
+		_next_strike = _clock + _rng.randf_range(STRIKE_MIN, STRIKE_MAX)
+	var flash := storm.flash_intensity() if storm != null else 0.0
+	var rising := flash > _last_flash + 0.5
+	_last_flash = flash
+	if _attack_until >= 0.0 and _clock >= _attack_until:
+		_attack_until = -1.0
+		if _anim != null and _anim.has_animation("idle"):
+			_anim.play("idle")
+	if rising and _clock >= _next_strike and _attack_until < 0.0:
+		_play_strike()
+
+
+func _play_strike() -> void:
+	if _anim == null:
+		return
+	var clip := ""
+	for name in STRIKE_CLIPS:
+		if _anim.has_animation(name):
+			clip = name
+			break
+	if clip == "":
+		return
+	_anim.play(clip)
+	_attack_until = _clock + _anim.get_animation(clip).length
+	_next_strike = _clock + _rng.randf_range(STRIKE_MIN, STRIKE_MAX)
+	strikes += 1
