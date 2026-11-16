@@ -289,20 +289,22 @@ static func ocean_grid() -> MeshInstance3D:
 
 # --- the earth embankment ---------------------------------------------------------------
 
-const BERM_BATTER: float = 1.2  # visual run of each side slope outside the collision box
-
 static func _hash(ix: int, iz: int, seed_value: int) -> float:
 	var h: int = (ix * 73856093) ^ (iz * 19349663) ^ (seed_value * 83492791)
 	h = h & 0x7fffffff
 	return float(h % 1000) / 1000.0
 
 
-## A smooth, noisy embankment between x0 and x1 whose crown follows [z0, z1] at `height`. The slopes run out
-## by BERM_BATTER on each side; vertex colours go sand -> earth/scrub -> rock with height. Visual only.
-static func berm_mesh(x0: float, x1: float, z0: float, z1: float, height: float, seed_value: int = 1) -> ArrayMesh:
+## A smooth, noisy embankment between x0 and x1 whose crown follows [z0, z1] at `height`. Its footprint is exactly
+## [x0, x1] x [z0, z1], the same as the collision box it dresses; the sides curve in from the edges to a rounded crown.
+## Vertex colours go sand -> earth/scrub -> rock with height. `rounded = false` gives a flat crown (under a deck).
+## Visual only.
+static func berm_mesh(x0: float, x1: float, z0: float, z1: float, height: float, seed_value: int = 1, rounded: bool = true) -> ArrayMesh:
 	var nx: int = maxi(2, int(ceil((x1 - x0) / 1.5)))
-	var profile_z: Array[float] = [z0 - BERM_BATTER, z0 - BERM_BATTER * 0.5, z0, (z0 + z1) * 0.5, z1, z1 + BERM_BATTER * 0.5, z1 + BERM_BATTER]
-	var profile_h: Array[float] = [0.0, 0.5, 0.96, 1.0, 0.96, 0.5, 0.0]
+	var profile_z: Array[float] = [z0, z0 + 0.25, z0 + 0.9, (z0 + z1) * 0.5, z1 - 0.9, z1 - 0.25, z1]
+	var profile_h: Array[float] = [0.0, 0.6, 0.93, 1.0, 0.93, 0.6, 0.0]
+	if not rounded:
+		profile_h = [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
 	var nz: int = profile_z.size()
 	var grid: Array = []
 	for ix in nx + 1:
@@ -311,11 +313,11 @@ static func berm_mesh(x0: float, x1: float, z0: float, z1: float, height: float,
 		for iz in nz:
 			var noise := (_hash(ix, iz, seed_value) - 0.5) * 0.5
 			var y: float = profile_h[iz] * height
-			if iz > 0 and iz < nz - 1:
+			if rounded and iz > 0 and iz < nz - 1:
 				y += noise * minf(1.0, height * 0.25) * (1.0 if iz != 3 else 1.4)
-			y = maxf(y, 0.0)
+			y = clampf(y, 0.0, height)  # the crown never rises above the collider top
 			var zj: float = profile_z[iz]
-			if ix > 0 and ix < nx and iz > 0 and iz < nz - 1:
+			if rounded and ix > 0 and ix < nx and iz > 0 and iz < nz - 1:
 				zj += (_hash(iz, ix, seed_value + 7) - 0.5) * 0.3
 			column.append(Vector3(x, y, zj))
 		grid.append(column)
@@ -323,17 +325,11 @@ static func berm_mesh(x0: float, x1: float, z0: float, z1: float, height: float,
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for ix in nx:
 		for iz in nz - 1:
-			var p00: Vector3 = grid[ix][iz]
-			var p10: Vector3 = grid[ix + 1][iz]
-			var p11: Vector3 = grid[ix + 1][iz + 1]
-			var p01: Vector3 = grid[ix][iz + 1]
-			for tri_pts: Array in [[p00, p10, p11], [p00, p11, p01]]:
-				var normal: Vector3 = ((tri_pts[1] as Vector3) - (tri_pts[0] as Vector3)).cross((tri_pts[2] as Vector3) - (tri_pts[0] as Vector3)).normalized()
-				if normal.y < 0.0:
-					normal = -normal
-				for k in 3:
-					var p: Vector3 = tri_pts[k]
-					st.set_normal(normal)
+			# Two triangles per cell, each vertex with a smooth normal taken from its neighbours on the grid.
+			for tri_idx: Array in [[[ix, iz], [ix + 1, iz], [ix + 1, iz + 1]], [[ix, iz], [ix + 1, iz + 1], [ix, iz + 1]]]:
+				for g: Array in tri_idx:
+					var p: Vector3 = grid[g[0]][g[1]]
+					st.set_normal(_grid_normal(grid, g[0], g[1]))
 					st.set_color(_berm_color(p.y / maxf(height, 0.01), _hash(int(p.x * 3.0), int(p.z * 3.0), seed_value)))
 					st.add_vertex(p)
 	# Vertical end caps so a segment beside a gap is closed instead of showing its inside.
@@ -356,6 +352,14 @@ static func berm_mesh(x0: float, x1: float, z0: float, z1: float, height: float,
 	return st.commit()
 
 
+## Smooth normal of a grid vertex from its neighbours (central differences, clamped at the edges), facing up.
+static func _grid_normal(grid: Array, ix: int, iz: int) -> Vector3:
+	var dx: Vector3 = grid[mini(ix + 1, grid.size() - 1)][iz] - grid[maxi(ix - 1, 0)][iz]
+	var dz: Vector3 = grid[ix][mini(iz + 1, grid[0].size() - 1)] - grid[ix][maxi(iz - 1, 0)]
+	var n := dz.cross(dx).normalized()
+	return -n if n.y < 0.0 else n
+
+
 static func _berm_color(fraction: float, noise: float) -> Color:
 	var sand := Color(0.4, 0.33, 0.22)
 	var earth := Color(0.27, 0.21, 0.14)
@@ -366,3 +370,35 @@ static func _berm_color(fraction: float, noise: float) -> Color:
 	if fraction < 0.7:
 		return earth.lerp(scrub, clampf(noise * 1.2, 0.0, 1.0))
 	return scrub.lerp(rock, clampf((fraction - 0.7) / 0.3 + noise * 0.4, 0.0, 1.0))
+
+
+# --- shared detail: merging, pipes, trim and monitor panels -------------------------
+
+## Several vertex-coloured meshes as one surface list, so a set of pieces costs one draw call.
+static func merge(meshes: Array) -> ArrayMesh:
+	var out := ArrayMesh.new()
+	for mesh: Mesh in meshes:
+		if mesh == null:
+			continue
+		for surface in mesh.get_surface_count():
+			out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, mesh.surface_get_arrays(surface))
+	return out
+
+
+## A straight round pipe from a to c (a prism with six sides), for railings, conduit and exhaust.
+static func pipe(b: ArenaDecor.Builder, a: Vector3, c: Vector3, radius: float, color: Color) -> void:
+	var axis := c - a
+	var length := axis.length()
+	if length < 0.001:
+		return
+	var y := axis / length
+	var x := y.cross(Vector3.FORWARD if absf(y.dot(Vector3.FORWARD)) < 0.9 else Vector3.RIGHT).normalized()
+	var z := x.cross(y).normalized()
+	b.prism(a, radius, radius, length, 6, color, Basis(x, y, z))
+
+
+## A monitor: a dark bezel with a bright screen panel in front of it. Screens go to the glow builder (emissive).
+static func monitor(frame: ArenaDecor.Builder, screen: ArenaDecor.Builder, center: Vector3, facing: Vector3, size: Vector3 = Vector3(0.62, 0.42, 0.05)) -> void:
+	var basis := Basis.looking_at(-facing.normalized(), Vector3.UP)
+	frame.box(center, size + Vector3(0.08, 0.08, 0.02), DARK_METAL, basis)
+	screen.box(center + facing.normalized() * 0.04, size * Vector3(0.86, 0.8, 0.3), Color(0.25, 0.85, 0.95), basis)  # proud of the bezel

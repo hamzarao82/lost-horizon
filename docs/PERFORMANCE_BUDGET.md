@@ -80,3 +80,15 @@ Measured with `tools/menu_shot.gd`, 180 frames after a 90-frame warm-up, run twi
 | Menu without the hero (storm background only) | 4.39 ms and 4.58 ms | 75 |
 | Menu with the hero (real player model, idle clip, two lights) | 5.93 ms and 5.47 ms | 77 |
 The hero adds about 1.0 to 1.5 ms per frame and 2 draw calls on this machine. These are desktop numbers only: the hero is not built on LOW quality, on web or headless, and **no Android or web measurement of the menu exists**. The vsync-on figure is 16.67 ms (capped at 60 Hz) in both cases, so the cap hides the difference.
+
+## Opening arc art (2026-11-16, Windows, Intel UHD 620, windowed 1280x720, Compatibility renderer, vsync off)
+Measured with `tools/art_shots.gd` (`-- cinematic|world|props <prefix> <out_dir>`). Frame time is the average of 20 frames (cinematic) or 30 frames (world) per shot after a settle period; draw calls are the root viewport plus the cinematic's own SubViewport. The cinematic's average is over its 10 shots, the world's over its 11. Baseline is commit `56fd653`, the state before the opening-art work. Each case was run twice, except the final world run, which is single.
+
+| Case | Avg frame ms (run 1 / run 2) | Avg draw calls (run 1 / run 2) | Peak draw calls |
+|---|---|---|---|
+| Cinematic, before | 5.52 / 5.47 | 17.2 / 17.8 | 28 |
+| Cinematic, after (boat, real player model, storm ocean grid on non-LOW) | 6.01 / 6.07 | 24.1 / 24.0 | 31 |
+| World (berm, rise, yard, guard, stores, annex, gate hall, store), before | 17.30 / 17.32 | 139.3 / 139.3 | 216 |
+| World, after (final, single run) | 18.02 | 138.1 | 212 |
+
+Reading: the cinematic costs about 0.5 ms and 7 draw calls more per frame on this machine. The world costs about 0.7 ms more on average with the same draw-call count: the four walkers now run a skinned soldier model with its clip, and the berm and rise are one extra mesh. Both stay far inside the 250 draw-call budget (peak 212). These are single-machine numbers, not an Android or web measurement. On LOW quality the animated ocean grid is not built, so the cinematic keeps the flat plane there. Not measured: LOW-quality frame time, and the triangle count of the new meshes beyond the overlay.
