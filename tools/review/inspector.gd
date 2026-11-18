@@ -277,6 +277,20 @@ func _collect_markers() -> void:
 	_update_counts()
 
 
+## Every labelled object of the current region (not capped like the on-screen labels): the data behind snapshots
+## and behind the hub's "this pin's object changed or went missing" check.
+func collect_objects() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for node in main_node.find_children("*", "Node3D", true, false):
+		var cat := _category_of(node)
+		if cat == "":
+			continue
+		var p := (node as Node3D).global_position
+		out.append({"id": object_id_of(node), "class": script_name_of(node), "category": cat, "name": String(node.name),
+				"position": [snappedf(p.x, 0.01), snappedf(p.y, 0.01), snappedf(p.z, 0.01)]})
+	return out
+
+
 func _update_counts() -> void:
 	var parts: Array[String] = []
 	for cat in CATEGORIES:
