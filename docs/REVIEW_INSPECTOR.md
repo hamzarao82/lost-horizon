@@ -17,5 +17,10 @@ Right mouse + WASD fly, Q / E down / up, Shift fast, mouse wheel changes the spe
 - It forces `SaveManager.test_mode`, so no save is ever written to the real file; the test compares the real save's size and time before and after.
 - Pins go to the folder in the `LH_REVIEW_DATA` environment variable (the hub's launcher sets it).
 
-## Not done yet (Phase 2 onward)
-Snapshots per game version, pin status editing in the hub page, and the Holo Bay (characters, weapons, props, effects, UI, audio).
+## Snapshots (Phase 2)
+`tools/review/snapshot.gd` (scene `snapshot.tscn`) visits every region, takes screenshots (a clean overview with fog off, a labelled overview, and one per named spot or entry point) and writes the list of every labelled object (`objects.json`) and the per-category counts (`stats.json`). Object ids are stable between runs (Godot's auto-generated `@Node@12` names are replaced by `<name>#<x>_<z>`), which `tests/review_snapshot_check.gd` enforces. It is run by the hub's `update-hub.ps1` / `Update Hub.bat` with `LH_SNAPSHOT_DIR` set; it needs a window (headless runs cannot take screenshots, so the test covers the data only).
+
+The hub wraps each run in a snapshot folder with a manifest (commit, build label, Godot version, asset fingerprints) and compares two snapshots: screenshots side by side, objects added / removed / moved, count changes and changed assets. Pins whose object is missing or moved in the latest snapshot get a badge.
+
+## Not done yet
+The Holo Bay: characters with all their animation clips, weapons, items, props, effects, UI screens and sounds in one 3D viewer, and before/after comparison of upgraded assets.
