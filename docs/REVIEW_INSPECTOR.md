@@ -30,8 +30,8 @@ The hub wraps each run in a snapshot folder with a manifest (commit, build label
 - **Captures** (tools/review/capture_ui.gd, capture_fx.gd; windowed only): 37 UI screens as 1280x720 PNGs and 19 effects as four-frame filmstrips. hit_stop and weapon_trail are not captured (no picture / needs a live swing). Test: tests/review_capture_check.gd (398 checks).
 - The hub's Holo Bay shows them as Regions (labelled dots, pin an object with its position), Sounds (waveform, play, stats), UI screens and Effects.
 
-## Known issue found by the captures
-The pause menu is taller than 1280x720: Restart, Main menu, Settings and Quit fall below the bottom edge, so Settings cannot be reached in game. No layout test covers it yet.
+## Found by the captures, fixed
+The pause menu was taller than 1280x720 (Restart, Main menu, Settings and Quit were cut off). It is now two columns; tests/ui_layout_check.gd checks it fits at 1280x720, 1600x720 and 800x360.
 
 ## Not done yet
 Nobody has heard the new sounds or played the new opening in a real window; Android needs a device.

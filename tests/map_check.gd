@@ -569,7 +569,7 @@ func _test_pause_hook() -> void:
 	if menu != null:
 		var page: VBoxContainer = menu.get("_main_page")
 		var labels: Array[String] = []
-		for child in page.get_children():
+		for child in page.find_children("*", "Button", true, false):
 			if child is Button:
 				labels.append((child as Button).text)
 		_check(labels.has("Map"), "the pause menu has a Map button")

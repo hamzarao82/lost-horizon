@@ -202,25 +202,32 @@ func _build_ui() -> void:
 	add_child(_pause_button)
 
 
+## Two columns: with fourteen entries a single column was about 1000 px tall and Restart, Main menu, Settings and
+## Quit fell off the bottom of a 1280x720 screen. Resume stays first (top left) so it is the default focus.
 func _build_main_page() -> VBoxContainer:
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 12)
 	page.add_child(_title("PAUSED"))
-	page.add_child(_button("Resume", close))
-	page.add_child(_button("Inventory", show_inventory))
-	page.add_child(_button("Character", show_character))
-	page.add_child(_button("Crafting", show_crafting))
-	page.add_child(_button("Map", show_map))
-	page.add_child(_button("Journal", show_journal))
-	page.add_child(_button("Gear overview", show_equipment))
-	page.add_child(_button("Save", _on_save))
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	page.add_child(grid)
+	grid.add_child(_button("Resume", close))
+	grid.add_child(_button("Inventory", show_inventory))
+	grid.add_child(_button("Character", show_character))
+	grid.add_child(_button("Crafting", show_crafting))
+	grid.add_child(_button("Map", show_map))
+	grid.add_child(_button("Journal", show_journal))
+	grid.add_child(_button("Gear overview", show_equipment))
+	grid.add_child(_button("Save", _on_save))
 	_load_button = _button("Load", _on_load)
-	page.add_child(_load_button)
-	page.add_child(_button("Restart", _on_restart))
-	page.add_child(_button("Main menu", _on_main_menu))
-	page.add_child(_button("Settings", func() -> void: _show_page(_settings_page)))
+	grid.add_child(_load_button)
+	grid.add_child(_button("Restart", _on_restart))
+	grid.add_child(_button("Main menu", _on_main_menu))
+	grid.add_child(_button("Settings", func() -> void: _show_page(_settings_page)))
 	if not OS.has_feature("web") and not TouchControls.is_mobile_platform():
-		page.add_child(_button("Quit", func() -> void: get_tree().quit()))
+		grid.add_child(_button("Quit", func() -> void: get_tree().quit()))
 	return page
 
 

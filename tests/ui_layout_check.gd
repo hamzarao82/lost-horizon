@@ -322,6 +322,26 @@ func _test_icons_and_theme() -> void:
 ## The title menu at the three window sizes the project cares about. The project stretches a 1280x720 base with
 ## "canvas_items" and "expand", so the virtual size is the window divided by min(w/1280, h/720). The main page
 ## must fit that virtual height, and the hero's strip must stay left of the centred button column.
+## The pause menu once ran off the bottom of a 1280x720 screen (Restart, Main menu, Settings and Quit were unreachable).
+func _test_pause_menu_fits() -> void:
+	var menu := PauseMenu.new()
+	root.add_child(menu)
+	await _frames(2)
+	var page := menu.get("_main_page") as Control
+	var need := page.get_combined_minimum_size()
+	for window in [Vector2(1280, 720), Vector2(1600, 720), Vector2(800, 360)]:
+		var scale := minf(window.x / 1280.0, window.y / 720.0)
+		var virtual_size: Vector2 = window / scale
+		_check(need.y + 48.0 <= virtual_size.y and need.x + 48.0 <= virtual_size.x, "pause menu fits %dx%d (needs %.0fx%.0f of %.0fx%.0f virtual px)" % [int(window.x), int(window.y), need.x + 48.0, need.y + 48.0, virtual_size.x, virtual_size.y])
+	var labels: Array[String] = []
+	for b in page.find_children("*", "Button", true, false):
+		labels.append((b as Button).text)
+	for want in ["Resume", "Restart", "Main menu", "Settings"]:
+		_check(labels.has(want), "pause menu still has %s" % want)
+	menu.queue_free()
+	await _frames(1)
+
+
 func _test_menu_sizes() -> void:
 	var menu := MainMenu.new()
 	root.add_child(menu)
