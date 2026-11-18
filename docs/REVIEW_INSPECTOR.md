@@ -25,5 +25,13 @@ The hub wraps each run in a snapshot folder with a manifest (commit, build label
 ## Holo Bay data (Phase 3)
 `tools/review/holo_export.gd` (class `HoloExport`, run headless by `export_holo_data.gd`) writes `items.json` (all items with kind, rarity, slot, the weapon-identity numbers, armor, value, description, and the model and icon files), `attacks.json` (every attack with its frame data, damage, telegraph time and owner) and `characters.json` (the player and every enemy scene with its stats, tactics flags and model file) from the game's own resources. The 3D models themselves are already GLB files (characters, weapons, armor, the environment kit, props): the hub copies them byte for byte and fingerprints each one, so a graphics upgrade shows up as "changed". `tests/review_holo_data_check.gd` (17 checks) covers the counts and that every model and icon path points at a real file.
 
+## Phase 4: regions, sounds, UI screens, effects
+- **Regions** (tools/review/region_export.gd, export_regions.tscn): every region is exported as one glTF from the live world plus a regions.json (bounds, what was left out, every labelled object). Shader materials become flat colours, vegetation is merged and thinned, the sea is left out. Test: tests/review_regions_export_check.gd (44 checks).
+- **Captures** (tools/review/capture_ui.gd, capture_fx.gd; windowed only): 37 UI screens as 1280x720 PNGs and 19 effects as four-frame filmstrips. hit_stop and weapon_trail are not captured (no picture / needs a live swing). Test: tests/review_capture_check.gd (398 checks).
+- The hub's Holo Bay shows them as Regions (labelled dots, pin an object with its position), Sounds (waveform, play, stats), UI screens and Effects.
+
+## Known issue found by the captures
+The pause menu is taller than 1280x720: Restart, Main menu, Settings and Quit fall below the bottom edge, so Settings cannot be reached in game. No layout test covers it yet.
+
 ## Not done yet
-The regions as 3D models in the Holo Bay (they are built by code, so they need an exporter), and effects, UI screens and sounds in the viewer.
+Nobody has heard the new sounds or played the new opening in a real window; Android needs a device.
