@@ -81,9 +81,10 @@ func _run() -> void:
 	_check(not door.interact(player), "the sealed store door will not open")
 
 	# --- Warden down: the quest starts, the door can open ---------------------------------------
-	_world.set_flag(&"warden_d_defeated", true)
+	# Only the generic flag, with NO warden_d_defeated: a save that beat the courtyard (wave 5) Warden must still work.
+	_world.set_flag(&"boss_warden_defeated", true)
 	await _frames(2)
-	_check(_qm.is_active(&"opening_getaway"), "the getaway quest starts when the Area D Warden falls")
+	_check(_qm.is_active(&"opening_getaway"), "the getaway quest starts when either Warden falls (here only the generic flag is set)")
 	_check(not door.locked, "the store door unlocks")
 	_check(rec.locked, "but the bag stays locked while the door is shut")
 	_check(not rec.interact(player), "the bag still cannot be taken through the shut door")

@@ -121,7 +121,7 @@ func _open_ordinary_doors() -> void:
 		if door == null or String(door.door_id).begins_with("lockdown"):
 			continue
 		door.open(false)
-	_world.set_flag(&"warden_d_defeated", true)
+	_world.set_flag(&"boss_warden_defeated", true)
 	_world.set_flag(&"boss_warden_defeated", true)
 
 

@@ -10,7 +10,9 @@ const ITEM_PATH: String = "res://resources/items/payment_bag.tres"
 const CREDITS: int = 1500
 const REGION_ID: StringName = &"outpost_17"
 const CLAIM_ID: StringName = &"payment_bag"
-const FLAG_BOSS: StringName = &"warden_d_defeated"
+## Set by EITHER Warden (the command-building fight or the courtyard wave 5), like the road and the command terminal.
+## It used to be warden_d_defeated, which left a save that beat only the courtyard Warden with no way to open the store.
+const FLAG_BOSS: StringName = &"boss_warden_defeated"
 const FLAG_STORE_OPEN: StringName = &"door_payment_store_open"
 const FLAG_RECOVERED: StringName = &"payment_recovered"
 const LINE_ONE: String = "There you are."
