@@ -61,6 +61,15 @@ func _run() -> void:
 			for cat in stats[region]:
 				total += int(stats[region][cat])
 		_check(total > 100, "the counts add up to a real world (%d labelled objects)" % total)
+	# Ids must be stable between runs: Godot's auto-generated names ("@CharacterBody3D@37") change every time and
+	# would show up as phantom added/removed objects when two snapshots are compared.
+	var unstable := 0
+	if objects is Dictionary:
+		for region in objects:
+			for o in objects[region]:
+				if String((o as Dictionary)["id"]).contains("@"):
+					unstable += 1
+	_check(unstable == 0, "no object id carries an auto-generated '@' node name (%d found)" % unstable)
 	# Clean up.
 	for sub in ["shots"]:
 		var d := DirAccess.open(dir + "/" + sub)

@@ -228,7 +228,17 @@ func object_id_of(node: Node) -> String:
 			return String(v)
 	if node is Pickup and (node as Pickup).item != null:
 		return "pickup." + String((node as Pickup).item.item_id)
-	return String(node.name)
+	var node_name := String(node.name)
+	if node_name.begins_with("@") or node_name.contains("@"):
+		# Godot auto-names nodes like "@CharacterBody3D@37": that changes every run, which would show up as phantom
+		# "added / removed" objects in snapshot comparisons. Use what the object is and where it stands instead.
+		var label: Variant = node.get("display_name")
+		var base := String(label) if label != null and String(label) != "" else script_name_of(node)
+		if node is Node3D:
+			var p := (node as Node3D).global_position
+			return "%s#%d_%d" % [base, roundi(p.x), roundi(p.z)]
+		return base
+	return node_name
 
 
 func _label_text(node: Node, category: String) -> String:
