@@ -5,13 +5,13 @@ extends RefCounted
 ## headless time-to-kill for every weapon. Everything here is formula output, never a human playtest.
 ##
 ## Assumptions (all visible, all tested): the player has no attribute or skill investment (damage part 1.0),
-## every weapon is at upgrade level 0, the player lands every swing of the three-hit light chain with its full
+## every weapon is at upgrade level 0, the player lands every swing of the five-hit light chain with its full
 ## recovery (no animation cancelling), and the expected player level per region is EXPECTED_LEVEL.
 
 const ARENA_DIR: String = "res://resources/arena/"
 const ATTACK_DIR: String = "res://resources/attacks/"
 const PLAYER_HEALTH: float = 100.0
-const LIGHT_CHAIN: Array[String] = ["light_1", "light_2", "light_3"]
+const LIGHT_CHAIN: Array[String] = ["light_1", "light_2", "light_3", "light_4", "light_5"]
 
 ## id, display name, expected player level, wave table file, boss resources.
 const REGIONS: Array[Dictionary] = [

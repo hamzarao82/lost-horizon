@@ -35,12 +35,12 @@ Command-line options (Windows exe): `-- --no-menu` skips the menu and starts the
 |---|---|
 | Move | W A S D |
 | Camera | mouse (third-person; mouse is captured during play) |
-| Jump | Space |
+| Jump | Space (press again in the air for a double jump) |
 | Sprint | Left Shift |
 | Dodge | Ctrl or C (short invulnerability window ~0.18 s) |
 | Interact | E |
-| Light attack | Left mouse button (three-hit combo; chains if pressed in time) |
-| Heavy attack | Right mouse button |
+| Light attack | Left mouse button (five-hit combo; press again in time to chain; mixes with heavy) |
+| Heavy attack | Right mouse button (three-hit combo; mixes with light) |
 | Use medkit | R (refuses at full health, does not waste the kit) |
 | Teleport | T (2 charges, ~10 minutes recharge each, random short-range safe landing) |
 | Lock on | Tab (cycle with target next/previous) |
@@ -71,7 +71,7 @@ The bottom of the screen shows a help line: `WASD move | Shift sprint | Space ju
 
 ### 5.1 Combat
 - Player is a CharacterBody3D with five states: free, dodge, attack, hit, dead. Inputs are buffered; attacks start the same physics tick as the press.
-- Light chain: three hits. Heavy, sprint, air and spin attacks exist. Weapons differ by damage multiplier and attack speed.
+- Light chain: five hits; heavy chain: three hits; the two mix in one combo (for example L L H L H H). Sprint, air and spin attacks exist. Jump has one extra jump in the air. Weapons differ by damage multiplier and attack speed.
 - Hits land only in an attack's active frames, once per swing per target. Hit-stop is short (≤0.07 s) and never stacks. Enemies stagger.
 - Damage pipeline (one place, each modifier applied once): weapon multiplier × attributes × skills × gear, then armor reduction. At level 1 with the starting blade the numbers equal the original game's.
 - Dodge: invulnerable for a short window; it feeds the Counterattack skill.
@@ -211,7 +211,7 @@ Enemies-left totals on arrival (patrol members plus boss spawns): Dead Coast 14,
 **B. First minutes (Outpost 17)**
 - B1. New Game: the intro plays and can be skipped; control returns; the tracker shows "The First Signal" and an objective.
 - B2. Movement, camera, jump, sprint, stamina drain and recovery feel right. Collision with walls and props; no sticking.
-- B3. Light combo (three hits), heavy attack, dodge i-frames, lock-on (Tab). Attacks hit once per swing; enemies stagger.
+- B3. Light combo (five hits) and heavy combo (three hits), mixing them, the double jump, heavy attack, dodge i-frames, lock-on (Tab). Attacks hit once per swing; enemies stagger.
 - B4. HUD elements match section 4. The arrow points at the current objective and hides when you are close.
 - B5. Pickups: walk over items; toasts show rarity colours; equip a better weapon in the inventory (I) and see the damage multiplier change.
 - B6. Medkit (R) heals; at full health it refuses and keeps the kit. Teleport (T) moves you a short random distance, uses a charge, shows a recharge timer.

@@ -213,6 +213,8 @@ CLIP_SPECS = {  # name: nominal length in seconds
     # "player", so the other four GLBs stay byte-identical and keep the 22-clip contract. See STORY_CLIPS below.
     "lying_idle": 3.0, "wake": 3.0, "sit_up": 2.0, "hold_side": 3.0, "stand_up": 1.8,
     "limp_walk": 1.4, "pickup": 1.2, "open_bag": 3.0,
+    # Combo clips (player rig only): the 4th/5th light and the 2nd/3rd heavy hit.
+    "light_4": 0.55, "light_5": 0.7, "heavy_2": 0.85, "heavy_3": 0.95,
 }
 CORE_CLIPS = tuple(list(CLIP_SPECS)[:22])
 STORY_CLIPS = tuple(name for name in CLIP_SPECS if name not in CORE_CLIPS)
@@ -306,3 +308,54 @@ def author_story(an):
                 'spine': (-20, 0, 0), 'head': (-6, 0, 0)})
     an.clip("open_bag", 3.0, [(0.0, IDLE_A), (0.22, kneel, 'in'), (0.45, spread), (0.7, lift, 'out'),
                               (0.86, lift, 'lin'), (1.0, IDLE_A)])
+
+
+def author_combo(an):
+    """an: char_lib.Animator. PLAYER RIG ONLY: the 4th and 5th light hits and the 2nd and 3rd heavy hits.
+    Same contract as the other attacks: the strike lands at 35 % of the clip, and the clip ends in the guard pose."""
+    lunge_r = dict(ul_r=(32, 0, -6), ll_r=(-34, 0, 0), ul_l=(-24, 0, 4), ll_l=(-28, 0, 0))
+    lunge_l = dict(ul_l=(32, 0, 6), ll_l=(-34, 0, 0), ul_r=(-24, 0, -4), ll_r=(-28, 0, 0))
+    low_stance = dict(ul_r=(34, 0, -8), ul_l=(34, 0, 8), ll_r=(-62, 0, 0), ll_l=(-62, 0, 0))
+
+    # light_4: a rising backhand from low on the left up across the body (the fourth cut of the string)
+    an.clip("light_4", 0.55, _atk(
+        P(hips_loc=(0, -0.10, -0.10), spine=(14, 0, 0), chest=(0, 0, -34), head=(8, 0, 20),
+          ua_r=(14, -34, 16), la_r=(34, 0, 0), ua_l=(32, -14, 0), la_l=(76, 0, 0), **low_stance),
+        P(hips_loc=(0, 0.12, -0.16), spine=(-20, 0, 8), chest=(-6, 0, 42), head=(-8, 0, -30),
+          ua_r=(148, 16, -24), la_r=(8, 0, 0), ua_l=(-18, 22, 0), la_l=(52, 0, 0), **lunge_l),
+        P(hips_loc=(0, 0.13, -0.17), spine=(-22, 0, 10), chest=(-6, 0, 50), head=(-8, 0, -34),
+          ua_r=(160, 18, -28), la_r=(6, 0, 0), ua_l=(-20, 24, 0), la_l=(48, 0, 0), **lunge_l), wind_t=0.2))
+
+    # light_5: the finisher, a wide flat sweep that turns the whole body through the cut
+    an.clip("light_5", 0.7, _atk(
+        P(hips=(0, 0, -44), hips_loc=(0, -0.04, -0.10), spine=(-4, 0, 0), chest=(0, 0, -30), head=(0, 0, 24),
+          ua_r=(78, -66, 6), la_r=(30, 0, 0), ua_l=(30, -16, 0), la_l=(74, 0, 0),
+          ul_r=(-12, 0, -6), ll_r=(-34, 0, 0), ul_l=(16, 0, 8), ll_l=(-24, 0, 0)),
+        P(hips=(0, 0, 78), hips_loc=(0, 0.10, -0.20), spine=(-8, 0, 6), chest=(4, 0, 38), head=(0, 0, -34),
+          ua_r=(82, 72, -14), la_r=(6, 0, 0), ua_l=(-24, 24, 0), la_l=(50, 0, 0), **lunge_l),
+        P(hips=(0, 0, 60), hips_loc=(0, 0.10, -0.20), spine=(-8, 0, 6), chest=(4, 0, 34), head=(0, 0, -30),
+          ua_r=(80, 62, -12), la_r=(8, 0, 0), ua_l=(-22, 22, 0), la_l=(50, 0, 0), **lunge_l),
+        wind_t=0.24, follow_t=0.62))
+
+    # heavy_2: a two-handed horizontal swing from the right, low and wide
+    an.clip("heavy_2", 0.85, _atk(
+        P(hips=(0, 0, -34), hips_loc=(0, -0.08, -0.14), spine=(18, 0, 0), chest=(2, 0, -38), head=(8, 0, 20),
+          ua_r=(58, -74, 8), la_r=(48, 0, 0), ua_l=(60, -58, 0), la_l=(56, 0, 0), **low_stance),
+        P(hips=(0, 0, 52), hips_loc=(0, 0.06, -0.22), spine=(-10, 0, 8), chest=(2, 0, 56), head=(-4, 0, -34),
+          ua_r=(66, 62, -20), la_r=(8, 0, 0), ua_l=(58, 48, 0), la_l=(14, 0, 0), **lunge_l),
+        P(hips=(0, 0, 44), hips_loc=(0, 0.07, -0.23), spine=(-10, 0, 8), chest=(2, 0, 52), head=(-4, 0, -30),
+          ua_r=(62, 56, -18), la_r=(8, 0, 0), ua_l=(54, 44, 0), la_l=(14, 0, 0), **lunge_l),
+        wind_t=0.24, follow_t=0.62))
+
+    # heavy_3: the finisher, a high two-handed raise and a crashing overhead slam from a deep lunge
+    an.clip("heavy_3", 0.95, _atk(
+        P(hips_loc=(0, 0.16, -0.06), spine=(30, 0, 0), chest=(8, 0, -4), head=(12, 0, 0),
+          ua_r=(176, 6, 0), la_r=(90, 0, 0), ua_l=(160, -6, 0), la_l=(86, 0, 0),
+          ul_r=(-18, 0, -6), ll_r=(-30, 0, 0), ul_l=(10, 0, 6), ll_l=(-22, 0, 0)),
+        P(hips_loc=(0, -0.10, -0.40), spine=(-46, 0, 0), chest=(-8, 0, 4), head=(-12, 0, 0),
+          ua_r=(40, 0, 0), la_r=(6, 0, 0), ua_l=(34, 0, 0), la_l=(10, 0, 0),
+          ul_l=(58, 0, 6), ll_l=(-72, 0, 0), ul_r=(-36, 0, -6), ll_r=(-44, 0, 0)),
+        P(hips_loc=(0, -0.09, -0.41), spine=(-48, 0, 0), chest=(-8, 0, 4), head=(-12, 0, 0),
+          ua_r=(34, 0, 0), la_r=(6, 0, 0), ua_l=(30, 0, 0), la_l=(8, 0, 0),
+          ul_l=(60, 0, 6), ll_l=(-74, 0, 0), ul_r=(-38, 0, -6), ll_r=(-46, 0, 0)),
+        wind_t=0.28, follow_t=0.65))

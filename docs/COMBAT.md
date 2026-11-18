@@ -91,13 +91,19 @@ Presses are buffered in a FIFO queue (max 3, each lives 0.2 s) and handled indep
 |---|---|---|---:|---:|---|
 | Light 1 | Attack | 6 / 4 / 10 | 10 | 5 | |
 | Light 2 | Attack in recovery | 6 / 4 / 12 | 12 | 5 | |
-| Light 3 | Attack in recovery | 7 / 4 / 14 | 15 | 6 | new; light combo ends here |
-| Heavy | Heavy (or after any light) | 10 / 6 / 15 | 28 | 15 | retuned from 16 / 6 / 22 |
+| Light 3 | Attack in recovery | 7 / 4 / 14 | 15 | 6 | a thrust |
+| Light 4 | Attack in recovery | 7 / 4 / 14 | 17 | 6 | rising backhand cut |
+| Light 5 | Attack in recovery | 9 / 5 / 18 | 22 | 8 | wide sweeping finisher; the light string ends here |
+| Heavy 1 | Heavy (or after any light) | 10 / 6 / 15 | 28 | 15 | overhead cut; retuned from 16 / 6 / 22 |
+| Heavy 2 | Heavy in recovery | 11 / 6 / 16 | 34 | 15 | two-handed horizontal swing |
+| Heavy 3 | Heavy in recovery | 14 / 7 / 22 | 46 | 20 | crashing overhead slam from a deep lunge; the heavy string ends here |
 | Sprint attack | Attack while sprinting | 8 / 5 / 16 | 16 | 12 | long forward lunge; flows into light 1 |
 | Air attack | Attack while airborne (or jump + attack) | 5 / 8 / 10 | 18 | 14 | dives down; landing ring (radius 2.6) hits for 80% |
 | Spin | Q / gamepad Y / touch "Spin" | 6 / 10 / 18 | 20 | 30 | ring radius 3.2 around you, 6 s cooldown (`special_cooldown_left`) |
 
-Chains: L-L-L-H and L-L-H both work; heavy finishes any light. No fourth light.
+Combos (one button per string): the light button chains five hits (Light 1 to 5), the heavy button three (Heavy 1 to 3). The two can be mixed in one combo, for example L L H L H H: every press plays the next hit of its own string, so each step has its own attack data and its own sword animation. A string that has run out ends the combo and the extra press is dropped; a pause longer than the recovery window starts a fresh combo. The Combo Extension skill adds replayed light hits after the fifth. Sprint and air attacks flow into light 1; the spin special ends any chain. The clips for Light 4 and 5 and Heavy 2 and 3 exist on the player model only (tools/blender/anim_clips.py `author_combo`); see `tests/combo_chain_check.gd`.
+
+
 Dodge cancel: during recovery, or from the active window of a swing that has already connected. Not during startup, so a heavy cannot be dodged out of before it lands.
 Jump cancels recovery. Weapon speed (`Inventory.attack_speed()`) scales how fast frames advance.
 `Player.grant_invulnerability(seconds)` adds i-frames that stack by maximum, never shorten.

@@ -29,6 +29,8 @@ const FALLBACKS: Dictionary = {
 	"shockwave_cast": ["heavy", "light_1"], "roar": ["idle"],
 	"limp_walk": ["walk", "idle"], "hold_side": ["idle"], "lying_idle": ["idle"], "wake": ["idle"], "sit_up": ["idle"],
 	"stand_up": ["idle"], "pickup": ["idle"], "open_bag": ["idle"],
+	"light_4": ["light_2", "light_1", "heavy"], "light_5": ["light_3", "light_1", "heavy"],
+	"heavy_2": ["heavy", "light_1"], "heavy_3": ["heavy", "light_1"],
 }
 
 var player: AnimationPlayer

@@ -81,13 +81,17 @@ func _test_combo() -> void:
 	print("Combo Extension")
 	var player := await _spawn_player()
 	_check(player.call("_progression_scale", load("res://resources/attacks/light_1.tres")) == 1.0, "no skills: attack scale is exactly 1.0")
-	# Rank 0: the light chain ends after the third hit, exactly as before.
-	player.set("_attack_idx", Player.IDX_LIGHT_1)
-	_check(player.call("_next_attack", false) == Player.IDX_LIGHT_2, "rank 0: light 1 -> light 2")
-	player.set("_attack_idx", Player.IDX_LIGHT_2)
-	_check(player.call("_next_attack", false) == Player.IDX_LIGHT_3, "rank 0: light 2 -> light 3")
-	player.set("_attack_idx", Player.IDX_LIGHT_3)
-	_check(player.call("_next_attack", false) == -1, "rank 0: the chain ends after light 3")
+	# Rank 0: the light string is five hits (light 1 to light 5) and then ends; the skill only adds hits after that.
+	player.stamina = 100.0
+	player.set("_attack_idx", -1)
+	player.call("_start_attack", Player.IDX_LIGHT_1)
+	for expected: int in [Player.IDX_LIGHT_2, Player.IDX_LIGHT_3, Player.IDX_LIGHT_4, Player.IDX_LIGHT_5]:
+		var nxt: int = player.call("_next_attack", false)
+		_check(nxt == expected, "rank 0: the next light hit is index %d (got %d)" % [expected, nxt])
+		player.stamina = 100.0
+		player.call("_start_attack", nxt)
+	_check(player.call("_next_attack", false) == -1, "rank 0: the chain ends after light 5")
+	player.call("_end_attack")
 	player.set("_attack_idx", -1)
 
 	for rank in [1, 2, 3]:
@@ -105,7 +109,7 @@ func _test_combo() -> void:
 				break
 			player.call("_start_attack", next)
 			steps += 1
-		_check(steps == 3 + rank, "rank %d: the combo is %d hits (got %d)" % [rank, 3 + rank, steps])
+		_check(steps == 5 + rank, "rank %d: the combo is %d hits (got %d)" % [rank, 5 + rank, steps])
 		_check(int(player.get("_combo_extra_used")) == rank, "rank %d: %d extension hits used" % [rank, rank])
 
 	# A new combo starts over: nothing carries from the last one.

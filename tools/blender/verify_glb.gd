@@ -17,6 +17,7 @@ const LOOPS: Array[String] = ["idle", "walk", "run", "sprint", "fall", "guard"]
 const STORY_CLIPS: Dictionary = {
 	"lying_idle": 3.0, "wake": 3.0, "sit_up": 2.0, "hold_side": 3.0, "stand_up": 1.8,
 	"limp_walk": 1.4, "pickup": 1.2, "open_bag": 3.0,
+	"light_4": 0.55, "light_5": 0.7, "heavy_2": 0.85, "heavy_3": 0.95,
 }
 const STORY_LOOPS: Array[String] = ["lying_idle", "hold_side", "limp_walk"]
 # name: [expected height (m), tri budget]

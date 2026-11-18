@@ -32,6 +32,7 @@ def run(name):
     A.author_all(an)
     if name == "player":
         A.author_story(an)
+        A.author_combo(an)
     path = os.path.join(OUT_DIR, name + ".glb")
     L.export_glb(path, arm, mesh_obj)
     print("CHAR %s tris=%d size_kb=%d" % (name, b.tri_count(), os.path.getsize(path) // 1024))

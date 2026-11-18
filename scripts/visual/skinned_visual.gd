@@ -25,6 +25,7 @@ const ENEMY_WEAPONS: Dictionary = {
 }
 const ATTACK_CLIPS: Dictionary = {
 	&"light_1": "light_1", &"light_2": "light_2", &"light_3": "light_3", &"heavy_1": "heavy",
+	&"light_4": "light_4", &"light_5": "light_5", &"heavy_2": "heavy_2", &"heavy_3": "heavy_3",
 	&"sprint_attack": "sprint_attack", &"air_attack": "air_attack", &"spin_special": "spin",
 	&"enemy_swing": "light_1", &"heavy_swing": "heavy", &"hunter_slash": "light_2",
 	&"warden_slam": "slam", &"warden_flurry": "flurry", &"warden_shockwave": "shockwave_cast",
@@ -77,6 +78,7 @@ var _is_player: bool = false
 var _has_death: bool = false
 var _base_body_color: Color = Color(-1.0, 0.0, 0.0)
 var _air_time: float = 0.0
+var _prev_air_vy: float = 0.0
 var _land_timer: float = 0.0
 var _own_dodge_time: float = 0.0
 var _weapon_scene_checked: bool = false
@@ -453,11 +455,14 @@ func _drive_free(delta: float, guarding: bool) -> void:
 			driver.set_speed(speed)
 			driver.play_state(&"loco")
 	else:
+		if body.velocity.y > 1.0 and _prev_air_vy <= 1.0 and _air_time > 0.0:
+			_air_time = 0.0  # a second jump in the air replays the jump-start pose
 		_air_time += delta
 		if _air_time < 0.2 and body.velocity.y > 1.0:
 			driver.play_state(&"jump_start")
 		else:
 			driver.play_state(&"fall")
+	_prev_air_vy = body.velocity.y
 
 
 ## Scrubs the attack clip to the combat system's frame counter (never plays it on its own).

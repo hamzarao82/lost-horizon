@@ -19,8 +19,13 @@ const CHAIN_PATHS: Array[String] = [
 	"res://resources/attacks/sprint_attack.tres",
 	"res://resources/attacks/air_attack.tres",
 	"res://resources/attacks/spin_special.tres",
+	"res://resources/attacks/light_4.tres",
+	"res://resources/attacks/light_5.tres",
+	"res://resources/attacks/heavy_2.tres",
+	"res://resources/attacks/heavy_3.tres",
 ]
-## Indices into CHAIN_PATHS. Light combo is 0 -> 1 -> 2; heavy finishes from any of them.
+## Indices into CHAIN_PATHS. The light string is five hits and the heavy string three; both are driven by the
+## same single button, and the two can be mixed (see _next_attack).
 const IDX_LIGHT_1: int = 0
 const IDX_LIGHT_2: int = 1
 const IDX_LIGHT_3: int = 2
@@ -28,6 +33,12 @@ const HEAVY_INDEX: int = 3
 const IDX_SPRINT: int = 4
 const IDX_AIR: int = 5
 const IDX_SPIN: int = 6
+const IDX_LIGHT_4: int = 7
+const IDX_LIGHT_5: int = 8
+const IDX_HEAVY_2: int = 9
+const IDX_HEAVY_3: int = 10
+const LIGHT_STEPS: Array[int] = [IDX_LIGHT_1, IDX_LIGHT_2, IDX_LIGHT_3, IDX_LIGHT_4, IDX_LIGHT_5]
+const HEAVY_STEPS: Array[int] = [HEAVY_INDEX, IDX_HEAVY_2, IDX_HEAVY_3]
 const AIM_ASSIST_RANGE: float = 4.0
 const HEAL_BUFFER: float = 0.8  # long enough to outlast a heavy attack
 const QUEUE_SIZE: int = 3
@@ -49,6 +60,14 @@ static var require_mouse_capture: bool = true
 @export var walk_speed: float = 5.0
 @export var sprint_speed: float = 8.5
 @export var jump_velocity: float = 6.0
+## Extra jumps in the air before landing (1 = double jump) and how strong each is compared with the ground jump.
+@export var max_air_jumps: int = 1
+@export var air_jump_scale: float = 0.9
+const AIR_JUMP_MIN_AIR_TIME: float = 0.12
+const AIR_JUMP_LANDING_BUFFER: float = 1.0
+signal air_jumped(jumps_left: int)
+var _air_jumps_left: int = 0
+var _air_time: float = 0.0
 @export var acceleration: float = 40.0
 @export var air_acceleration: float = 12.0
 @export var turn_speed: float = 14.0
@@ -102,6 +121,8 @@ var _counter_left: float = 0.0
 var _counter_cd: float = 0.0
 var _counter_scale: float = 1.0
 var _combo_extra_used: int = 0
+var _light_step: int = 0
+var _heavy_step: int = 0
 var _in_extension: bool = false
 var _extension_requested: bool = false
 var _attack_idx: int = -1
@@ -152,8 +173,12 @@ func lock_target() -> Node3D:
 
 
 func _physics_process(delta: float) -> void:
-	if not is_on_floor():
+	if is_on_floor():
+		_air_jumps_left = max_air_jumps
+		_air_time = 0.0
+	else:
 		velocity.y -= _gravity * delta
+		_air_time += delta
 	_update_lock(delta)
 	_poll_input(delta)
 	_regen_stamina(delta)
@@ -380,9 +405,32 @@ func _handle_free_action(action: StringName) -> int:
 
 func _try_jump() -> bool:
 	if not is_on_floor():
-		return false
+		return _try_air_jump()
 	velocity.y = jump_velocity
 	return true
+
+
+## One extra jump in the air (more with max_air_jumps), refilled on landing. Two guards keep the ground jump
+## exactly as it was: a press right after leaving the ground is ignored, and a press while falling close to the
+## ground stays buffered so it still becomes a normal jump on landing.
+func _try_air_jump() -> bool:
+	if state != State.FREE or _air_jumps_left <= 0 or _air_time < AIR_JUMP_MIN_AIR_TIME:
+		return false
+	if velocity.y <= 0.0 and _ground_within(AIR_JUMP_LANDING_BUFFER):
+		return false
+	_air_jumps_left -= 1
+	velocity.y = jump_velocity * air_jump_scale
+	var fx := get_node_or_null("/root/Fx")
+	if fx != null:
+		fx.ring(global_position, 1.1, Color(0.8, 0.9, 1.0, 0.8), 0.35)
+	air_jumped.emit(_air_jumps_left)
+	return true
+
+
+func _ground_within(distance: float) -> bool:
+	var query := PhysicsRayQueryParameters3D.create(
+			global_position + Vector3.UP * 0.1, global_position + Vector3.DOWN * distance, 1)
+	return not _physics_space().intersect_ray(query).is_empty()
 
 
 ## Which attack an attack press means right now: air > heavy > sprint > first light.
@@ -560,19 +608,22 @@ func _try_dodge() -> bool:
 
 # --- attacks ---------------------------------------------------------------
 
-## Chain rules: L -> L -> L, heavy finishes any of them; sprint/air attacks flow into the light combo.
+## Chain rules. One button per string: light presses walk the five-hit light string (L1..L5), heavy presses the
+## three-hit heavy string (H1..H3). The two can be mixed in one combo (for example L L H L H H): each press plays
+## the NEXT hit of its own string, so every step has its own animation and damage. A string that has run out ends
+## the combo (the extra press is dropped). After the fifth light hit the Combo Extension skill adds replays;
+## sprint and air attacks flow into the light string. The spin special ends the chain.
 func _next_attack(heavy: bool) -> int:
+	if _attack_idx == IDX_SPIN:
+		return -1
 	if heavy:
-		return HEAVY_INDEX if _attack_idx != HEAVY_INDEX and _attack_idx != IDX_SPIN else -1
+		return HEAVY_STEPS[_heavy_step] if _heavy_step < HEAVY_STEPS.size() else -1
 	_extension_requested = false
-	match _attack_idx:
-		IDX_LIGHT_1, IDX_LIGHT_2:
-			return _extension_next() if _in_extension else _attack_idx + 1
-		IDX_LIGHT_3:
-			return _extension_next()
-		IDX_SPRINT, IDX_AIR:
-			return IDX_LIGHT_1
-	return -1
+	if _attack_idx == IDX_SPRINT or _attack_idx == IDX_AIR:
+		return IDX_LIGHT_1
+	if _in_extension or _light_step >= LIGHT_STEPS.size():
+		return _extension_next()
+	return LIGHT_STEPS[_light_step]
 
 
 func _start_attack(idx: int) -> bool:
@@ -583,6 +634,7 @@ func _start_attack(idx: int) -> bool:
 	_face_attack_direction()
 	_hitbox.deactivate()
 	_track_combo_extension(idx)
+	_track_chain_steps(idx)
 	_arm_counter_swing(idx)
 	_attack_idx = idx
 	_attack_frames = 0.0
@@ -596,7 +648,7 @@ func _start_attack(idx: int) -> bool:
 	var facing := -_visual_root.global_transform.basis.z
 	velocity.x = facing.x * data.lunge_speed
 	velocity.z = facing.z * data.lunge_speed
-	_sfx(&"swing_heavy" if idx == HEAVY_INDEX or idx == IDX_SPIN else &"swing_light")
+	_sfx(&"swing_heavy" if HEAVY_STEPS.has(idx) or idx == IDX_SPIN else &"swing_light")
 	return true
 
 
@@ -814,6 +866,22 @@ func _extension_next() -> int:
 		return -1
 	_extension_requested = true
 	return IDX_LIGHT_1 + _combo_extra_used
+
+
+## How far each string has got in the current combo. A fresh combo (no attack running) starts both at zero;
+## the Combo Extension's replayed light hits do not move the counters.
+func _track_chain_steps(idx: int) -> void:
+	if _attack_idx < 0:
+		_light_step = 0
+		_heavy_step = 0
+	if _in_extension:
+		return
+	var light := LIGHT_STEPS.find(idx)
+	if light >= 0:
+		_light_step = light + 1
+	var heavy := HEAVY_STEPS.find(idx)
+	if heavy >= 0:
+		_heavy_step = heavy + 1
 
 
 func _track_combo_extension(idx: int) -> void:
