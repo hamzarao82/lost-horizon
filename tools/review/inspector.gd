@@ -12,6 +12,7 @@ extends Node
 const REGION_IDS: Array[StringName] = [&"outpost_17", &"dead_coast", &"blackwood", &"research_complex", &"iron_fortress"]
 const DEFAULT_REVIEW_DATA: String = "C:/Users/SCS/OneDrive/Documents/GitHub/lost-horizon-review-hub/review-data"
 const MAX_MARKERS_PER_CATEGORY: int = 400
+const LABEL_RANGE: float = 85.0
 const CATEGORIES: Dictionary = {
 	"enemies": {"label": "Enemies", "color": Color(1.0, 0.38, 0.32)},
 	"pickups": {"label": "Pickups", "color": Color(0.45, 0.95, 0.5)},
@@ -43,6 +44,7 @@ var _fly_speed: float = 14.0
 var _yaw: float = 0.0
 var _pitch: float = -0.6
 var _toggles: Dictionary = {}
+var _fog_before: Dictionary = {}
 var _marker_nodes: Dictionary = {}  # category -> Array[{label, node}]
 var _collision_meshes: Array[MeshInstance3D] = []
 var _collision_on: bool = false
@@ -266,7 +268,7 @@ func _collect_markers() -> void:
 		label.pixel_size = 0.0009
 		label.font_size = 24
 		label.outline_size = 8
-		label.visibility_range_end = 85.0
+		label.visibility_range_end = LABEL_RANGE
 		label.visibility_range_end_margin = 30.0
 		label.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		label.modulate = CATEGORIES[cat]["color"]
@@ -275,6 +277,28 @@ func _collect_markers() -> void:
 		label.global_position = (node as Node3D).global_position + Vector3(0.0, 2.3, 0.0)
 		(_marker_nodes[cat] as Array).append({"label": label, "node": node})
 	_update_counts()
+
+
+## For high overview shots: no fog (it washes a whole region out from above) and labels visible at any distance.
+## Ground-level views keep the fog and the distance fade, because that is what the player sees.
+func set_overview_mode(on: bool) -> void:
+	for cat in _marker_nodes:
+		for entry in _marker_nodes[cat]:
+			if is_instance_valid(entry["label"]):
+				(entry["label"] as Label3D).visibility_range_end = 0.0 if on else LABEL_RANGE
+	for node in main_node.find_children("*", "WorldEnvironment", true, false):
+		var env := (node as WorldEnvironment).environment
+		if env == null:
+			continue
+		var key := str(env.get_instance_id())
+		if on:
+			if not _fog_before.has(key):
+				_fog_before[key] = env.fog_enabled
+			env.fog_enabled = false
+		elif _fog_before.has(key):
+			env.fog_enabled = bool(_fog_before[key])
+	if not on:
+		_fog_before.clear()
 
 
 ## Every labelled object of the current region (not capped like the on-screen labels): the data behind snapshots

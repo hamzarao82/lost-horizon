@@ -94,9 +94,11 @@ func _run() -> void:
 		stats[region] = insp.marker_counts.duplicate()
 		_set_labels(insp, false)
 		var pose := _overview_pose(rid)
+		insp.set_overview_mode(true)
 		await _shot(insp, region, "overview", pose[0], pose[1])
 		_set_labels(insp, true)
 		await _shot(insp, region, "overview labels", pose[0], pose[1])
+		insp.set_overview_mode(false)
 		_set_labels(insp, false)
 		for spot in insp._spots:
 			var pos: Vector3 = spot["pos"]
