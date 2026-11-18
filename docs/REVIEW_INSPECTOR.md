@@ -22,5 +22,8 @@ Right mouse + WASD fly, Q / E down / up, Shift fast, mouse wheel changes the spe
 
 The hub wraps each run in a snapshot folder with a manifest (commit, build label, Godot version, asset fingerprints) and compares two snapshots: screenshots side by side, objects added / removed / moved, count changes and changed assets. Pins whose object is missing or moved in the latest snapshot get a badge.
 
+## Holo Bay data (Phase 3)
+`tools/review/holo_export.gd` (class `HoloExport`, run headless by `export_holo_data.gd`) writes `items.json` (all items with kind, rarity, slot, the weapon-identity numbers, armor, value, description, and the model and icon files), `attacks.json` (every attack with its frame data, damage, telegraph time and owner) and `characters.json` (the player and every enemy scene with its stats, tactics flags and model file) from the game's own resources. The 3D models themselves are already GLB files (characters, weapons, armor, the environment kit, props): the hub copies them byte for byte and fingerprints each one, so a graphics upgrade shows up as "changed". `tests/review_holo_data_check.gd` (17 checks) covers the counts and that every model and icon path points at a real file.
+
 ## Not done yet
-The Holo Bay: characters with all their animation clips, weapons, items, props, effects, UI screens and sounds in one 3D viewer, and before/after comparison of upgraded assets.
+The regions as 3D models in the Holo Bay (they are built by code, so they need an exporter), and effects, UI screens and sounds in the viewer.
