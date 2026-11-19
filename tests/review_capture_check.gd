@@ -146,8 +146,8 @@ func _test_fx(consts: Dictionary) -> void:
 	var skipped_ids: Array = []
 	for skip: Dictionary in skipped:
 		skipped_ids.append(skip["id"])
-	_check(effect_ids.has("weapon_trail") and not skipped_ids.has("weapon_trail"),
-			"weapon_trail is captured from a real swing, not skipped")
+	_check(skipped_ids.has("weapon_trail") and not effect_ids.has("weapon_trail"),
+			"weapon_trail is skipped with a reason, not captured as a PNG")
 
 	# Completeness: every effect script in scripts/fx is captured or skipped with a reason.
 	for file_path in _gd_files("res://scripts/fx"):

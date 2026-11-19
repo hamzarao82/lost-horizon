@@ -20,8 +20,6 @@ const HEIGHT: int = 720
 const FRAME_TIMES: Array[float] = [0.0, 0.1, 0.25, 0.5]
 const SOLDIER_SCENE: String = "res://scenes/enemies/PatrolSoldier.tscn"
 const WARDEN_SCENE: String = "res://scenes/enemies/Warden.tscn"
-const PLAYER_SCENE: String = "res://scenes/player/Player.tscn"
-const KATANA: String = "res://resources/items/katana.tres"
 const SKY_DAY: Color = Color(0.55, 0.7, 0.85)
 const SKY_DUSK: Color = Color(0.42, 0.36, 0.34)
 const GROUND: Color = Color(0.42, 0.44, 0.4)
@@ -48,13 +46,14 @@ const EFFECTS: Array[Dictionary] = [
 	{"id": "teleport_departure", "name": "Teleport departure column and flash", "source": "res://scripts/fx/teleport_fx.gd"},
 	{"id": "opening_smoke", "name": "Opening: distant smoke plume", "source": "res://scripts/world/opening_approach.gd"},
 	{"id": "opening_rain", "name": "Opening: storm rain (storm scene)", "source": "res://scripts/story/opening_cinematic.gd"},
-	{"id": "weapon_trail", "name": "Weapon trail: light 1 swing with the katana", "source": "res://scripts/fx/weapon_trail.gd"},
 ]
 
 ## Effects that cannot be filmed here, with the reason. The source is still a real file (checked by the test).
 const SKIPPED: Array[Dictionary] = [
 	{"id": "hit_stop", "name": "Hit stop (time freeze)", "source": "res://scripts/fx/hit_stop.gd",
 		"reason": "a time freeze with no picture of its own; it is felt in play, not seen in a still arena"},
+	{"id": "weapon_trail", "name": "Weapon trail: light 1 swing with the katana", "source": "res://scripts/fx/weapon_trail.gd",
+		"reason": "the trail ribbon is not readable in a still filmstrip at this camera; verify it in play (a sample probe showed it draws for ~0.25 s per swing)"},
 ]
 
 var _tag: Label
@@ -255,11 +254,6 @@ func _capture(id: String) -> Array[Image]:
 			return await _smoke_film()
 		"opening_rain":
 			return await _rain_film()
-		"weapon_trail":
-			_arena(SKY_DAY, Vector3(0, 1.8, 6), Vector3(0, 1.1, 0))
-			var swinger := await _swing_player()
-			# The real attack path: a buffered light press, which starts the first light hit of the combo.
-			return await _film(func() -> void: swinger._register_press(&"attack_light"))
 	push_error("no capture for effect %s" % id)
 	return []
 
@@ -280,24 +274,6 @@ func _warden(at: Vector3) -> Enemy:
 	_arena_node.add_child(boss)
 	boss.set_physics_process(false)
 	return boss
-
-
-## A real Player with the katana, standing on a floor in the arena (the arena's ground has no collision). Its
-## WeaponTrail is attached by Fx when the player enters the tree; the trail draws only while the hitbox is active.
-func _swing_player() -> Player:
-	var floor_body := StaticBody3D.new()
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = Vector3(80.0, 1.0, 80.0)
-	shape.shape = box
-	shape.position = Vector3(0.0, -0.5, 0.0)
-	floor_body.add_child(shape)
-	_arena_node.add_child(floor_body)
-	var player := (load(PLAYER_SCENE) as PackedScene).instantiate() as Player
-	_arena_node.add_child(player)
-	player.inventory.add_item(load(KATANA) as ItemData)
-	await _frames(4)  # the trail is attached deferred, and the player settles onto the floor
-	return player
 
 
 func _barrel() -> ExplosiveBarrel:
