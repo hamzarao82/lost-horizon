@@ -6,6 +6,8 @@
 - It instances `res://scenes/main/Main.tscn` directly (not Boot), with the WaveManager `autostart` off. `QuestManager` starts the opening itself when the Player appears.
 - Safety: `SaveManager.test_mode` is set first, so the real save file is never read or written.
 - Failsafe: quits after 240 s of game time, or with an error if the opening never starts within 30 s.
+- Skip buttons: the recorder hides every Button of `OpeningCinematic` and `OpeningBeach` each frame, so the video never shows Skip. The game's scripts are not changed.
+- Camera: the recorder steps `OpeningCinematic` itself (its own `_process` is turned off, `advance()` is called instead). After each step, a camera inside the hull's keep-out box (|x| < 1.3, z between -3.6 and 2.8, y < 2.0, boat-local) is moved out to the side it is on and re-aimed at the scene's `cam_look`. This stops the close-ups from clipping into the bow and windshield. The timeline data and the game's camera code are unchanged.
 
 Command (run from the repo root, or use the script):
 

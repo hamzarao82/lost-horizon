@@ -14,10 +14,17 @@ const FAILSAFE_SECONDS: float = 240.0
 ## If the opening has not started this long after Main is added, something is wrong: stop instead of hanging.
 const INTRO_START_TIMEOUT_SECONDS: float = 30.0
 const MAIN_SCENE: String = "res://scenes/main/Main.tscn"
+## Keep-out box for the cinematic camera, in boat-local space (bow at -z; see OpeningArt.HULL_OUTLINE, DECK_Y 0.3,
+## windshield top about 1.6). A camera inside it was clipping into the bow and windshield in the first recording.
+const HULL_HALF_WIDTH: float = 1.3
+const HULL_Z_MIN: float = -3.6
+const HULL_Z_MAX: float = 2.8
+const HULL_TOP_Y: float = 2.0
 
 enum Phase { TITLE, GAME, END_CARD, DONE }
 
 var _phase: int = Phase.TITLE
+var _driven_cinematic: OpeningCinematic = null
 var _elapsed: float = 0.0  # game time of this recording (fixed-fps: one frame = one step)
 var _phase_time: float = 0.0
 var _cinematic_seen: bool = false
@@ -57,6 +64,8 @@ func _process(delta: float) -> void:
 			if _phase_time >= TITLE_SECONDS:
 				_start_game()
 		Phase.GAME:
+			_drive_cinematic(delta)
+			_hide_skip_buttons()
 			_watch_opening()
 		Phase.END_CARD:
 			_caption_rect.modulate.a = _fade_alpha(_phase_time, CAPTION_SECONDS, CAPTION_FADE_SECONDS)
@@ -84,6 +93,50 @@ func _start_game() -> void:
 		waves.autostart = false
 	_main = main
 	add_child(main)
+
+
+## Steps the cinematic from this script instead of its own _process, so the camera guard below runs after the
+## timeline has placed the camera and before the frame is drawn. Game code is not changed: only its process is paused.
+func _drive_cinematic(delta: float) -> void:
+	var cin: OpeningCinematic = null
+	for child in get_tree().root.get_children():
+		if child is OpeningCinematic:
+			cin = child
+	if cin == null or cin.is_done:
+		return
+	if cin != _driven_cinematic:
+		_driven_cinematic = cin
+		cin.set_process(false)
+	cin.advance(delta)
+	_guard_cinematic_camera(cin)
+
+
+## Moves a camera that is inside the hull's keep-out box out to the side it is on, and re-aims it at the current
+## scene's look target. Only the recorder does this; the cinematic's own timeline and framing are untouched.
+func _guard_cinematic_camera(cin: OpeningCinematic) -> void:
+	var cam := cin.get("_cam") as Camera3D
+	var boat := cin.get("_boat") as Node3D
+	if cam == null or boat == null:
+		return
+	var local := boat.to_local(cam.global_position)
+	if absf(local.x) >= HULL_HALF_WIDTH or local.z < HULL_Z_MIN or local.z > HULL_Z_MAX or local.y >= HULL_TOP_Y:
+		return
+	var side := 1.0 if local.x >= 0.0 else -1.0
+	local.x = side * HULL_HALF_WIDTH
+	cam.global_position = boat.to_global(local)
+	var scene_id := cin.current_scene_id()
+	for scene: Dictionary in OpeningTimeline.SCENES:
+		if scene["id"] == scene_id:
+			cam.look_at(boat.to_global(scene["cam_look"]), Vector3.UP)
+			break
+
+
+## The Skip buttons of the opening (the cinematic's and the beach's) are not part of the video.
+func _hide_skip_buttons() -> void:
+	for node in get_tree().root.get_children():
+		if node is OpeningCinematic or node is OpeningBeach:
+			for button in node.find_children("*", "Button", true, false):
+				(button as Button).visible = false
 
 
 ## The opening is over when its OpeningBeach has been seen and then freed (it frees itself after handing off).
