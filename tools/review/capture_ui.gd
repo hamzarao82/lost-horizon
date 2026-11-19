@@ -28,6 +28,8 @@ var _entries: Array[Dictionary] = []
 ## Every screen the capture produces, in capture order: id (file-safe), name, the script it comes from.
 const SCREENS: Array[Dictionary] = [
 	{"id": "main_menu", "name": "Main menu", "script": "res://scripts/ui/main_menu.gd"},
+	{"id": "menu_embers", "name": "Main menu: embers and scan band (on their own)", "script": "res://scripts/ui/menu_embers.gd"},
+	{"id": "menu_hero", "name": "Main menu: hero figure (on its own)", "script": "res://scripts/ui/menu_hero.gd"},
 	{"id": "main_menu_settings", "name": "Main menu: settings", "script": "res://scripts/ui/settings_page.gd"},
 	{"id": "key_bindings", "name": "Key bindings (from the main menu)", "script": "res://scripts/ui/rebind_panel.gd"},
 	{"id": "credits", "name": "Credits", "script": "res://scripts/ui/main_menu.gd"},
@@ -43,6 +45,7 @@ const SCREENS: Array[Dictionary] = [
 	{"id": "hud_boss_telegraph", "name": "HUD: boss bar with attack telegraph", "script": "res://scripts/ui/hud.gd"},
 	{"id": "touch_controls", "name": "Touch controls (forced on for the capture)", "script": "res://scripts/ui/touch_controls.gd"},
 	{"id": "perf_overlay", "name": "FPS / performance readout", "script": "res://scripts/ui/perf_overlay.gd"},
+	{"id": "objective_pointer", "name": "Objective pointer: compass arrow with distance (on its own)", "script": "res://scripts/ui/objective_pointer.gd"},
 	{"id": "pause_menu", "name": "Pause menu", "script": "res://scripts/ui/pause_menu.gd"},
 	{"id": "pause_settings", "name": "Pause menu: settings", "script": "res://scripts/ui/settings_page.gd"},
 	{"id": "pause_key_bindings", "name": "Pause menu: key bindings", "script": "res://scripts/ui/rebind_panel.gd"},
@@ -72,7 +75,6 @@ const EXCLUDED: Dictionary = {
 	"res://scripts/ui/damage_direction.gd": "drawn in the HUD; captured as the damage direction effect in capture_fx.gd",
 	"res://scripts/ui/elite_bar.gd": "a 3D bar over an enemy; captured as the elite bar effect in capture_fx.gd",
 	"res://scripts/ui/telegraph_indicator.gd": "the strip under the boss bar; in hud_boss_telegraph and the telegraph effect",
-	"res://scripts/ui/objective_pointer.gd": "compass arrow owned by the HUD; shows only while an objective is off screen",
 	"res://scripts/ui/hud_bar.gd": "widget inside the HUD (health, armor, stamina bars)",
 	"res://scripts/ui/hud_icons.gd": "icon drawing helper used by the HUD",
 	"res://scripts/ui/hud_teleport.gd": "teleport charge widget inside the HUD",
@@ -80,8 +82,6 @@ const EXCLUDED: Dictionary = {
 	"res://scripts/ui/hud_widgets.gd": "equipment panel inside the HUD (top right of hud_normal)",
 	"res://scripts/ui/item_details_panel.gd": "details panel inside the inventory screen",
 	"res://scripts/ui/map_canvas.gd": "the drawing surface inside the map screen",
-	"res://scripts/ui/menu_embers.gd": "animated background of the main menu",
-	"res://scripts/ui/menu_hero.gd": "character figure on the main menu",
 	"res://scripts/ui/menu_storm.gd": "storm background of the main menu",
 	"res://scripts/ui/region_label.gd": "text helper (area names), no visuals of its own",
 	"res://scripts/ui/rpg_screen.gd": "base class of the RPG screens (their frame is in every RPG capture)",
@@ -167,6 +167,7 @@ func _run() -> void:
 
 	saves.write_data(_save_data())
 	await _menu_screens()
+	await _standalone_screens()
 	saves.delete_save()
 	saves.reset_runtime_state()
 
@@ -225,6 +226,109 @@ func _menu_screens() -> void:
 	await _frames(4)
 
 
+# --- parts of the menu and the HUD shown on their own --------------------------------------------------
+
+## A full-window Control in the main menu's background colour, to show one menu part on its own.
+func _menu_backdrop() -> Control:
+	var backdrop := Control.new()
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var background := ColorRect.new()
+	background.color = Color(0.04, 0.05, 0.07)
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	backdrop.add_child(background)
+	get_tree().root.add_child(backdrop)
+	return backdrop
+
+
+func _standalone_screens() -> void:
+	# Embers: a few dozen drift up from the bottom edge, so wait long enough for them to fill the frame.
+	var embers_backdrop := _menu_backdrop()
+	embers_backdrop.add_child(MenuEmbers.new())
+	await _frames(60)
+	await _shot("menu_embers", "res://scripts/ui/menu_embers.gd")
+	embers_backdrop.queue_free()
+	await _frames(2)
+
+	# Hero: the real player model in its own viewport. Not built on headless, web or the LOW quality preset.
+	var hero_backdrop := _menu_backdrop()
+	var hero := MenuHero.new()
+	hero_backdrop.add_child(hero)
+	await _frames(30)
+	if hero.active:
+		await _shot("menu_hero", "res://scripts/ui/menu_hero.gd")
+	else:
+		_skip("menu_hero", "res://scripts/ui/menu_hero.gd",
+				"the hero is not built here (headless, web or the LOW quality preset)")
+	hero_backdrop.queue_free()
+	await _frames(2)
+
+	await _objective_pointer_shot()
+
+
+## The compass arrow on its own: a Player marker at the origin, a camera looking down -z, and a target 30 m to
+## the right. The HUD owns this node in play; here its target is set by hand because no quest runs in the capture.
+func _objective_pointer_shot() -> void:
+	var world := Node3D.new()
+	world.name = "PointerWorld"
+	get_tree().root.add_child(world)
+	var sky := WorldEnvironment.new()
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.55, 0.7, 0.85)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.85, 0.85, 0.85)
+	sky.environment = env
+	world.add_child(sky)
+	var player := Node3D.new()
+	player.add_to_group("player")
+	world.add_child(player)
+	var cam := Camera3D.new()
+	world.add_child(cam)
+	cam.position = Vector3(0.0, 1.8, 6.0)
+	cam.look_at(Vector3(0.0, 1.8, 0.0))
+	cam.current = true
+	var pointer := ObjectivePointer.new()
+	get_tree().root.add_child(pointer)
+	# _resolve_target would clear a hand-set target every 0.25 s (no quest is running here), so stop its refresh.
+	pointer.set("_refresh", 1.0e9)
+	pointer.target = Vector3(30.0, 0.0, 0.0)
+	pointer.label = "Radio"
+	await _shot("objective_pointer", "res://scripts/ui/objective_pointer.gd")
+	pointer.queue_free()
+	world.queue_free()
+	await _frames(4)
+
+
+## Puts the HUD and the RPG notifications back to rest before a HUD shot: the level-up banner, loot and credit
+## toasts, the HUD's own banner (wave, quest), toast and location label, and any queued banner. Only the state
+## the nodes already hold is changed; no game script is edited.
+func _clear_feedback(hud: Node, notes: Node) -> void:
+	if notes != null:
+		var tween := notes.get("_banner_tween") as Tween
+		if tween != null and tween.is_valid():
+			tween.kill()
+		var banner := notes.get("_banner") as Label
+		if banner != null:
+			banner.text = ""
+			banner.modulate.a = 0.0
+		var toasts := notes.get("_toasts") as Node
+		if toasts != null:
+			for toast in toasts.get_children():
+				toasts.remove_child(toast)
+				toast.queue_free()
+	if hud != null:
+		(hud.get("_banner_queue") as Array).clear()
+		hud.set("_banner_time", 0.0)
+		(hud.get("_banner") as Label).visible = false
+		hud.set("_toast_time", 0.0)
+		(hud.get("_toast") as Label).visible = false
+		hud.set("_location_time", 0.0)
+		hud.set("_last_location", "")
+		(hud.get("_location_label") as Label).visible = false
+
+
 # --- the real world: HUD, pause menu, RPG screens, death and results ------------------------------------
 
 func _world_screens() -> void:
@@ -259,21 +363,28 @@ func _world_screens() -> void:
 	var notes: Node = pause.get("_notifications")
 	var waves := main.get_node("WaveManager") as WaveManager
 
+	# Every HUD shot starts from _clear_feedback, so the level-up banner from the XP above (and any other
+	# toast or banner) cannot linger into it: each shot shows only the banner it is named for.
+	_clear_feedback(hud, notes)
 	await _shot("hud_normal", "res://scripts/ui/hud.gd")
 
+	_clear_feedback(hud, notes)
 	hud.show_location("Outpost 17")
 	await _frames(4)
 	await _shot("hud_location", "res://scripts/ui/hud.gd")
 
+	_clear_feedback(hud, notes)
 	hud._show_toast("Medkit added to the bag (2 left)", Color(0.5, 0.85, 1.0))
 	await _frames(2)
 	await _shot("hud_message_toast", "res://scripts/ui/hud.gd")
 
 	if notes != null:
+		_clear_feedback(hud, notes)
 		notes.notify_loot(load(ITEMS + "claymore.tres"))
 		inv.add_currency(37)
 		await _frames(2)
 		await _shot("rpg_toast", "res://scripts/ui/rpg_notifications.gd")
+		_clear_feedback(hud, notes)  # the loot toasts go too, so the level banner is the only thing in its shot
 		notes.notify_level(7)
 		await _frames(2)
 		await _shot("rpg_level_banner", "res://scripts/ui/rpg_notifications.gd")
@@ -281,15 +392,18 @@ func _world_screens() -> void:
 		_skip("rpg_toast", "res://scripts/ui/rpg_notifications.gd", "the pause menu has no notifications node")
 		_skip("rpg_level_banner", "res://scripts/ui/rpg_notifications.gd", "the pause menu has no notifications node")
 
+	_clear_feedback(hud, notes)
 	player.health.health = player.health.max_health * 0.2
 	await _frames(20)
 	await _shot("hud_low_health", "res://scripts/ui/hud.gd")
 	player.health.health = player.health.max_health
 
+	_clear_feedback(hud, notes)
 	hud._damage_dir.on_hit(player.global_position, player.global_position + Vector3(-8.0, 0.0, 0.0))
 	await _frames(3)
 	await _shot("hud_damage_direction", "res://scripts/ui/hud.gd")
 
+	_clear_feedback(hud, notes)
 	waves.start_wave_at(1)
 	await _seconds(2.5)
 	await _shot("hud_wave_counter", "res://scripts/ui/hud.gd")
@@ -297,12 +411,13 @@ func _world_screens() -> void:
 		enemy.queue_free()
 	await _frames(4)
 
-	await _boss_telegraph_shot(main, player)
+	await _boss_telegraph_shot(main, player, hud, notes)
 
 	# The game shows these only on touch devices; force_visible is the node's own switch for that.
 	var touch := main.get_node("TouchLayer/TouchControls") as TouchControls
 	touch.force_visible = true
 	touch.visible = true
+	_clear_feedback(hud, notes)
 	await _frames(20)
 	await _shot("touch_controls", "res://scripts/ui/touch_controls.gd")
 	touch.force_visible = false
@@ -310,10 +425,12 @@ func _world_screens() -> void:
 
 	var perf := main.get_node("PerfOverlay") as CanvasLayer
 	perf.visible = true
+	_clear_feedback(hud, notes)
 	await _frames(20)
 	await _shot("perf_overlay", "res://scripts/ui/perf_overlay.gd")
 	perf.visible = false
 
+	_clear_feedback(hud, notes)
 	pause.open()
 	await _shot("pause_menu", "res://scripts/ui/pause_menu.gd")
 	var settings: Node = pause.get("_settings_page")
@@ -360,7 +477,7 @@ func _world_screens() -> void:
 
 
 ## The HUD boss bar and the telegraph strip, with a real Warden in its attack windup (AI paused, state set).
-func _boss_telegraph_shot(main: Node, player: Player) -> void:
+func _boss_telegraph_shot(main: Node, player: Player, hud: Node, notes: Node) -> void:
 	var warden := (load(WARDEN_SCENE) as PackedScene).instantiate() as Enemy
 	warden.position = player.global_position + Vector3(0.0, 0.0, -7.0)
 	main.add_child(warden)
@@ -370,6 +487,8 @@ func _boss_telegraph_shot(main: Node, player: Player) -> void:
 	warden.state = Enemy.State.ATTACK
 	warden.set("_attack_frames", swing.startup_frames * 0.55)
 	await _seconds(0.6)
+	# The boss encounter itself raises a save toast ("Progress saved"); this shot shows the boss bar only.
+	_clear_feedback(hud, notes)
 	await _shot("hud_boss_telegraph", "res://scripts/ui/hud.gd")
 	warden.queue_free()
 	await _frames(4)

@@ -52,8 +52,8 @@ const EFFECTS: Array[Dictionary] = [
 const SKIPPED: Array[Dictionary] = [
 	{"id": "hit_stop", "name": "Hit stop (time freeze)", "source": "res://scripts/fx/hit_stop.gd",
 		"reason": "a time freeze with no picture of its own; it is felt in play, not seen in a still arena"},
-	{"id": "weapon_trail", "name": "Weapon trail (swing arc)", "source": "res://scripts/fx/weapon_trail.gd",
-		"reason": "drawn only while a real character swings a weapon with an active hitbox; needs a running fight"},
+	{"id": "weapon_trail", "name": "Weapon trail: light 1 swing with the katana", "source": "res://scripts/fx/weapon_trail.gd",
+		"reason": "the trail ribbon is not readable in a still filmstrip at this camera; verify it in play (a sample probe showed it draws for ~0.25 s per swing)"},
 ]
 
 var _tag: Label

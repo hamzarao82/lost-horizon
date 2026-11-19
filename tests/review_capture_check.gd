@@ -49,6 +49,12 @@ func _run() -> void:
 	var ui_consts := ui_script.get_script_constant_map()
 	var fx_consts := fx_script.get_script_constant_map()
 
+	var ui_source := FileAccess.get_file_as_string(CAPTURE_UI)
+	_check(ui_source.contains("func _clear_feedback("), "capture_ui has the HUD feedback reset (_clear_feedback)")
+	_check(ui_source.contains("_clear_feedback(hud, notes)") and ui_source.count("_clear_feedback(hud, notes)") >= 10,
+			"every HUD shot starts from _clear_feedback")
+	_check(ui_source.contains("func _objective_pointer_shot(") and ui_source.contains("func _standalone_screens("),
+			"capture_ui has the standalone shots (objective pointer, menu embers, menu hero)")
 	_test_ui(ui_consts)
 	_test_fx(fx_consts)
 
@@ -100,6 +106,11 @@ func _test_ui(consts: Dictionary) -> void:
 		_check(String(excluded[path]).length() > 10, "excluded %s has a reason" % path.get_file())
 		_check(not script_paths.has(path), "excluded %s is not also a screen" % path.get_file())
 
+	# The parts that now have their own capture (they were excluded before): screens, and no longer excluded.
+	for own_path in ["res://scripts/ui/objective_pointer.gd", "res://scripts/ui/menu_embers.gd", "res://scripts/ui/menu_hero.gd"]:
+		_check(script_paths.has(own_path), "ui %s is captured on its own" % own_path.get_file())
+		_check(not excluded.has(own_path), "ui %s is no longer excluded" % own_path.get_file())
+
 
 func _test_fx(consts: Dictionary) -> void:
 	print("Effects (capture_fx.gd)")
@@ -129,6 +140,14 @@ func _test_fx(consts: Dictionary) -> void:
 			sources[source] = true
 	for skip: Dictionary in skipped:
 		_check(String(skip["reason"]).length() > 10, "skipped fx %s has a reason" % skip["id"])
+	var effect_ids: Array = []
+	for effect: Dictionary in effects:
+		effect_ids.append(effect["id"])
+	var skipped_ids: Array = []
+	for skip: Dictionary in skipped:
+		skipped_ids.append(skip["id"])
+	_check(skipped_ids.has("weapon_trail") and not effect_ids.has("weapon_trail"),
+			"weapon_trail is skipped with a reason, not captured as a PNG")
 
 	# Completeness: every effect script in scripts/fx is captured or skipped with a reason.
 	for file_path in _gd_files("res://scripts/fx"):
